@@ -1,0 +1,4 @@
+# extensions
+*.go
+*.mod
+*.sum
