@@ -1,10 +1,10 @@
 package main
 
 import (
-	"lynx/cmd"
+	"lynx/cmd/root"
 )
 
 func main() {
 	// Execute CLI commands
-	cmd.Execute()
+	root.Execute()
 }

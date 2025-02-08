@@ -1,9 +1,9 @@
-package cmd
+package root
 
 import (
 	"fmt"
+	"lynx/internal"
 
-	"github.com/fatih/color"
 	"github.com/spf13/cobra"
 )
 
@@ -13,12 +13,9 @@ var rootCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		// If no arguments are provided, display the help message
 		if len(args) == 0 {
-			title := color.New(color.FgCyan, color.Bold).SprintFunc()
-			option := color.New(color.FgYellow).SprintFunc()
-
-			fmt.Println(title("Usage: lynx <command> [flags]\n"))
-			fmt.Println(option("Use 'lynx -h' or 'lynx --help' to see all available commands."))
-			fmt.Println(option("For specific command help, use 'lynx <command> -h'."))
+			fmt.Println(internal.Color_Title("Usage: lynx <command> [flags]\n"))
+			fmt.Println(internal.Color_Option("Use 'lynx -h' or 'lynx --help' to see all available commands."))
+			fmt.Println(internal.Color_Option("For specific command help, use 'lynx <command> -h'."))
 			return
 		}
 
@@ -26,6 +23,7 @@ var rootCmd = &cobra.Command{
 	},
 }
 
+// Execute runs the CLI
 func Execute() error {
 	return rootCmd.Execute()
 }
