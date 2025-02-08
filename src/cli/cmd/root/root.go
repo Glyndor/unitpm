@@ -25,6 +25,10 @@ var rootCmd = &cobra.Command{
 
 // Execute runs the CLI
 func Execute() error {
+	if error := internal.Ensure_LynxHome(); error != nil {
+		internal.Error_Fatal(error)
+	}
+
 	return rootCmd.Execute()
 }
 
