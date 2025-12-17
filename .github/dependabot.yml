@@ -1,6 +1,14 @@
 version: 2
 updates:
-  - package-ecosystem: gomod
-    directory: "/src/cli"
+  # Go dependencies (go.mod / go.sum)
+  - package-ecosystem: "gomod"
+    directory: "/"
     schedule:
       interval: "daily"
+    open-pull-requests-limit: 10
+    labels:
+      - "dependencies"
+      - "go"
+    commit-message:
+      prefix: "deps(go)"
+      include: "scope"
