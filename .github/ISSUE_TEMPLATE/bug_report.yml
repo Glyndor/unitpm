@@ -1,0 +1,113 @@
+name: Bug report
+description: Report a reproducible problem in Lynx
+title: "bug: "
+labels:
+  - bug
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for taking the time to report a bug.
+        Please provide as much detail as possible to help us reproduce
+        and fix the issue efficiently.
+
+  - type: textarea
+    id: summary
+    attributes:
+      label: Summary
+      description: |
+        Provide a clear and concise description of the bug.
+        What is happening, and what did you expect to happen instead?
+      placeholder: Describe the issue clearly.
+    validations:
+      required: true
+
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: |
+        Please complete the following information:
+      placeholder: |
+        - Lynx version:
+        - Operating system (e.g. Debian 12, Ubuntu 22.04):
+        - Architecture (amd64, arm64, etc.):
+        - Go version (if built from source):
+        - Installation method (source, binary, other):
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: Provide a minimal and clear set of steps to reproduce the issue.
+      placeholder: |
+        1.
+        2.
+        3.
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+      description: Describe what you expected Lynx to do.
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior
+      description: Describe what actually happened.
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs / Output
+      description: |
+        If applicable, include relevant logs, command output, or error messages.
+        Please redact sensitive information.
+      render: text
+
+  - type: textarea
+    id: config
+    attributes:
+      label: Configuration
+      description: |
+        If relevant, include the configuration used.
+        Please redact secrets or sensitive data.
+      render: yaml
+
+  - type: checkboxes
+    id: impact
+    attributes:
+      label: Impact
+      description: Select all that apply.
+      options:
+        - label: Minor inconvenience
+        - label: Functional issue
+        - label: Security-related
+        - label: Data loss risk
+        - label: System instability
+
+  - type: textarea
+    id: additional
+    attributes:
+      label: Additional context
+      description: |
+        Add any other context, screenshots, or notes that may help
+        understand or reproduce the issue.
+
+  - type: checkboxes
+    id: contribution
+    attributes:
+      label: Contribution
+      options:
+        - label: I am willing to work on a fix and submit a Pull Request
+        - label: I am reporting only
