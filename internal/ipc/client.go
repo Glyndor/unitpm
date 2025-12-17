@@ -50,7 +50,7 @@ func (c *Client) Close() error {
 }
 
 // Call sends a request and waits for a response.
-func (c *Client) Call(command string, params interface{}, result interface{}) error {
+func (c *Client) Call(command string, params any, result any) error {
 	reqID := generateID()
 
 	if err := c.sendRequest(reqID, command, params); err != nil {
@@ -60,7 +60,7 @@ func (c *Client) Call(command string, params interface{}, result interface{}) er
 	return c.readResponse(reqID, result)
 }
 
-func (c *Client) sendRequest(reqID string, command string, params interface{}) error {
+func (c *Client) sendRequest(reqID string, command string, params any) error {
 	// Marshal params
 	var paramBytes json.RawMessage
 	if params != nil {
@@ -90,7 +90,7 @@ func (c *Client) sendRequest(reqID string, command string, params interface{}) e
 	return nil
 }
 
-func (c *Client) readResponse(reqID string, result interface{}) error {
+func (c *Client) readResponse(reqID string, result any) error {
 	// Read response
 	// Set read deadline
 	if err := c.conn.SetReadDeadline(time.Now().Add(5 * time.Second)); err != nil {

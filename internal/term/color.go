@@ -99,41 +99,41 @@ func (s *Styler) Dim(format string, a ...interface{}) string {
 // Package-level convenience functions using the default styler
 
 // RedString formats text in red using the default styler.
-func RedString(format string, a ...interface{}) string {
+func RedString(format string, a ...any) string {
 	return std.Red(format, a...)
 }
 
 // GreenString formats text in green using the default styler.
-func GreenString(format string, a ...interface{}) string {
+func GreenString(format string, a ...any) string {
 	return std.Green(format, a...)
 }
 
 // YellowString formats text in yellow using the default styler.
-func YellowString(format string, a ...interface{}) string {
+func YellowString(format string, a ...any) string {
 	return std.Yellow(format, a...)
 }
 
 // BlueString formats text in blue using the default styler.
-func BlueString(format string, a ...interface{}) string {
+func BlueString(format string, a ...any) string {
 	return std.Blue(format, a...)
 }
 
 // CyanString formats text in cyan using the default styler.
-func CyanString(format string, a ...interface{}) string {
+func CyanString(format string, a ...any) string {
 	return std.Cyan(format, a...)
 }
 
 // MagentaString formats text in magenta using the default styler.
-func MagentaString(format string, a ...interface{}) string {
+func MagentaString(format string, a ...any) string {
 	return std.Magenta(format, a...)
 }
 
 // BoldString formats text in bold using the default styler.
-func BoldString(format string, a ...interface{}) string {
+func BoldString(format string, a ...any) string {
 	return std.Bold(format, a...)
 }
 
 // DimString formats text in dim using the default styler.
-func DimString(format string, a ...interface{}) string {
+func DimString(format string, a ...any) string {
 	return std.Dim(format, a...)
 }
