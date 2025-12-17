@@ -1,0 +1,88 @@
+run:
+  timeout: 5m
+  tests: true
+  skip-dirs:
+    - vendor
+  skip-files:
+    - ".*_gen.go"
+
+output:
+  format: colored-line-number
+
+linters-settings:
+  govet:
+    enable:
+      - shadow
+
+  errcheck:
+    check-type-assertions: true
+    check-blank: true
+
+  revive:
+    rules:
+      - name: var-naming
+      - name: line-length-limit
+        arguments: [120]
+      - name: indent-error-flow
+      - name: early-return
+      - name: empty-lines
+
+  gocritic:
+    enabled-tags:
+      - diagnostic
+      - performance
+      - style
+    disabled-checks:
+      - unnamedResult
+      - hugeParam
+
+  gosec:
+    severity: medium
+    confidence: medium
+
+linters:
+  enable:
+    # Core correctness
+    - govet
+    - errcheck
+    - staticcheck
+    - ineffassign
+    - typecheck
+
+    # Style / maintainability
+    - revive
+    - gocritic
+    - gosimple
+    - unused
+
+    # Security (light)
+    - gosec
+
+  disable:
+    # Too noisy / opinionated
+    - funlen
+    - gocyclo
+    - dupl
+    - lll
+    - wsl
+    - nestif
+    - exhaustive
+    - exhaustruct
+    - godot
+    - gomnd
+
+issues:
+  exclude-use-default: false
+  max-issues-per-linter: 0
+  max-same-issues: 0
+
+  exclude-rules:
+    # Allow flexibility in early-stage code
+    - linters:
+        - revive
+      text: "var-naming"
+
+    # Allow os/exec usage (expected in Lynx)
+    - linters:
+        - gosec
+      text: "G204"
