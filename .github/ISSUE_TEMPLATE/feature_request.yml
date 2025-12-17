@@ -79,7 +79,7 @@ body:
     id: non_commercial
     attributes:
       label: Non-commercial alignment
-      description: Confirm that this feature proposal:
+      description: "Confirm that this feature proposal:"
       options:
         - label: Does not enable monetization, resale, or SaaS usage of Lynx
           required: true
