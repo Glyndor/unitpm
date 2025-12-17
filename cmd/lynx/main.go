@@ -61,7 +61,19 @@ func run() error {
 func renderTable(processes []types.ProcessInfo) {
 	// id | name | namespace | version | mode | pid | uptime | ↺ | status | cpu | mem | user | watch
 	headers := []string{
-		"id", "name", "namespace", "version", "mode", "pid", "uptime", "↺", "status", "cpu", "mem", "user", "watch",
+		term.MagentaString("id"),
+		term.MagentaString("name"),
+		term.MagentaString("namespace"),
+		term.MagentaString("version"),
+		term.MagentaString("mode"),
+		term.MagentaString("pid"),
+		term.MagentaString("uptime"),
+		term.MagentaString("↺"),
+		term.MagentaString("status"),
+		term.MagentaString("cpu"),
+		term.MagentaString("mem"),
+		term.MagentaString("user"),
+		term.MagentaString("watch"),
 	}
 
 	t := NewTable(headers)
@@ -160,24 +172,14 @@ func formatUptime(ms int64) string {
 
 // formatBytes formats bytes into human readable string (B, KB, MB, GB, TB).
 func formatBytes(b int64) string {
-	if b <= 0 {
-		return term.DimString("-")
-	}
-
 	const unit = 1024
 	if b < unit {
 		return fmt.Sprintf("%d B", b)
 	}
-
 	div, exp := int64(unit), 0
 	for n := b / unit; n >= unit; n /= unit {
 		div *= unit
 		exp++
 	}
-
-	value := float64(b) / float64(div)
-	suffix := "KMGT"[exp]
-
-	// Format with 1 decimal place
-	return fmt.Sprintf("%.1f %cB", value, suffix)
+	return fmt.Sprintf("%.1f %cB", float64(b)/float64(div), "KMGTPE"[exp])
 }
