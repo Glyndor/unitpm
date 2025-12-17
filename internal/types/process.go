@@ -4,17 +4,27 @@ package types
 type ProcessState string
 
 const (
-	StateRunning ProcessState = "running"
-	StateStopped ProcessState = "stopped"
-	StateFailed  ProcessState = "failed"
+	StateRunning   ProcessState = "running"
+	StateOnline    ProcessState = "online"
+	StateStopped   ProcessState = "stopped"
+	StateFailed    ProcessState = "failed"
+	StateRestarting ProcessState = "restarting"
 )
 
 // ProcessInfo represents the status of a managed process
+// It contains only raw data, no formatting.
 type ProcessInfo struct {
-	Name    string       `json:"name"`
-	State   ProcessState `json:"state"`
-	PID     int          `json:"pid,omitempty"`
-	Uptime  string       `json:"uptime,omitempty"` // For now string, could be duration/seconds
-	Memory  string       `json:"memory,omitempty"`
-	CPU     string       `json:"cpu,omitempty"`
+	ID          int          `json:"id"`
+	Name        string       `json:"name"`
+	Namespace   string       `json:"namespace"`
+	Version     string       `json:"version"`
+	Mode        string       `json:"mode"`
+	PID         int          `json:"pid"`
+	Uptime      int64        `json:"uptime_ms"`    // Milliseconds
+	Restarts    int          `json:"restarts"`
+	State       ProcessState `json:"state"`
+	CPU         float64      `json:"cpu"`          // Percentage 0.0-100.0
+	Memory      int64        `json:"memory_bytes"` // Bytes
+	User        string       `json:"user"`
+	Watch       bool         `json:"watch"`
 }

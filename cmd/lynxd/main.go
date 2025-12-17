@@ -21,29 +21,55 @@ func main() {
 		return json.Marshal(map[string]string{"response": "pong"})
 	})
 
-	// Register status handler
-	// Returns a list of processes with their status
-	server.Register("status", func(params json.RawMessage) (json.RawMessage, error) {
+	// Register list handler (replacing status)
+	// Returns a list of processes with their detailed status
+	server.Register("list", func(params json.RawMessage) (json.RawMessage, error) {
 		// Mock data for now
 		processes := []types.ProcessInfo{
 			{
-				Name:   "web-api",
-				State:  types.StateRunning,
-				PID:    1234,
-				Uptime: "2h 15m",
-				Memory: "128MB",
-				CPU:    "0.5%",
+				ID:        0,
+				Name:      "web-api",
+				Namespace: "default",
+				Version:   "1.0.0",
+				Mode:      "fork",
+				PID:       35711,
+				Uptime:    7200000, // 2 hours
+				Restarts:  3,
+				State:     types.StateOnline,
+				CPU:       0.0,
+				Memory:    10066329, // ~10MB
+				User:      "svc-web",
+				Watch:     false,
 			},
 			{
-				Name:   "worker-queue",
-				State:  types.StateStopped,
-				Uptime: "0s",
+				ID:        1,
+				Name:      "worker-queue",
+				Namespace: "default",
+				Version:   "1.0.2",
+				Mode:      "cluster",
+				PID:       0,
+				Uptime:    0,
+				Restarts:  10,
+				State:     types.StateStopped,
+				CPU:       0.0,
+				Memory:    0,
+				User:      "root",
+				Watch:     true,
 			},
 			{
-				Name:   "db-proxy",
-				State:  types.StateFailed,
-				PID:    0,
-				Uptime: "5m", // Maybe it failed 5m ago
+				ID:        2,
+				Name:      "db-proxy",
+				Namespace: "db",
+				Version:   "0.5.0",
+				Mode:      "fork",
+				PID:       0,
+				Uptime:    300000, // 5 mins
+				Restarts:  0,
+				State:     types.StateFailed,
+				CPU:       0.0,
+				Memory:    0,
+				User:      "db-user",
+				Watch:     false,
 			},
 		}
 		return json.Marshal(processes)
