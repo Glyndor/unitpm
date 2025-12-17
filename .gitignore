@@ -1,0 +1,49 @@
+# =====================
+# Go
+# =====================
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.out
+*.test
+
+# Build output
+/bin/
+/dist/
+/build/
+/release/
+
+# Go workspace
+go.work
+go.work.sum
+coverage.out
+
+# =====================
+# OS / Editor
+# =====================
+.DS_Store
+Thumbs.db
+*.log
+*.tmp
+*.swp
+*.swo
+
+# VS Code
+.vscode/
+
+# JetBrains
+.idea/
+*.iml
+
+# =====================
+# Secrets & Runtime
+# =====================
+.env
+.env.*
+*.key
+*.pem
+*.crt
+*.pid
+*.sock
