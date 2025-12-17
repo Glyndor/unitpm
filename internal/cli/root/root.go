@@ -17,7 +17,7 @@ func Execute() error {
 		return nil
 	}
 
-	command := os.Args[1]
+	command := normalizeCommand(os.Args[1])
 
 	// Common client setup
 	client, err := ipc.NewClient()
@@ -31,7 +31,7 @@ func Execute() error {
 	switch command {
 	case "ping":
 		return runPing(client)
-	case "status", "list", "ls", "ps":
+	case "list":
 		return list.Run(client)
 	case "start", "stop":
 		// Placeholder for start/stop commands as requested in the prompt
@@ -39,6 +39,15 @@ func Execute() error {
 		return fmt.Errorf("command '%s' not fully implemented in refactor yet", command)
 	default:
 		return fmt.Errorf("unknown command: %s", command)
+	}
+}
+
+func normalizeCommand(cmd string) string {
+	switch cmd {
+	case "ls", "ps", "status":
+		return "list"
+	default:
+		return cmd
 	}
 }
 
