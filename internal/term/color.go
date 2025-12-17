@@ -15,42 +15,90 @@ const (
 	Gray    = "\033[37m"
 )
 
-var enabled = false
+// Styler handles color formatting with cached capability detection
+type Styler struct {
+	enabled bool
+}
 
-func init() {
-	enabled = ShouldUseColor()
+// Global default styler
+var std = NewStyler()
+
+// NewStyler creates a new Styler with auto-detected color support
+func NewStyler() *Styler {
+	return &Styler{
+		enabled: ShouldUseColor(),
+	}
+}
+
+// Enabled returns true if colors are enabled for this styler
+func (s *Styler) Enabled() bool {
+	return s.enabled
 }
 
 // Colorize wraps text in color code if colors are enabled
-func Colorize(code, text string) string {
-	if !enabled {
+func (s *Styler) Colorize(code, text string) string {
+	if !s.enabled {
 		return text
 	}
 	return code + text + Reset
 }
 
-// Helper functions for common colors
+// Helper methods on Styler
+
+func (s *Styler) Red(format string, a ...interface{}) string {
+	return s.Colorize(Red, fmt.Sprintf(format, a...))
+}
+
+func (s *Styler) Green(format string, a ...interface{}) string {
+	return s.Colorize(Green, fmt.Sprintf(format, a...))
+}
+
+func (s *Styler) Yellow(format string, a ...interface{}) string {
+	return s.Colorize(Yellow, fmt.Sprintf(format, a...))
+}
+
+func (s *Styler) Blue(format string, a ...interface{}) string {
+	return s.Colorize(Blue, fmt.Sprintf(format, a...))
+}
+
+func (s *Styler) Cyan(format string, a ...interface{}) string {
+	return s.Colorize(Cyan, fmt.Sprintf(format, a...))
+}
+
+func (s *Styler) Magenta(format string, a ...interface{}) string {
+	return s.Colorize(Magenta, fmt.Sprintf(format, a...))
+}
+
+func (s *Styler) Bold(format string, a ...interface{}) string {
+	return s.Colorize(Bold, fmt.Sprintf(format, a...))
+}
+
+// Package-level convenience functions using the default styler
 
 func RedString(format string, a ...interface{}) string {
-	return Colorize(Red, fmt.Sprintf(format, a...))
+	return std.Red(format, a...)
 }
 
 func GreenString(format string, a ...interface{}) string {
-	return Colorize(Green, fmt.Sprintf(format, a...))
+	return std.Green(format, a...)
 }
 
 func YellowString(format string, a ...interface{}) string {
-	return Colorize(Yellow, fmt.Sprintf(format, a...))
+	return std.Yellow(format, a...)
 }
 
 func BlueString(format string, a ...interface{}) string {
-	return Colorize(Blue, fmt.Sprintf(format, a...))
+	return std.Blue(format, a...)
 }
 
 func CyanString(format string, a ...interface{}) string {
-	return Colorize(Cyan, fmt.Sprintf(format, a...))
+	return std.Cyan(format, a...)
+}
+
+func MagentaString(format string, a ...interface{}) string {
+	return std.Magenta(format, a...)
 }
 
 func BoldString(format string, a ...interface{}) string {
-	return Colorize(Bold, fmt.Sprintf(format, a...))
+	return std.Bold(format, a...)
 }

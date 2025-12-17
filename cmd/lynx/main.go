@@ -16,6 +16,7 @@ func main() {
 
 	command := os.Args[1]
 
+	// Use package-level convenience functions which use the global default Styler
 	if command == "ping" {
 		client, err := ipc.NewClient()
 		if err != nil {
