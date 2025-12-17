@@ -74,7 +74,7 @@ func (s *Server) acceptLoop() {
 			go s.handleConnection(conn)
 		default:
 			// Too many connections
-			conn.Close()
+			_ = conn.Close()
 		}
 	}
 }
@@ -82,7 +82,7 @@ func (s *Server) acceptLoop() {
 func (s *Server) handleConnection(conn net.Conn) {
 	defer func() {
 		<-s.sem // Release semaphore
-		conn.Close()
+		_ = conn.Close()
 	}()
 
 	if err := validateIdentity(conn); err != nil {

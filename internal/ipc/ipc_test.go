@@ -20,7 +20,7 @@ func TestIPC(t *testing.T) {
 	if err := server.Start(); err != nil {
 		t.Fatalf("Failed to start server: %v", err)
 	}
-	defer server.Close()
+	defer func() { _ = server.Close() }()
 
 	// Wait for server to be ready (usually instant but good to be safe)
 	time.Sleep(100 * time.Millisecond)
@@ -30,7 +30,7 @@ func TestIPC(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create client: %v", err)
 	}
-	defer client.Close()
+	defer func() { _ = client.Close() }()
 
 	// Test Ping
 	var result map[string]string

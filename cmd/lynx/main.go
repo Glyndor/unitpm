@@ -24,7 +24,9 @@ func main() {
 		fmt.Fprintf(os.Stderr, "%s\n", term.RedString("Failed to connect to daemon: %v", err))
 		os.Exit(1)
 	}
-	defer client.Close()
+	defer func() {
+		_ = client.Close()
+	}()
 
 	switch command {
 	case "ping":
@@ -67,11 +69,11 @@ func renderTable(processes []types.ProcessInfo) {
 		var statusStr string
 		switch p.State {
 		case types.StateRunning, types.StateOnline:
-			statusStr = term.GreenString(string(p.State))
+			statusStr = term.GreenString("%s", p.State)
 		case types.StateStopped, types.StateFailed:
-			statusStr = term.RedString(string(p.State))
+			statusStr = term.RedString("%s", p.State)
 		case types.StateRestarting:
-			statusStr = term.YellowString(string(p.State))
+			statusStr = term.YellowString("%s", p.State)
 		default:
 			statusStr = string(p.State)
 		}
@@ -90,7 +92,7 @@ func renderTable(processes []types.ProcessInfo) {
 			cpuStr = "0%"
 		}
 
-		watchStr := "disabled"
+		var watchStr string
 		if p.Watch {
 			watchStr = term.GreenString("enabled")
 		} else {
@@ -99,7 +101,7 @@ func renderTable(processes []types.ProcessInfo) {
 
 		row := []string{
 			fmt.Sprintf("%d", p.ID),
-			term.BoldString(p.Name),
+			term.BoldString("%s", p.Name),
 			p.Namespace,
 			p.Version,
 			p.Mode,

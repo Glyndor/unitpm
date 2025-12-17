@@ -88,5 +88,5 @@ func main() {
 	<-sigCh
 
 	log.Println("Shutting down...")
-	server.Close()
+	_ = server.Close()
 }
