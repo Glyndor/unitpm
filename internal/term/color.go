@@ -73,6 +73,10 @@ func (s *Styler) Bold(format string, a ...interface{}) string {
 	return s.Colorize(Bold, fmt.Sprintf(format, a...))
 }
 
+func (s *Styler) Dim(format string, a ...interface{}) string {
+	return s.Colorize(Dim, fmt.Sprintf(format, a...))
+}
+
 // Package-level convenience functions using the default styler
 
 func RedString(format string, a ...interface{}) string {
@@ -101,4 +105,8 @@ func MagentaString(format string, a ...interface{}) string {
 
 func BoldString(format string, a ...interface{}) string {
 	return std.Bold(format, a...)
+}
+
+func DimString(format string, a ...interface{}) string {
+	return std.Dim(format, a...)
 }

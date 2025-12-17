@@ -8,6 +8,7 @@ import (
 	"syscall"
 
 	"github.com/Jaro-c/Lynx/internal/ipc"
+	"github.com/Jaro-c/Lynx/internal/types"
 )
 
 func main() {
@@ -17,10 +18,35 @@ func main() {
 
 	// Register ping handler
 	server.Register("ping", func(params json.RawMessage) (json.RawMessage, error) {
-		// Verify params are empty or ignore them?
-		// "Validate all parameters"
-		// For ping, we expect no parameters or we can just ignore.
 		return json.Marshal(map[string]string{"response": "pong"})
+	})
+
+	// Register status handler
+	// Returns a list of processes with their status
+	server.Register("status", func(params json.RawMessage) (json.RawMessage, error) {
+		// Mock data for now
+		processes := []types.ProcessInfo{
+			{
+				Name:   "web-api",
+				State:  types.StateRunning,
+				PID:    1234,
+				Uptime: "2h 15m",
+				Memory: "128MB",
+				CPU:    "0.5%",
+			},
+			{
+				Name:   "worker-queue",
+				State:  types.StateStopped,
+				Uptime: "0s",
+			},
+			{
+				Name:   "db-proxy",
+				State:  types.StateFailed,
+				PID:    0,
+				Uptime: "5m", // Maybe it failed 5m ago
+			},
+		}
+		return json.Marshal(processes)
 	})
 
 	if err := server.Start(); err != nil {
