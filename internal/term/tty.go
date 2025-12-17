@@ -5,7 +5,7 @@ import (
 	"runtime"
 )
 
-// IsTTY returns true if stdout is a terminal
+// IsTTY returns true if stdout is a terminal.
 func IsTTY() bool {
 	fi, err := os.Stdout.Stat()
 	if err != nil {
@@ -14,7 +14,7 @@ func IsTTY() bool {
 	return (fi.Mode() & os.ModeCharDevice) != 0
 }
 
-// ShouldUseColor decides if we should use colors based on TTY and env vars
+// ShouldUseColor decides if we should use colors based on TTY and env vars.
 func ShouldUseColor() bool {
 	// 1. Check if it's a TTY
 	if !IsTTY() {

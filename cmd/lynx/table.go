@@ -24,6 +24,27 @@ func (t *Table) AddRow(row []string) {
 
 func (t *Table) Render() {
 	// Calculate column widths
+	widths := t.calculateWidths()
+
+	// Print Top Border
+	t.printBorder("┌", "┬", "┐", widths)
+
+	// Print Headers
+	t.printRow(t.Headers, widths)
+
+	// Print Header Separator
+	t.printBorder("├", "┼", "┤", widths)
+
+	// Print Rows
+	for _, row := range t.Rows {
+		t.printRow(row, widths)
+	}
+
+	// Print Bottom Border
+	t.printBorder("└", "┴", "┘", widths)
+}
+
+func (t *Table) calculateWidths() []int {
 	widths := make([]int, len(t.Headers))
 	for i, h := range t.Headers {
 		widths[i] = utf8.RuneCountInString(h)
@@ -38,62 +59,33 @@ func (t *Table) Render() {
 			}
 		}
 	}
+	return widths
+}
 
-	// Print Top Border
-	// ┌───┬───┐
-	fmt.Print("┌")
+func (t *Table) printBorder(left, mid, right string, widths []int) {
+	fmt.Print(left)
 	for i, w := range widths {
 		fmt.Print(strings.Repeat("─", w+2)) // +2 for padding
 		if i < len(widths)-1 {
-			fmt.Print("┬")
+			fmt.Print(mid)
 		}
 	}
-	fmt.Println("┐")
-
-	// Print Headers
-	fmt.Print("│")
-	for i, h := range t.Headers {
-		fmt.Printf(" %-*s │", widths[i], h)
-	}
-	fmt.Println()
-
-	// Print Header Separator
-	// ├───┼───┤
-	fmt.Print("├")
-	for i, w := range widths {
-		fmt.Print(strings.Repeat("─", w+2))
-		if i < len(widths)-1 {
-			fmt.Print("┼")
-		}
-	}
-	fmt.Println("┤")
-
-	// Print Rows
-	for _, row := range t.Rows {
-		fmt.Print("│")
-		for i, cell := range row {
-			// We need to pad manually because Printf padding counts ANSI codes as characters
-			// So we calculate the visible length
-			visibleLen := utf8.RuneCountInString(stripAnsi(cell))
-			padding := widths[i] - visibleLen
-			fmt.Printf(" %s%s │", cell, strings.Repeat(" ", padding))
-		}
-		fmt.Println()
-	}
-
-	// Print Bottom Border
-	// └───┴───┘
-	fmt.Print("└")
-	for i, w := range widths {
-		fmt.Print(strings.Repeat("─", w+2))
-		if i < len(widths)-1 {
-			fmt.Print("┴")
-		}
-	}
-	fmt.Println("┘")
+	fmt.Println(right)
 }
 
-// Simple ANSI stripper for length calculation
+func (t *Table) printRow(row []string, widths []int) {
+	fmt.Print("│")
+	for i, cell := range row {
+		// We need to pad manually because Printf padding counts ANSI codes as characters
+		// So we calculate the visible length
+		visibleLen := utf8.RuneCountInString(stripAnsi(cell))
+		padding := widths[i] - visibleLen
+		fmt.Printf(" %s%s │", cell, strings.Repeat(" ", padding))
+	}
+	fmt.Println()
+}
+
+// Simple ANSI stripper for length calculation.
 func stripAnsi(str string) string {
 	var ret strings.Builder
 	inSeq := false

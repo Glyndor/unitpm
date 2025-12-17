@@ -4,6 +4,7 @@ package main
 import (
 	"fmt"
 	"os"
+	"strconv"
 	"time"
 
 	"github.com/Jaro-c/Lynx/internal/ipc"
@@ -85,7 +86,7 @@ func renderTable(processes []types.ProcessInfo) {
 		}
 
 		// Formatting helpers
-		pidStr := fmt.Sprintf("%d", p.PID)
+		pidStr := strconv.Itoa(p.PID)
 		if p.PID == 0 {
 			pidStr = term.DimString("-")
 		}
@@ -106,14 +107,14 @@ func renderTable(processes []types.ProcessInfo) {
 		}
 
 		row := []string{
-			fmt.Sprintf("%d", p.ID),
+			strconv.Itoa(p.ID),
 			term.BoldString("%s", p.Name),
 			p.Namespace,
 			p.Version,
 			p.Mode,
 			pidStr,
 			uptimeStr,
-			fmt.Sprintf("%d", p.Restarts),
+			strconv.Itoa(p.Restarts),
 			statusStr,
 			cpuStr,
 			memStr,
@@ -126,7 +127,7 @@ func renderTable(processes []types.ProcessInfo) {
 	t.Render()
 }
 
-// formatUptime formats milliseconds into a human-readable string (max 2 units)
+// formatUptime formats milliseconds into a human-readable string (max 2 units).
 func formatUptime(ms int64) string {
 	if ms <= 0 {
 		return term.DimString("-")
@@ -162,7 +163,7 @@ func formatUptime(ms int64) string {
 	return fmt.Sprintf("%ds", seconds)
 }
 
-// formatBytes formats bytes into human readable string (B, KB, MB, GB, TB)
+// formatBytes formats bytes into human readable string (B, KB, MB, GB, TB).
 func formatBytes(b int64) string {
 	if b <= 0 {
 		return term.DimString("-")

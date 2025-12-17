@@ -6,6 +6,7 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net"
 	"time"
@@ -17,6 +18,8 @@ type Client struct {
 	scanner *bufio.Scanner
 	encoder *json.Encoder
 }
+
+const statusError = "error"
 
 // NewClient establishes a connection to the daemon.
 func NewClient() (*Client, error) {
@@ -46,10 +49,18 @@ func (c *Client) Close() error {
 	return c.conn.Close()
 }
 
-// Call sends a request and waits for a response
+// Call sends a request and waits for a response.
 func (c *Client) Call(command string, params interface{}, result interface{}) error {
 	reqID := generateID()
 
+	if err := c.sendRequest(reqID, command, params); err != nil {
+		return err
+	}
+
+	return c.readResponse(reqID, result)
+}
+
+func (c *Client) sendRequest(reqID string, command string, params interface{}) error {
 	// Marshal params
 	var paramBytes json.RawMessage
 	if params != nil {
@@ -76,7 +87,10 @@ func (c *Client) Call(command string, params interface{}, result interface{}) er
 	if err := c.encoder.Encode(req); err != nil {
 		return fmt.Errorf("send error: %w", err)
 	}
+	return nil
+}
 
+func (c *Client) readResponse(reqID string, result interface{}) error {
 	// Read response
 	// Set read deadline
 	if err := c.conn.SetReadDeadline(time.Now().Add(5 * time.Second)); err != nil {
@@ -87,7 +101,7 @@ func (c *Client) Call(command string, params interface{}, result interface{}) er
 		if err := c.scanner.Err(); err != nil {
 			return fmt.Errorf("receive error: %w", err)
 		}
-		return fmt.Errorf("connection closed by server")
+		return errors.New("connection closed by server")
 	}
 
 	var resp Response
@@ -95,15 +109,12 @@ func (c *Client) Call(command string, params interface{}, result interface{}) er
 		return fmt.Errorf("receive error (invalid json): %w", err)
 	}
 
-	if resp.ID != req.ID {
-		return fmt.Errorf("response ID mismatch: got %s, want %s", resp.ID, req.ID)
+	if resp.ID != reqID {
+		return fmt.Errorf("response ID mismatch: got %s, want %s", resp.ID, reqID)
 	}
 
-	if resp.Status == "error" {
-		if resp.Error != nil {
-			return fmt.Errorf("ipc error: [%s] %s", resp.Error.Code, resp.Error.Message)
-		}
-		return fmt.Errorf("unknown ipc error")
+	if err := c.checkStatus(&resp); err != nil {
+		return err
 	}
 
 	if result != nil && resp.Result != nil {
@@ -112,6 +123,16 @@ func (c *Client) Call(command string, params interface{}, result interface{}) er
 		}
 	}
 
+	return nil
+}
+
+func (c *Client) checkStatus(resp *Response) error {
+	if resp.Status == statusError {
+		if resp.Error != nil {
+			return fmt.Errorf("ipc error: [%s] %s", resp.Error.Code, resp.Error.Message)
+		}
+		return errors.New("unknown ipc error")
+	}
 	return nil
 }
 

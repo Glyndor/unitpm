@@ -8,7 +8,7 @@ import (
 	"runtime"
 )
 
-// GetSocketPath returns the OS-specific path for the IPC socket/pipe
+// GetSocketPath returns the OS-specific path for the IPC socket/pipe.
 func GetSocketPath() (string, error) {
 	u, err := user.Current()
 	if err != nil {
@@ -18,7 +18,7 @@ func GetSocketPath() (string, error) {
 	if runtime.GOOS == "windows" {
 		// Named pipe: \\.\pipe\lynx-<sid>
 		// using SID is safer than username (which can have spaces/backslashes)
-		return fmt.Sprintf(`\\.\pipe\lynx-%s`, u.Uid), nil
+		return `\\.\pipe\lynx-` + u.Uid, nil
 	}
 
 	// Unix
@@ -28,13 +28,13 @@ func GetSocketPath() (string, error) {
 	}
 
 	// Create a subdirectory for lynx
-	sockDir := filepath.Join(baseDir, fmt.Sprintf("lynx-%s", u.Uid))
+	sockDir := filepath.Join(baseDir, "lynx-"+u.Uid)
 
 	// Ensure directory exists with 0700
 	if err := os.MkdirAll(sockDir, 0700); err != nil {
 		return "", fmt.Errorf("failed to create socket directory: %w", err)
 	}
-	
+
 	// Enforce 0700 permissions
 	//nolint:gosec // 0700 is required for directory access (rwx------), 0600 (rw-------) would make it inaccessible
 	if err := os.Chmod(sockDir, 0700); err != nil {

@@ -11,8 +11,8 @@ func listen(path string) (net.Listener, error) {
 	// Remove existing socket if it exists
 	if _, err := os.Stat(path); err == nil {
 		if err := os.Remove(path); err != nil {
-            return nil, err
-        }
+			return nil, err
+		}
 	}
 
 	l, err := net.Listen("unix", path)

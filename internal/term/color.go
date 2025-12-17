@@ -5,48 +5,48 @@ import "fmt"
 
 const (
 	// Reset resets the terminal color.
-	Reset   = "\033[0m"
+	Reset = "\033[0m"
 	// Bold makes the text bold.
-	Bold    = "\033[1m"
+	Bold = "\033[1m"
 	// Dim makes the text dim.
-	Dim     = "\033[2m"
+	Dim = "\033[2m"
 	// Red makes the text red.
-	Red     = "\033[31m"
+	Red = "\033[31m"
 	// Green makes the text green.
-	Green   = "\033[32m"
+	Green = "\033[32m"
 	// Yellow makes the text yellow.
-	Yellow  = "\033[33m"
+	Yellow = "\033[33m"
 	// Blue makes the text blue.
-	Blue    = "\033[34m"
+	Blue = "\033[34m"
 	// Magenta makes the text magenta.
 	Magenta = "\033[35m"
 	// Cyan makes the text cyan.
-	Cyan    = "\033[36m"
+	Cyan = "\033[36m"
 	// Gray makes the text gray.
-	Gray    = "\033[37m"
+	Gray = "\033[37m"
 )
 
-// Styler handles color formatting with cached capability detection
+// Styler handles color formatting with cached capability detection.
 type Styler struct {
 	enabled bool
 }
 
-// Global default styler
+// Global default styler.
 var std = NewStyler()
 
-// NewStyler creates a new Styler with auto-detected color support
+// NewStyler creates a new Styler with auto-detected color support.
 func NewStyler() *Styler {
 	return &Styler{
 		enabled: ShouldUseColor(),
 	}
 }
 
-// Enabled returns true if colors are enabled for this styler
+// Enabled returns true if colors are enabled for this styler.
 func (s *Styler) Enabled() bool {
 	return s.enabled
 }
 
-// Colorize wraps text in color code if colors are enabled
+// Colorize wraps text in color code if colors are enabled.
 func (s *Styler) Colorize(code, text string) string {
 	if !s.enabled {
 		return text
