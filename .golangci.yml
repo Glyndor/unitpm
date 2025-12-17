@@ -40,6 +40,17 @@ linters-settings:
     severity: medium
     confidence: medium
 
+  depguard:
+    rules:
+      lynxd-no-presentation:
+        files:
+          - cmd/lynxd/**/*.go
+        deny:
+          - pkg: github.com/Jaro-c/Lynx/internal/term
+            desc: "lynxd must not depend on terminal/presentation code"
+          - pkg: text/tabwriter
+            desc: "lynxd must not render tables"
+
 linters:
   enable:
     # Core correctness
@@ -57,6 +68,9 @@ linters:
 
     # Security (light)
     - gosec
+
+    # Architecture guard (critical)
+    - depguard
 
   disable:
     # Too noisy / opinionated
