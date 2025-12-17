@@ -59,11 +59,6 @@ func run() error {
 }
 
 func renderTable(processes []types.ProcessInfo) {
-	if len(processes) == 0 {
-		fmt.Println("No processes managed.")
-		return
-	}
-
 	// id | name | namespace | version | mode | pid | uptime | ↺ | status | cpu | mem | user | watch
 	headers := []string{
 		"id", "name", "namespace", "version", "mode", "pid", "uptime", "↺", "status", "cpu", "mem", "user", "watch",
