@@ -31,7 +31,7 @@ func Execute() error {
 	switch command {
 	case "ping":
 		return runPing(client)
-	case "status", "list":
+	case "status", "list", "ls", "ps":
 		return list.Run(client)
 	case "start", "stop":
 		// Placeholder for start/stop commands as requested in the prompt
