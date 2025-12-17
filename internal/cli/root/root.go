@@ -15,7 +15,6 @@ const (
 	cmdList  = "list"
 	cmdStart = "start"
 	cmdStop  = "stop"
-	cmdPing  = "ping"
 )
 
 // Execute executes the root CLI command.
@@ -31,9 +30,15 @@ func Execute() error {
 
 	command := normalizeCommand(os.Args[1])
 
+	// Handle global help
+	if command == "-h" || command == "--help" {
+		printHelp(os.Stdout)
+		return nil
+	}
+
 	// Validate command before connecting
 	switch command {
-	case cmdPing, cmdList, cmdStart, cmdStop:
+	case cmdList, cmdStart, cmdStop:
 		// Valid command, proceed
 	default:
 		fmt.Fprintf(os.Stderr,
@@ -54,8 +59,6 @@ func Execute() error {
 	}()
 
 	switch command {
-	case cmdPing:
-		return runPing(client)
 	case cmdList:
 		return list.Run(client)
 	case cmdStart, cmdStop:
@@ -70,7 +73,7 @@ func Execute() error {
 
 func normalizeCommand(cmd string) string {
 	switch cmd {
-	case "ls", "ps", "status":
+	case "ls":
 		return cmdList
 	default:
 		return cmd
@@ -84,13 +87,4 @@ func printHelp(w io.Writer) {
 	fmt.Fprintf(w, "\n%s\n", term.CyanString("Get Help:"))
 	fmt.Fprintf(w, "  lynx --help\n")
 	fmt.Fprintf(w, "  lynx <command> --help\n")
-}
-
-func runPing(client *ipc.Client) error {
-	var result map[string]string
-	if err := client.Call("ping", nil, &result); err != nil {
-		return fmt.Errorf("ping failed: %w", err)
-	}
-	fmt.Printf("%s %s\n", term.GreenString("Success"), term.BoldString("pong"))
-	return nil
 }
