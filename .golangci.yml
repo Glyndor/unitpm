@@ -47,6 +47,10 @@ linters-settings:
       lynxd-no-presentation:
         files:
           - cmd/lynxd/**/*.go
+        allow:
+          - $gostd
+          - github.com/Jaro-c/Lynx/internal/ipc
+          - github.com/Jaro-c/Lynx/internal/types
         deny:
           - pkg: github.com/Jaro-c/Lynx/internal/term
             desc: "lynxd must not depend on terminal/presentation code"
@@ -73,7 +77,6 @@ linters:
     - depguard
 
   disable:
-    - depguard
     # Too noisy / opinionated
     - funlen
     - gocyclo
