@@ -138,6 +138,8 @@ func (c *Client) checkStatus(resp *Response) error {
 
 func generateID() string {
 	b := make([]byte, 8)
-	_, _ = rand.Read(b)
+	if _, err := rand.Read(b); err != nil {
+		panic(fmt.Sprintf("failed to generate random ID: %v", err))
+	}
 	return hex.EncodeToString(b)
 }

@@ -80,7 +80,10 @@ func main() {
 		log.Fatalf("Failed to start IPC server: %v", err)
 	}
 
-	path, _ := ipc.GetSocketPath()
+	path, err := ipc.GetSocketPath()
+	if err != nil {
+		log.Fatalf("Failed to get socket path: %v", err)
+	}
 	log.Printf("IPC server listening on %s", path)
 
 	// Wait for signal
