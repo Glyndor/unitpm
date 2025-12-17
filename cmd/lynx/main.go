@@ -5,6 +5,7 @@ import (
 	"os"
 
 	"github.com/Jaro-c/Lynx/internal/ipc"
+	"github.com/Jaro-c/Lynx/internal/term"
 )
 
 func main() {
@@ -18,20 +19,20 @@ func main() {
 	if command == "ping" {
 		client, err := ipc.NewClient()
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "Failed to connect to daemon: %v\n", err)
+			fmt.Fprintf(os.Stderr, "%s\n", term.RedString("Failed to connect to daemon: %v", err))
 			os.Exit(1)
 		}
 		defer client.Close()
 
 		var result map[string]string
 		if err := client.Call("ping", nil, &result); err != nil {
-			fmt.Fprintf(os.Stderr, "Ping failed: %v\n", err)
+			fmt.Fprintf(os.Stderr, "%s\n", term.RedString("Ping failed: %v", err))
 			os.Exit(1)
 		}
 
-		fmt.Printf("Ping response: %v\n", result)
+		fmt.Printf("%s %s\n", term.GreenString("Success"), term.BoldString("pong"))
 	} else {
-		fmt.Printf("Unknown command: %s\n", command)
+		fmt.Printf("%s\n", term.YellowString("Unknown command: %s", command))
 		os.Exit(1)
 	}
 }
