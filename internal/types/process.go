@@ -13,6 +13,8 @@ const (
 	StateStopped ProcessState = "stopped"
 	// StateFailed indicates the process has failed.
 	StateFailed ProcessState = "failed"
+	// StateExited indicates the process has exited normally.
+	StateExited ProcessState = "exited"
 	// StateRestarting indicates the process is restarting.
 	StateRestarting ProcessState = "restarting"
 )

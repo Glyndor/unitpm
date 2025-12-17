@@ -8,13 +8,14 @@ import (
 	"os/signal"
 	"syscall"
 
+	"github.com/Jaro-c/Lynx/internal/daemon"
 	"github.com/Jaro-c/Lynx/internal/ipc"
-	"github.com/Jaro-c/Lynx/internal/types"
 )
 
 func main() {
 	log.Println("lynxd starting...")
 
+	mgr := daemon.NewManager()
 	server := ipc.NewServer()
 
 	// Register ping handler
@@ -22,58 +23,44 @@ func main() {
 		return json.Marshal(map[string]string{"response": "pong"})
 	})
 
+	// Register start handler
+	server.Register("start", func(params json.RawMessage) (json.RawMessage, error) {
+		var args struct {
+			Name    string `json:"name"`
+			Command string `json:"command"`
+		}
+		if err := json.Unmarshal(params, &args); err != nil {
+			return nil, err
+		}
+
+		id, err := mgr.Start(args.Name, args.Command)
+		if err != nil {
+			return nil, err
+		}
+
+		return json.Marshal(map[string]int{"id": id})
+	})
+
+	// Register stop handler
+	server.Register("stop", func(params json.RawMessage) (json.RawMessage, error) {
+		var args struct {
+			ID int `json:"id"`
+		}
+		if err := json.Unmarshal(params, &args); err != nil {
+			return nil, err
+		}
+
+		if err := mgr.Stop(args.ID); err != nil {
+			return nil, err
+		}
+
+		return json.Marshal(map[string]string{"status": "stopped"})
+	})
+
 	// Register list handler (replacing status)
 	// Returns a list of processes with their detailed status
 	server.Register("list", func(_ json.RawMessage) (json.RawMessage, error) {
-		// Mock data for now
-		processes := []types.ProcessInfo{
-			{
-				ID:        0,
-				Name:      "web-api",
-				Namespace: "default",
-				Version:   "1.0.0",
-				Mode:      "fork",
-				PID:       35711,
-				Uptime:    7200000, // 2 hours
-				Restarts:  3,
-				State:     types.StateOnline,
-				CPU:       0.0,
-				Memory:    10066329, // ~10MB
-				User:      "svc-web",
-				Watch:     false,
-			},
-			{
-				ID:        1,
-				Name:      "worker-queue",
-				Namespace: "default",
-				Version:   "1.0.2",
-				Mode:      "cluster",
-				PID:       0,
-				Uptime:    0,
-				Restarts:  10,
-				State:     types.StateStopped,
-				CPU:       0.0,
-				Memory:    0,
-				User:      "root",
-				Watch:     true,
-			},
-			{
-				ID:        2,
-				Name:      "db-proxy",
-				Namespace: "db",
-				Version:   "0.5.0",
-				Mode:      "fork",
-				PID:       0,
-				Uptime:    300000, // 5 mins
-				Restarts:  0,
-				State:     types.StateFailed,
-				CPU:       0.0,
-				Memory:    0,
-				User:      "db-user",
-				Watch:     false,
-			},
-		}
-		return json.Marshal(processes)
+		return json.Marshal(mgr.List())
 	})
 
 	if err := server.Start(); err != nil {
@@ -92,5 +79,6 @@ func main() {
 	<-sigCh
 
 	log.Println("Shutting down...")
+	mgr.Shutdown()
 	_ = server.Close()
 }
