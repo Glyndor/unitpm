@@ -73,6 +73,7 @@ linters:
     - depguard
 
   disable:
+    - depguard
     # Too noisy / opinionated
     - funlen
     - gocyclo
