@@ -60,12 +60,10 @@ linters:
     - errcheck
     - staticcheck
     - ineffassign
-    - typecheck
 
     # Style / maintainability
     - revive
     - gocritic
-    - gosimple
     - unused
 
     # Security (light)
@@ -85,7 +83,6 @@ linters:
     - exhaustive
     - exhaustruct
     - godot
-    - gomnd
 
 issues:
   exclude-use-default: false
