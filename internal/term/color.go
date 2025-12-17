@@ -57,42 +57,42 @@ func (s *Styler) Colorize(code, text string) string {
 // Helper methods on Styler
 
 // Red formats text in red.
-func (s *Styler) Red(format string, a ...interface{}) string {
+func (s *Styler) Red(format string, a ...any) string {
 	return s.Colorize(Red, fmt.Sprintf(format, a...))
 }
 
 // Green formats text in green.
-func (s *Styler) Green(format string, a ...interface{}) string {
+func (s *Styler) Green(format string, a ...any) string {
 	return s.Colorize(Green, fmt.Sprintf(format, a...))
 }
 
 // Yellow formats text in yellow.
-func (s *Styler) Yellow(format string, a ...interface{}) string {
+func (s *Styler) Yellow(format string, a ...any) string {
 	return s.Colorize(Yellow, fmt.Sprintf(format, a...))
 }
 
 // Blue formats text in blue.
-func (s *Styler) Blue(format string, a ...interface{}) string {
+func (s *Styler) Blue(format string, a ...any) string {
 	return s.Colorize(Blue, fmt.Sprintf(format, a...))
 }
 
 // Cyan formats text in cyan.
-func (s *Styler) Cyan(format string, a ...interface{}) string {
+func (s *Styler) Cyan(format string, a ...any) string {
 	return s.Colorize(Cyan, fmt.Sprintf(format, a...))
 }
 
 // Magenta formats text in magenta.
-func (s *Styler) Magenta(format string, a ...interface{}) string {
+func (s *Styler) Magenta(format string, a ...any) string {
 	return s.Colorize(Magenta, fmt.Sprintf(format, a...))
 }
 
 // Bold formats text in bold.
-func (s *Styler) Bold(format string, a ...interface{}) string {
+func (s *Styler) Bold(format string, a ...any) string {
 	return s.Colorize(Bold, fmt.Sprintf(format, a...))
 }
 
 // Dim formats text in dim.
-func (s *Styler) Dim(format string, a ...interface{}) string {
+func (s *Styler) Dim(format string, a ...any) string {
 	return s.Colorize(Dim, fmt.Sprintf(format, a...))
 }
 
