@@ -1,0 +1,105 @@
+name: Feature request
+description: Propose a new feature or improvement for Lynx
+title: "feat: "
+labels:
+  - enhancement
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for proposing a feature for Lynx.
+        Please make sure the proposal aligns with the community-first,
+        non-commercial nature of the project.
+
+  - type: textarea
+    id: summary
+    attributes:
+      label: Summary
+      description: |
+        Provide a clear and concise description of the proposed feature.
+        What problem does it solve?
+      placeholder: Describe the feature briefly.
+    validations:
+      required: true
+
+  - type: textarea
+    id: motivation
+    attributes:
+      label: Motivation
+      description: |
+        Explain why this feature is needed.
+        What use case or limitation does it address?
+      placeholder: Describe the motivation and context.
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposed_solution
+    attributes:
+      label: Proposed solution
+      description: |
+        Describe the solution you are proposing.
+        Include design ideas, CLI flags, configuration changes, or behavior.
+      placeholder: Describe the proposed implementation or behavior.
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: |
+        Describe alternative solutions or approaches you have considered
+        and why they are less suitable.
+      placeholder: Describe alternatives, if any.
+
+  - type: checkboxes
+    id: scope
+    attributes:
+      label: Scope and impact
+      description: Select the option(s) that best describe this change.
+      options:
+        - label: Small enhancement
+        - label: Moderate change
+        - label: Significant architectural change
+        - label: Breaking change
+
+  - type: textarea
+    id: compatibility
+    attributes:
+      label: Compatibility considerations
+      description: |
+        Does this feature affect backward compatibility, existing
+        configuration files, systemd integration, process lifecycle,
+        or security/isolation guarantees?
+      placeholder: Describe compatibility implications.
+
+  - type: checkboxes
+    id: non_commercial
+    attributes:
+      label: Non-commercial alignment
+      description: Confirm that this feature proposal:
+      options:
+        - label: Does not enable monetization, resale, or SaaS usage of Lynx
+          required: true
+        - label: Does not introduce proprietary or closed-source dependencies
+          required: true
+        - label: Aligns with the community-first nature of the project
+          required: true
+
+  - type: textarea
+    id: additional
+    attributes:
+      label: Additional context
+      description: |
+        Add any diagrams, examples, references, or notes that may help
+        evaluate this feature request.
+
+  - type: checkboxes
+    id: contribution
+    attributes:
+      label: Contribution
+      options:
+        - label: I am willing to implement this feature and submit a Pull Request
+        - label: I am proposing the idea only
