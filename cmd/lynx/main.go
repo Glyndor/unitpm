@@ -12,9 +12,6 @@ import (
 
 func main() {
 	if len(os.Args) < 2 {
-		// Default to list if no args provided? PM2 does this.
-		// Prompt says "lynx list", let's require "list" for now or show usage.
-		// "The command: lynx list Must display..."
 		fmt.Println("Usage: lynx <command>")
 		os.Exit(1)
 	}
@@ -38,7 +35,7 @@ func main() {
 		}
 		fmt.Printf("%s %s\n", term.GreenString("Success"), term.BoldString("pong"))
 
-	case "status", "list": // Alias status to list for backward compatibility/convenience
+	case "status", "list":
 		var processes []types.ProcessInfo
 		if err := client.Call("list", nil, &processes); err != nil {
 			fmt.Fprintf(os.Stderr, "%s\n", term.RedString("List failed: %v", err))
@@ -85,11 +82,7 @@ func renderTable(processes []types.ProcessInfo) {
 			pidStr = term.DimString("-")
 		}
 
-		uptimeStr := formatDuration(time.Duration(p.Uptime) * time.Millisecond)
-		if p.Uptime == 0 {
-			uptimeStr = term.DimString("-")
-		}
-
+		uptimeStr := formatUptime(p.Uptime)
 		memStr := formatBytes(p.Memory)
 
 		cpuStr := fmt.Sprintf("%.1f%%", p.CPU)
@@ -125,26 +118,62 @@ func renderTable(processes []types.ProcessInfo) {
 	t.Render()
 }
 
-func formatDuration(d time.Duration) string {
-	if d < time.Minute {
-		return fmt.Sprintf("%ds", int(d.Seconds()))
+// formatUptime formats milliseconds into a human-readable string (max 2 units)
+func formatUptime(ms int64) string {
+	if ms <= 0 {
+		return term.DimString("-")
 	}
-	if d < time.Hour {
-		return fmt.Sprintf("%dm", int(d.Minutes()))
+
+	d := time.Duration(ms) * time.Millisecond
+	days := int(d.Hours()) / 24
+	hours := int(d.Hours()) % 24
+	minutes := int(d.Minutes()) % 60
+	seconds := int(d.Seconds()) % 60
+
+	if days > 0 {
+		if hours > 0 {
+			return fmt.Sprintf("%dd %dh", days, hours)
+		}
+		return fmt.Sprintf("%dd", days)
 	}
-	return fmt.Sprintf("%dh", int(d.Hours()))
+
+	if hours > 0 {
+		if minutes > 0 {
+			return fmt.Sprintf("%dh %dm", hours, minutes)
+		}
+		return fmt.Sprintf("%dh", hours)
+	}
+
+	if minutes > 0 {
+		if seconds > 0 {
+			return fmt.Sprintf("%dm %ds", minutes, seconds)
+		}
+		return fmt.Sprintf("%dm", minutes)
+	}
+
+	return fmt.Sprintf("%ds", seconds)
 }
 
+// formatBytes formats bytes into human readable string (B, KB, MB, GB, TB)
 func formatBytes(b int64) string {
+	if b <= 0 {
+		return term.DimString("-")
+	}
+
 	const unit = 1024
 	if b < unit {
 		return fmt.Sprintf("%d B", b)
 	}
+
 	div, exp := int64(unit), 0
 	for n := b / unit; n >= unit; n /= unit {
 		div *= unit
 		exp++
 	}
-	// PM2 usually shows mb
-	return fmt.Sprintf("%.1fmb", float64(b)/float64(1024*1024))
+
+	value := float64(b) / float64(div)
+	suffix := "KMGT"[exp]
+
+	// Format with 1 decimal place
+	return fmt.Sprintf("%.1f %cB", value, suffix)
 }
