@@ -1,3 +1,4 @@
+// Package main is the entry point for the lynx daemon.
 package main
 
 import (
@@ -17,13 +18,13 @@ func main() {
 	server := ipc.NewServer()
 
 	// Register ping handler
-	server.Register("ping", func(params json.RawMessage) (json.RawMessage, error) {
+	server.Register("ping", func(_ json.RawMessage) (json.RawMessage, error) {
 		return json.Marshal(map[string]string{"response": "pong"})
 	})
 
 	// Register list handler (replacing status)
 	// Returns a list of processes with their detailed status
-	server.Register("list", func(params json.RawMessage) (json.RawMessage, error) {
+	server.Register("list", func(_ json.RawMessage) (json.RawMessage, error) {
 		// Mock data for now
 		processes := []types.ProcessInfo{
 			{

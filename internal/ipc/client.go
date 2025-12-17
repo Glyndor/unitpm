@@ -1,3 +1,4 @@
+// Package ipc implements the Inter-Process Communication between lynx CLI and daemon.
 package ipc
 
 import (
@@ -10,12 +11,14 @@ import (
 	"time"
 )
 
+// Client handles communication with the daemon.
 type Client struct {
 	conn    net.Conn
 	scanner *bufio.Scanner
 	encoder *json.Encoder
 }
 
+// NewClient establishes a connection to the daemon.
 func NewClient() (*Client, error) {
 	path, err := GetSocketPath()
 	if err != nil {
@@ -38,6 +41,7 @@ func NewClient() (*Client, error) {
 	}, nil
 }
 
+// Close closes the underlying connection.
 func (c *Client) Close() error {
 	return c.conn.Close()
 }

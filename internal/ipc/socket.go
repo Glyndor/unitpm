@@ -36,6 +36,7 @@ func GetSocketPath() (string, error) {
 	}
 	
 	// Enforce 0700 permissions
+	//nolint:gosec // 0700 is required for directory access (rwx------), 0600 (rw-------) would make it inaccessible
 	if err := os.Chmod(sockDir, 0700); err != nil {
 		return "", fmt.Errorf("failed to set socket directory permissions: %w", err)
 	}

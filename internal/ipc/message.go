@@ -3,6 +3,7 @@ package ipc
 import "encoding/json"
 
 const (
+	// Version is the current protocol version.
 	Version = 1
 )
 

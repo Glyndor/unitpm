@@ -13,7 +13,7 @@ func TestIPC(t *testing.T) {
 	server := ipc.NewServer()
 	
 	// Register ping handler
-	server.Register("ping", func(params json.RawMessage) (json.RawMessage, error) {
+	server.Register("ping", func(_ json.RawMessage) (json.RawMessage, error) {
 		return json.Marshal(map[string]string{"response": "pong"})
 	})
 

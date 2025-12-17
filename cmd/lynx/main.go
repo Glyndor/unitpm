@@ -1,3 +1,4 @@
+// Package main provides the CLI for interacting with the Lynx daemon.
 package main
 
 import (
@@ -11,9 +12,16 @@ import (
 )
 
 func main() {
+	if err := run(); err != nil {
+		fmt.Fprintf(os.Stderr, "%s\n", term.RedString("%v", err))
+		os.Exit(1)
+	}
+}
+
+func run() error {
 	if len(os.Args) < 2 {
 		fmt.Println("Usage: lynx <command>")
-		os.Exit(1)
+		return nil
 	}
 
 	command := os.Args[1]
@@ -21,8 +29,7 @@ func main() {
 	// Common client setup
 	client, err := ipc.NewClient()
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "%s\n", term.RedString("Failed to connect to daemon: %v", err))
-		os.Exit(1)
+		return fmt.Errorf("failed to connect to daemon: %w", err)
 	}
 	defer func() {
 		_ = client.Close()
@@ -32,23 +39,22 @@ func main() {
 	case "ping":
 		var result map[string]string
 		if err := client.Call("ping", nil, &result); err != nil {
-			fmt.Fprintf(os.Stderr, "%s\n", term.RedString("Ping failed: %v", err))
-			os.Exit(1)
+			return fmt.Errorf("ping failed: %w", err)
 		}
 		fmt.Printf("%s %s\n", term.GreenString("Success"), term.BoldString("pong"))
 
 	case "status", "list":
 		var processes []types.ProcessInfo
 		if err := client.Call("list", nil, &processes); err != nil {
-			fmt.Fprintf(os.Stderr, "%s\n", term.RedString("List failed: %v", err))
-			os.Exit(1)
+			return fmt.Errorf("list failed: %w", err)
 		}
 		renderTable(processes)
 
 	default:
-		fmt.Printf("%s\n", term.YellowString("Unknown command: %s", command))
-		os.Exit(1)
+		return fmt.Errorf("unknown command: %s", command)
 	}
+
+	return nil
 }
 
 func renderTable(processes []types.ProcessInfo) {

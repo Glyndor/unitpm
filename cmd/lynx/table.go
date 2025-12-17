@@ -32,9 +32,9 @@ func (t *Table) Render() {
 	for _, row := range t.Rows {
 		for i, cell := range row {
 			// Strip ANSI codes for length calculation
-			len := utf8.RuneCountInString(stripAnsi(cell))
-			if len > widths[i] {
-				widths[i] = len
+			l := utf8.RuneCountInString(stripAnsi(cell))
+			if l > widths[i] {
+				widths[i] = l
 			}
 		}
 	}

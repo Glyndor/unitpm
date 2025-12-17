@@ -4,7 +4,7 @@ package ipc
 
 import "net"
 
-func validateIdentity(conn net.Conn) error {
+func validateIdentity(_ net.Conn) error {
 	// Identity validation is handled by the named pipe security descriptor
 	return nil
 }

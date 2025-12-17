@@ -1,13 +1,19 @@
-package types
+// Package types contains shared type definitions.
+package types //nolint:revive
 
 // ProcessState represents the current state of a process
 type ProcessState string
 
 const (
+	// StateRunning indicates the process is running.
 	StateRunning   ProcessState = "running"
+	// StateOnline indicates the process is online and healthy.
 	StateOnline    ProcessState = "online"
+	// StateStopped indicates the process is stopped.
 	StateStopped   ProcessState = "stopped"
+	// StateFailed indicates the process has failed.
 	StateFailed    ProcessState = "failed"
+	// StateRestarting indicates the process is restarting.
 	StateRestarting ProcessState = "restarting"
 )
 

@@ -9,14 +9,20 @@ import (
 )
 
 const (
+	// MaxConnections is the maximum number of concurrent connections allowed.
 	MaxConnections = 100
-	ReadTimeout    = 5 * time.Second
-	WriteTimeout   = 2 * time.Second
-	MaxMsgSize     = 1024 * 1024 // 1MB
+	// ReadTimeout is the timeout for reading from a connection.
+	ReadTimeout  = 5 * time.Second
+	// WriteTimeout is the timeout for writing to a connection.
+	WriteTimeout = 2 * time.Second
+	// MaxMsgSize is the maximum size of a message.
+	MaxMsgSize = 1024 * 1024 // 1MB
 )
 
+// CommandHandler is a function that handles an IPC command.
 type CommandHandler func(params json.RawMessage) (json.RawMessage, error)
 
+// Server accepts connections and dispatches commands.
 type Server struct {
 	handlers map[string]CommandHandler
 	mu       sync.RWMutex
@@ -24,6 +30,7 @@ type Server struct {
 	sem      chan struct{} // semaphore for connection limiting
 }
 
+// NewServer creates a new IPC server.
 func NewServer() *Server {
 	return &Server{
 		handlers: make(map[string]CommandHandler),
@@ -31,12 +38,14 @@ func NewServer() *Server {
 	}
 }
 
+// Register registers a handler for a command.
 func (s *Server) Register(command string, handler CommandHandler) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	s.handlers[command] = handler
 }
 
+// Start begins listening for connections.
 func (s *Server) Start() error {
 	path, err := GetSocketPath()
 	if err != nil {
@@ -53,6 +62,7 @@ func (s *Server) Start() error {
 	return nil
 }
 
+// Close stops the server and closes the listener.
 func (s *Server) Close() error {
 	if s.listener != nil {
 		return s.listener.Close()
