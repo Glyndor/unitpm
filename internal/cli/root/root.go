@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"sort"
 
 	"github.com/Jaro-c/Lynx/internal/cli/commands/list"
 	"github.com/Jaro-c/Lynx/internal/cli/commands/version"
@@ -26,10 +25,6 @@ const (
 func Execute(args []string) int {
 	registerCommands()
 	specs := registry.GetAll()
-	// Ensure consistent order
-	sort.Slice(specs, func(i, j int) bool {
-		return specs[i].Name < specs[j].Name
-	})
 
 	if len(args) < 1 {
 		help.RenderRootHelp(os.Stdout, specs, false)
