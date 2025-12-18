@@ -36,34 +36,8 @@ func Run(w io.Writer) error {
 	var daemonInfo version.Info
 	err = client.Call("version", nil, &daemonInfo)
 	if err != nil {
-		// Check for protocol mismatch error
-		var remoteErr *ipc.RemoteError
-		if errors.As(err, &remoteErr) && remoteErr.Code == "PROTOCOL_MISMATCH" {
-			// Extract supported version safely using typed struct
-			var supported int
-			if data, ok := remoteErr.Data.(ipc.ProtocolMismatchData); ok {
-				supported = data.Supported
-			}
-
-			// Print Protocol section with error details
-			fmt.Fprintln(w)
-			fmt.Fprintf(w, "Protocol\n")
-			fmt.Fprintf(w, "  CLI     : v%d\n", local.ProtocolVersion)
-			if supported > 0 {
-				fmt.Fprintf(w, "  Daemon  : v%d\n", supported)
-			} else {
-				fmt.Fprintf(w, "  Daemon  : unknown\n")
-			}
-
-			fmt.Fprintln(w)
-			fmt.Fprintf(w, "%s\n", term.RedString("Error: Protocol mismatch"))
-			if supported > 0 {
-				fmt.Fprintf(w, "The CLI (v%d) and Daemon (v%d) have incompatible protocols.\n", local.ProtocolVersion, supported)
-			} else {
-				fmt.Fprintf(w, "The CLI (v%d) and Daemon have incompatible protocols.\n", local.ProtocolVersion)
-			}
-			fmt.Fprintf(w, "Please ensure both Lynx CLI and Daemon are updated.\n")
-			return fmt.Errorf("protocol mismatch")
+		if handleProtocolMismatch(w, local, err) {
+			return errors.New("protocol mismatch")
 		}
 
 		// Other errors (e.g. timeout, or daemon internal error)
@@ -85,6 +59,48 @@ func Run(w io.Writer) error {
 	fmt.Fprintf(w, "  Daemon  : v%d\n", daemonInfo.ProtocolVersion)
 
 	return nil
+}
+
+func handleProtocolMismatch(w io.Writer, local version.Info, err error) bool {
+	var remoteErr *ipc.RemoteError
+	if !errors.As(err, &remoteErr) || remoteErr.Code != "PROTOCOL_MISMATCH" {
+		return false
+	}
+
+	// Extract supported version safely using typed struct
+	var supported int
+	if data, ok := remoteErr.Data.(ipc.ProtocolMismatchData); ok {
+		supported = data.Supported
+	}
+
+	// Print Protocol section with error details
+	fmt.Fprintln(w)
+	fmt.Fprintf(w, "Protocol\n")
+	fmt.Fprintf(w, "  CLI     : v%d\n", local.ProtocolVersion)
+	if supported > 0 {
+		fmt.Fprintf(w, "  Daemon  : v%d\n", supported)
+	} else {
+		fmt.Fprintf(w, "  Daemon  : unknown\n")
+	}
+
+	fmt.Fprintln(w)
+	fmt.Fprintf(w, "%s\n", term.RedString("Error: Protocol mismatch"))
+	if supported > 0 {
+		fmt.Fprintf(
+			w,
+			"The CLI (v%d) and Daemon (v%d) have incompatible protocols.\n",
+			local.ProtocolVersion,
+			supported,
+		)
+	} else {
+		fmt.Fprintf(
+			w,
+			"The CLI (v%d) and Daemon have incompatible protocols.\n",
+			local.ProtocolVersion,
+		)
+	}
+	fmt.Fprintf(w, "Please ensure both Lynx CLI and Daemon are updated.\n")
+	return true
 }
 
 func printVersionInfo(w io.Writer, v version.Info) {

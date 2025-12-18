@@ -149,10 +149,14 @@ func (s *Server) dispatch(req *Request) *Response {
 
 	// Validate protocol version
 	if req.Version != version.ProtocolVersion {
-		resp.Status = "error"
+		resp.Status = statusError
 		resp.Error = &Error{
-			Code:    "PROTOCOL_MISMATCH",
-			Message: fmt.Sprintf("Protocol mismatch: server v%d, client v%d", version.ProtocolVersion, req.Version),
+			Code: "PROTOCOL_MISMATCH",
+			Message: fmt.Sprintf(
+				"Protocol mismatch: server v%d, client v%d",
+				version.ProtocolVersion,
+				req.Version,
+			),
 			Data: ProtocolMismatchData{
 				Supported: version.ProtocolVersion,
 				Received:  req.Version,
@@ -166,15 +170,21 @@ func (s *Server) dispatch(req *Request) *Response {
 	s.mu.RUnlock()
 
 	if !ok {
-		resp.Status = "error"
-		resp.Error = &Error{Code: "UNKNOWN_COMMAND", Message: "Command not found"}
+		resp.Status = statusError
+		resp.Error = &Error{
+			Code:    "UNKNOWN_COMMAND",
+			Message: "Command not found",
+		}
 		return resp
 	}
 
 	res, err := handler(req.Params)
 	if err != nil {
-		resp.Status = "error"
-		resp.Error = &Error{Code: "INTERNAL_ERROR", Message: err.Error()}
+		resp.Status = statusError
+		resp.Error = &Error{
+			Code:    "INTERNAL_ERROR",
+			Message: err.Error(),
+		}
 	} else {
 		resp.Status = "success"
 		resp.Result = res
