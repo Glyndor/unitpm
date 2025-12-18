@@ -27,17 +27,6 @@ type CommandSpec struct {
 
 // RenderCommandHelp prints the help output for a single command.
 func RenderCommandHelp(w io.Writer, spec CommandSpec) {
-	fmt.Fprintln(w)
-	fmt.Fprintf(w, "%s\n", term.CyanString("Usage:"))
-	fmt.Fprintf(w, "  %s\n", spec.Usage)
-
-	fmt.Fprintln(w)
-	fmt.Fprintf(w, "%s\n", term.CyanString("Description:"))
-	fmt.Fprintf(w, "  %s\n", spec.Description)
-
-	fmt.Fprintln(w)
-	fmt.Fprintf(w, "%s\n", term.CyanString("Options:"))
-
 	// Build effective options
 	options := make([]Option, 0, len(spec.Options)+1)
 	options = append(options, spec.Options...)
@@ -57,6 +46,25 @@ func RenderCommandHelp(w io.Writer, spec CommandSpec) {
 			Description: "Show this help message.",
 		})
 	}
+
+	// Update usage if needed
+	usage := spec.Usage
+	if len(options) > 0 &&
+		!strings.Contains(usage, "[options]") &&
+		!strings.Contains(usage, "[flags]") {
+		usage += " [options]"
+	}
+
+	fmt.Fprintln(w)
+	fmt.Fprintf(w, "%s\n", term.CyanString("Usage:"))
+	fmt.Fprintf(w, "  %s\n", usage)
+
+	fmt.Fprintln(w)
+	fmt.Fprintf(w, "%s\n", term.CyanString("Description:"))
+	fmt.Fprintf(w, "  %s\n", spec.Description)
+
+	fmt.Fprintln(w)
+	fmt.Fprintf(w, "%s\n", term.CyanString("Options:"))
 
 	// Calculate padding
 	maxLen := 0
