@@ -10,6 +10,8 @@ import (
 	"fmt"
 	"net"
 	"time"
+
+	"github.com/Jaro-c/Lynx/internal/version"
 )
 
 // Client handles communication with the daemon.
@@ -72,7 +74,7 @@ func (c *Client) sendRequest(reqID string, command string, params any) error {
 	}
 
 	req := Request{
-		Version:   Version,
+		Version:   version.ProtocolVersion,
 		ID:        reqID,
 		Command:   command,
 		Params:    paramBytes,
@@ -129,7 +131,25 @@ func (c *Client) readResponse(reqID string, result any) error {
 func (c *Client) checkStatus(resp *Response) error {
 	if resp.Status == statusError {
 		if resp.Error != nil {
-			return fmt.Errorf("ipc error: [%s] %s", resp.Error.Code, resp.Error.Message)
+			errData := resp.Error.Data
+
+			// Attempt to decode ProtocolMismatchData if the code matches
+			if resp.Error.Code == "PROTOCOL_MISMATCH" {
+				// The Data field is likely a map[string]interface{} (from json decoding into any)
+				// We need to re-encode and decode it into the struct to be safe and clean.
+				if dataBytes, err := json.Marshal(resp.Error.Data); err == nil {
+					var mismatchData ProtocolMismatchData
+					if err := json.Unmarshal(dataBytes, &mismatchData); err == nil {
+						errData = mismatchData
+					}
+				}
+			}
+
+			return &RemoteError{
+				Code:    resp.Error.Code,
+				Message: resp.Error.Message,
+				Data:    errData,
+			}
 		}
 		return errors.New("unknown ipc error")
 	}

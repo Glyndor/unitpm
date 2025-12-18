@@ -2,7 +2,6 @@
 package main
 
 import (
-	"encoding/json"
 	"log"
 	"os"
 	"os/signal"
@@ -18,50 +17,8 @@ func main() {
 	mgr := daemon.NewManager()
 	server := ipc.NewServer()
 
-	// Register ping handler
-	server.Register("ping", func(_ json.RawMessage) (json.RawMessage, error) {
-		return json.Marshal(map[string]string{"response": "pong"})
-	})
-
-	// Register start handler
-	server.Register("start", func(params json.RawMessage) (json.RawMessage, error) {
-		var args struct {
-			Name    string `json:"name"`
-			Command string `json:"command"`
-		}
-		if err := json.Unmarshal(params, &args); err != nil {
-			return nil, err
-		}
-
-		id, err := mgr.Start(args.Name, args.Command)
-		if err != nil {
-			return nil, err
-		}
-
-		return json.Marshal(map[string]int{"id": id})
-	})
-
-	// Register stop handler
-	server.Register("stop", func(params json.RawMessage) (json.RawMessage, error) {
-		var args struct {
-			ID int `json:"id"`
-		}
-		if err := json.Unmarshal(params, &args); err != nil {
-			return nil, err
-		}
-
-		if err := mgr.Stop(args.ID); err != nil {
-			return nil, err
-		}
-
-		return json.Marshal(map[string]string{"status": "stopped"})
-	})
-
-	// Register list handler (replacing status)
-	// Returns a list of processes with their detailed status
-	server.Register("list", func(_ json.RawMessage) (json.RawMessage, error) {
-		return json.Marshal(mgr.List())
-	})
+	// Register all handlers
+	daemon.RegisterHandlers(server, mgr)
 
 	if err := server.Start(); err != nil {
 		log.Fatalf("Failed to start IPC server: %v", err)

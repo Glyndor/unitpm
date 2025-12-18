@@ -7,14 +7,16 @@ import (
 	"os"
 
 	"github.com/Jaro-c/Lynx/internal/cli/commands/list"
+	"github.com/Jaro-c/Lynx/internal/cli/commands/version"
 	"github.com/Jaro-c/Lynx/internal/ipc"
 	"github.com/Jaro-c/Lynx/internal/term"
 )
 
 const (
-	cmdList  = "list"
-	cmdStart = "start"
-	cmdStop  = "stop"
+	cmdList    = "list"
+	cmdStart   = "start"
+	cmdStop    = "stop"
+	cmdVersion = "version"
 )
 
 // Execute executes the root CLI command.
@@ -30,6 +32,12 @@ func Execute() error {
 
 	command := normalizeCommand(os.Args[1])
 
+	// Handle unsupported flag -V explicitly
+	if command == "-V" {
+		fmt.Fprintf(os.Stderr, "%s\n", term.RedString("Unknown flag: -V (use --version)"))
+		os.Exit(1)
+	}
+
 	// Handle global help
 	if command == "-h" || command == "--help" {
 		printHelp(os.Stdout)
@@ -40,6 +48,8 @@ func Execute() error {
 	switch command {
 	case cmdList, cmdStart, cmdStop:
 		// Valid command, proceed
+	case cmdVersion:
+		return version.Run(os.Stdout)
 	default:
 		fmt.Fprintf(os.Stderr,
 			"%s\n",
@@ -88,6 +98,11 @@ func normalizeCommand(cmd string) string {
 	switch cmd {
 	case "ls", "ps":
 		return cmdList
+	case "--version":
+		return cmdVersion
+	case "-V":
+		// Explicitly return it so it can be caught in Execute
+		return "-V"
 	default:
 		return cmd
 	}

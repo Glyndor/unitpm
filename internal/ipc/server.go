@@ -3,9 +3,12 @@ package ipc
 import (
 	"bufio"
 	"encoding/json"
+	"fmt"
 	"net"
 	"sync"
 	"time"
+
+	"github.com/Jaro-c/Lynx/internal/version"
 )
 
 const (
@@ -142,6 +145,20 @@ func (s *Server) handleConnection(conn net.Conn) {
 func (s *Server) dispatch(req *Request) *Response {
 	resp := &Response{
 		ID: req.ID,
+	}
+
+	// Validate protocol version
+	if req.Version != version.ProtocolVersion {
+		resp.Status = "error"
+		resp.Error = &Error{
+			Code:    "PROTOCOL_MISMATCH",
+			Message: fmt.Sprintf("Protocol mismatch: server v%d, client v%d", version.ProtocolVersion, req.Version),
+			Data: ProtocolMismatchData{
+				Supported: version.ProtocolVersion,
+				Received:  req.Version,
+			},
+		}
+		return resp
 	}
 
 	s.mu.RLock()
