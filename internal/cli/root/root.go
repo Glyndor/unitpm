@@ -78,7 +78,7 @@ func Execute(args []string) int {
 	default:
 		// Unknown command or flag
 		printError(os.Stderr, "Command not found: %s", args[0])
-		help.RenderRootHelp(os.Stderr, specs, true)
+		help.RenderRootHelp(os.Stderr, specs, false)
 		return 1
 	}
 
