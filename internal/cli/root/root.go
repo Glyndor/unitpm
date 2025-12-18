@@ -6,11 +6,11 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"strings"
 
 	"github.com/Jaro-c/Lynx/internal/cli/commands/list"
 	"github.com/Jaro-c/Lynx/internal/cli/commands/version"
 	"github.com/Jaro-c/Lynx/internal/cli/errs"
+	"github.com/Jaro-c/Lynx/internal/cli/help"
 	"github.com/Jaro-c/Lynx/internal/ipc"
 	"github.com/Jaro-c/Lynx/internal/term"
 )
@@ -22,16 +22,21 @@ const (
 
 // Execute executes the root CLI command.
 func Execute(args []string) int {
+	specs := []help.CommandSpec{
+		list.GetSpec(),
+		version.GetSpec(),
+	}
+
 	if len(args) < 1 {
-		printHelp(os.Stdout, false)
+		help.RenderRootHelp(os.Stdout, specs, false)
 		return 0
 	}
 
-	command := normalizeCommand(args[0])
+	command := normalizeCommand(args[0], specs)
 
 	// Handle global help
 	if command == "-h" || command == "--help" {
-		printHelp(os.Stdout, true)
+		help.RenderRootHelp(os.Stdout, specs, true)
 		return 0
 	}
 
@@ -67,7 +72,7 @@ func Execute(args []string) int {
 	default:
 		// Unknown command or flag
 		printError(os.Stderr, "Command not found: %s", args[0])
-		printHelp(os.Stderr, true)
+		help.RenderRootHelp(os.Stderr, specs, true)
 		return 1
 	}
 
@@ -90,15 +95,26 @@ func Execute(args []string) int {
 	return 0
 }
 
-func normalizeCommand(cmd string) string {
-	switch cmd {
-	case "ls", "ps":
-		return cmdList
-	case "--version":
-		return cmdVersion
-	default:
-		return cmd
+func normalizeCommand(cmd string, specs []help.CommandSpec) string {
+	// 1. Check against specs (Name or Aliases)
+	for _, spec := range specs {
+		if spec.Name == cmd {
+			return spec.Name
+		}
+		for _, alias := range spec.Aliases {
+			if alias == cmd {
+				return spec.Name
+			}
+		}
 	}
+
+	// 2. Special case: map --version to version command
+	if cmd == "--version" {
+		return cmdVersion
+	}
+
+	// 3. Return as-is (will be caught as unknown later if invalid)
+	return cmd
 }
 
 func isHelpRequest(args []string) bool {
@@ -113,37 +129,4 @@ func isHelpRequest(args []string) bool {
 func printError(w io.Writer, format string, a ...any) {
 	msg := fmt.Sprintf(format, a...)
 	fmt.Fprintf(w, "%s\n", term.RedString("[Lynx][ERROR] %s", msg))
-}
-
-func printHelp(w io.Writer, showCommands bool) {
-	fmt.Fprintf(w, "\n%s\n", term.CyanString("Usage:"))
-	fmt.Fprintf(w, "  lynx <command> [flags]\n")
-
-	if showCommands {
-		fmt.Fprintf(w, "\n%s\n", term.CyanString("Commands:"))
-
-		commands := []struct {
-			Name string
-			Desc string
-		}{
-			{"list, ls, ps", "List managed processes"},
-			{"version", "Show version information"},
-		}
-
-		maxLen := 0
-		for _, cmd := range commands {
-			if len(cmd.Name) > maxLen {
-				maxLen = len(cmd.Name)
-			}
-		}
-
-		for _, cmd := range commands {
-			padding := strings.Repeat(" ", maxLen-len(cmd.Name)+3)
-			fmt.Fprintf(w, "  %s%s%s\n", term.BoldString("%s", cmd.Name), padding, cmd.Desc)
-		}
-	}
-
-	fmt.Fprintf(w, "\n%s\n", term.CyanString("Get Help:"))
-	fmt.Fprintf(w, "  lynx --help\n")
-	fmt.Fprintf(w, "  lynx <command> --help\n")
 }

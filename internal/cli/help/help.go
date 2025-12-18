@@ -57,37 +57,39 @@ func RenderCommandHelp(w io.Writer, spec CommandSpec) {
 }
 
 // RenderRootHelp prints the help output for the root command.
-func RenderRootHelp(w io.Writer, specs []CommandSpec) {
+func RenderRootHelp(w io.Writer, specs []CommandSpec, showCommands bool) {
 	fmt.Fprintln(w)
 	fmt.Fprintf(w, "%s\n", term.CyanString("Usage:"))
 	fmt.Fprintf(w, "  lynx <command> [flags]\n")
 
-	fmt.Fprintln(w)
-	fmt.Fprintf(w, "%s\n", term.CyanString("Commands:"))
+	if showCommands {
+		fmt.Fprintln(w)
+		fmt.Fprintf(w, "%s\n", term.CyanString("Commands:"))
 
-	// Calculate padding
-	maxLen := 0
-	displayNames := make([]string, len(specs))
-	for i, spec := range specs {
-		name := spec.Name
-		if len(spec.Aliases) > 0 {
-			name = fmt.Sprintf("%s, %s", spec.Name, strings.Join(spec.Aliases, ", "))
+		// Calculate padding
+		maxLen := 0
+		displayNames := make([]string, len(specs))
+		for i, spec := range specs {
+			name := spec.Name
+			if len(spec.Aliases) > 0 {
+				name = fmt.Sprintf("%s, %s", spec.Name, strings.Join(spec.Aliases, ", "))
+			}
+			displayNames[i] = name
+			if len(name) > maxLen {
+				maxLen = len(name)
+			}
 		}
-		displayNames[i] = name
-		if len(name) > maxLen {
-			maxLen = len(name)
-		}
-	}
 
-	for i, spec := range specs {
-		padding := strings.Repeat(" ", maxLen-len(displayNames[i])+3)
-		fmt.Fprintf(
-			w,
-			"  %s%s%s\n",
-			term.BoldString("%s", displayNames[i]),
-			padding,
-			spec.Description,
-		)
+		for i, spec := range specs {
+			padding := strings.Repeat(" ", maxLen-len(displayNames[i])+3)
+			fmt.Fprintf(
+				w,
+				"  %s%s%s\n",
+				term.BoldString("%s", displayNames[i]),
+				padding,
+				spec.Description,
+			)
+		}
 	}
 
 	fmt.Fprintln(w)
