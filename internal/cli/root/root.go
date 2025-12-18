@@ -6,11 +6,13 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"sort"
 
 	"github.com/Jaro-c/Lynx/internal/cli/commands/list"
 	"github.com/Jaro-c/Lynx/internal/cli/commands/version"
 	"github.com/Jaro-c/Lynx/internal/cli/errs"
 	"github.com/Jaro-c/Lynx/internal/cli/help"
+	"github.com/Jaro-c/Lynx/internal/cli/registry"
 	"github.com/Jaro-c/Lynx/internal/ipc"
 	"github.com/Jaro-c/Lynx/internal/term"
 )
@@ -22,17 +24,26 @@ const (
 
 // Execute executes the root CLI command.
 func Execute(args []string) int {
-	specs := []help.CommandSpec{
-		list.GetSpec(),
-		version.GetSpec(),
-	}
+	registerCommands()
+	specs := registry.GetAll()
+	// Ensure consistent order
+	sort.Slice(specs, func(i, j int) bool {
+		return specs[i].Name < specs[j].Name
+	})
 
 	if len(args) < 1 {
 		help.RenderRootHelp(os.Stdout, specs, false)
 		return 0
 	}
 
-	command := normalizeCommand(args[0], specs)
+	command, found := registry.Resolve(args[0])
+	if !found {
+		if args[0] == "--version" {
+			command = cmdVersion
+		} else {
+			command = args[0]
+		}
+	}
 
 	// Handle global help
 	if command == "-h" || command == "--help" {
@@ -95,28 +106,6 @@ func Execute(args []string) int {
 	return 0
 }
 
-func normalizeCommand(cmd string, specs []help.CommandSpec) string {
-	// 1. Check against specs (Name or Aliases)
-	for _, spec := range specs {
-		if spec.Name == cmd {
-			return spec.Name
-		}
-		for _, alias := range spec.Aliases {
-			if alias == cmd {
-				return spec.Name
-			}
-		}
-	}
-
-	// 2. Special case: map --version to version command
-	if cmd == "--version" {
-		return cmdVersion
-	}
-
-	// 3. Return as-is (will be caught as unknown later if invalid)
-	return cmd
-}
-
 func isHelpRequest(args []string) bool {
 	for _, arg := range args {
 		if arg == "-h" || arg == "--help" {
@@ -129,4 +118,9 @@ func isHelpRequest(args []string) bool {
 func printError(w io.Writer, format string, a ...any) {
 	msg := fmt.Sprintf(format, a...)
 	fmt.Fprintf(w, "%s\n", term.RedString("[Lynx][ERROR] %s", msg))
+}
+
+func registerCommands() {
+	registry.Register(list.GetSpec())
+	registry.Register(version.GetSpec())
 }
