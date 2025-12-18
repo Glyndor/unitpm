@@ -50,9 +50,16 @@ func Execute() error {
 	}
 
 	// Handle subcommand help (bypass IPC)
-	if command == cmdList && hasHelpFlag(os.Args[2:]) {
-		list.PrintHelp()
-		return nil
+	// Check for help flags before connecting to daemon.
+	// Future commands (start, stop, logs) must follow this pattern.
+	if isHelpRequest(os.Args[2:]) {
+		switch command {
+		case cmdList:
+			list.PrintHelp()
+			return nil
+		default:
+			// No specific help for other commands yet
+		}
 	}
 
 	// Common client setup
@@ -86,7 +93,7 @@ func normalizeCommand(cmd string) string {
 	}
 }
 
-func hasHelpFlag(args []string) bool {
+func isHelpRequest(args []string) bool {
 	for _, arg := range args {
 		if arg == "-h" || arg == "--help" {
 			return true
