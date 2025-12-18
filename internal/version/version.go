@@ -1,7 +1,7 @@
 // Package version provides build information and versioning for Lynx.
 package version
 
-// These variables are set at build time using -ldflags
+// These variables are set at build time using -ldflags.
 var (
 	// Version is the current version of Lynx.
 	Version = "0.0.0-dev"
