@@ -38,9 +38,29 @@ func RenderCommandHelp(w io.Writer, spec CommandSpec) {
 	fmt.Fprintln(w)
 	fmt.Fprintf(w, "%s\n", term.CyanString("Options:"))
 
+	// Build effective options
+	options := make([]Option, 0, len(spec.Options)+1)
+	options = append(options, spec.Options...)
+
+	hasHelp := false
+	for _, opt := range options {
+		if opt.Short == "-h" || opt.Long == "--help" {
+			hasHelp = true
+			break
+		}
+	}
+
+	if !hasHelp {
+		options = append(options, Option{
+			Short:       "-h",
+			Long:        "--help",
+			Description: "Show this help message.",
+		})
+	}
+
 	// Calculate padding
 	maxLen := 0
-	for _, opt := range spec.Options {
+	for _, opt := range options {
 		// Length of "-s, --long"
 		l := len(opt.Short) + 2 + len(opt.Long) // 2 for ", "
 		if l > maxLen {
@@ -48,7 +68,7 @@ func RenderCommandHelp(w io.Writer, spec CommandSpec) {
 		}
 	}
 
-	for _, opt := range spec.Options {
+	for _, opt := range options {
 		flags := fmt.Sprintf("%s, %s", opt.Short, opt.Long)
 		padding := strings.Repeat(" ", maxLen-len(flags)+4)
 		fmt.Fprintf(w, "  %s%s%s\n", term.BoldString("%s", flags), padding, opt.Description)
