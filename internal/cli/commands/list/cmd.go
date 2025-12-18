@@ -12,6 +12,7 @@ import (
 	"unicode/utf8"
 
 	"github.com/Jaro-c/Lynx/internal/cli/errs"
+	"github.com/Jaro-c/Lynx/internal/cli/help"
 	"github.com/Jaro-c/Lynx/internal/ipc"
 	"github.com/Jaro-c/Lynx/internal/term"
 	"github.com/Jaro-c/Lynx/internal/types"
@@ -134,22 +135,22 @@ func renderTable(processes []types.ProcessInfo) {
 	t.render()
 }
 
+// GetSpec returns the command specification.
+func GetSpec() help.CommandSpec {
+	return help.CommandSpec{
+		Name:        "list",
+		Aliases:     []string{"ls", "ps"},
+		Usage:       term.BoldString("lynx list|ls|ps") + " [options]",
+		Description: "List all managed processes.",
+		Options: []help.Option{
+			{Short: "-h", Long: "--help", Description: "Show this help message."},
+		},
+	}
+}
+
 // PrintHelp prints the help message for the list command.
 func PrintHelp() {
-	fmt.Println()
-	fmt.Printf("%s\n", term.CyanString("Usage:"))
-	fmt.Printf("  %s [options]\n", term.BoldString("lynx list|ls|ps"))
-	fmt.Println()
-	fmt.Printf("%s\n", term.CyanString("Description:"))
-	fmt.Println("  List all managed processes.")
-	fmt.Println()
-	fmt.Printf("%s\n", term.CyanString("Options:"))
-	fmt.Printf(
-		"  %s, %s    Show this help message.\n",
-		term.BoldString("-h"),
-		term.BoldString("--help"),
-	)
-	fmt.Println()
+	help.RenderCommandHelp(os.Stdout, GetSpec())
 }
 
 // formatUptime formats milliseconds into a human-readable string (max 2 units).
