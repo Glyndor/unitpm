@@ -1,3 +1,4 @@
+// Package version implements the version command.
 package version
 
 import (
@@ -44,7 +45,12 @@ func Run(w io.Writer, args []string) error {
 		// Print only Protocol section and exit 0.
 		fmt.Fprintln(w)
 		fmt.Fprintf(w, "%s\n", term.CyanString("Protocol"))
-		fmt.Fprintf(w, "  %s : %s\n", term.DimString("CLI"), term.BoldString("v%d", local.ProtocolVersion))
+		fmt.Fprintf(
+			w,
+			"  %s : %s\n",
+			term.DimString("CLI"),
+			term.BoldString("v%d", local.ProtocolVersion),
+		)
 		return nil
 	}
 	defer client.Close()
@@ -60,7 +66,12 @@ func Run(w io.Writer, args []string) error {
 		// Other errors (e.g. timeout, or daemon internal error)
 		fmt.Fprintln(w)
 		fmt.Fprintf(w, "%s\n", term.CyanString("Protocol"))
-		fmt.Fprintf(w, "  %s : %s\n", term.DimString("CLI"), term.BoldString("v%d", local.ProtocolVersion))
+		fmt.Fprintf(
+			w,
+			"  %s : %s\n",
+			term.DimString("CLI"),
+			term.BoldString("v%d", local.ProtocolVersion),
+		)
 		return nil
 	}
 
@@ -72,8 +83,18 @@ func Run(w io.Writer, args []string) error {
 	// 5. Print Protocol
 	fmt.Fprintln(w)
 	fmt.Fprintf(w, "%s\n", term.CyanString("Protocol"))
-	fmt.Fprintf(w, "  %s : %s\n", term.DimString("CLI"), term.BoldString("v%d", local.ProtocolVersion))
-	fmt.Fprintf(w, "  %s : %s\n", term.DimString("Daemon"), term.BoldString("v%d", daemonInfo.ProtocolVersion))
+	fmt.Fprintf(
+		w,
+		"  %s : %s\n",
+		term.DimString("CLI"),
+		term.BoldString("v%d", local.ProtocolVersion),
+	)
+	fmt.Fprintf(
+		w,
+		"  %s : %s\n",
+		term.DimString("Daemon"),
+		term.BoldString("v%d", daemonInfo.ProtocolVersion),
+	)
 
 	return nil
 }
@@ -93,11 +114,26 @@ func handleProtocolMismatch(w io.Writer, local version.Info, err error) bool {
 	// Print Protocol section with error details
 	fmt.Fprintln(w)
 	fmt.Fprintf(w, "%s\n", term.CyanString("Protocol"))
-	fmt.Fprintf(w, "  %s : %s\n", term.DimString("CLI"), term.BoldString("v%d", local.ProtocolVersion))
+	fmt.Fprintf(
+		w,
+		"  %s : %s\n",
+		term.DimString("CLI"),
+		term.BoldString("v%d", local.ProtocolVersion),
+	)
 	if supported > 0 {
-		fmt.Fprintf(w, "  %s : %s\n", term.DimString("Daemon"), term.BoldString("v%d", supported))
+		fmt.Fprintf(
+			w,
+			"  %s : %s\n",
+			term.DimString("Daemon"),
+			term.BoldString("v%d", supported),
+		)
 	} else {
-		fmt.Fprintf(w, "  %s : %s\n", term.DimString("Daemon"), term.BoldString("unknown"))
+		fmt.Fprintf(
+			w,
+			"  %s : %s\n",
+			term.DimString("Daemon"),
+			term.BoldString("unknown"),
+		)
 	}
 
 	fmt.Fprintln(w)

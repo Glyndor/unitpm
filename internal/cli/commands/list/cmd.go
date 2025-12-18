@@ -26,7 +26,7 @@ func Run(client *ipc.Client, args []string) error {
 	if err := fs.Parse(args); err != nil {
 		if strings.HasPrefix(err.Error(), "flag provided but not defined: -") {
 			flagName := strings.TrimPrefix(err.Error(), "flag provided but not defined: -")
-			return &errs.UsageError{Message: fmt.Sprintf("Unknown flag: -%s", flagName)}
+			return &errs.UsageError{Message: "Unknown flag: -" + flagName}
 		}
 		return &errs.UsageError{Message: err.Error()}
 	}
