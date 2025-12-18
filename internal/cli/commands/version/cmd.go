@@ -1,18 +1,35 @@
-// Package version implements the version command.
 package version
 
 import (
 	"errors"
+	"flag"
 	"fmt"
 	"io"
+	"strings"
 
+	"github.com/Jaro-c/Lynx/internal/cli/errs"
 	"github.com/Jaro-c/Lynx/internal/ipc"
 	"github.com/Jaro-c/Lynx/internal/term"
 	"github.com/Jaro-c/Lynx/internal/version"
 )
 
 // Run executes the version command.
-func Run(w io.Writer) error {
+func Run(w io.Writer, args []string) error {
+	fs := flag.NewFlagSet("version", flag.ContinueOnError)
+	fs.SetOutput(io.Discard)
+
+	if err := fs.Parse(args); err != nil {
+		if strings.HasPrefix(err.Error(), "flag provided but not defined: -") {
+			flagName := strings.TrimPrefix(err.Error(), "flag provided but not defined: -")
+			return &errs.UsageError{Message: fmt.Sprintf("Unknown flag: -%s", flagName)}
+		}
+		return &errs.UsageError{Message: err.Error()}
+	}
+
+	if len(fs.Args()) > 0 {
+		return &errs.UsageError{Message: fmt.Sprintf("unexpected arguments: %v", fs.Args())}
+	}
+
 	local := version.Get()
 
 	// 1. Print local CLI version
@@ -99,12 +116,31 @@ func handleProtocolMismatch(w io.Writer, local version.Info, err error) bool {
 			local.ProtocolVersion,
 		)
 	}
-	fmt.Fprintf(w, "Please ensure both Lynx CLI and Daemon are updated.\n")
+
+	// Return true to indicate handled
 	return true
 }
 
-func printVersionInfo(w io.Writer, v version.Info) {
-	fmt.Fprintf(w, "  Version    : %s\n", v.Version)
-	fmt.Fprintf(w, "  Commit     : %s\n", v.Commit)
-	fmt.Fprintf(w, "  Build date : %s\n", v.BuildDate)
+func printVersionInfo(w io.Writer, info version.Info) {
+	fmt.Fprintf(w, "  Version : %s\n", info.Version)
+	fmt.Fprintf(w, "  Commit  : %s\n", info.Commit)
+	fmt.Fprintf(w, "  Built   : %s\n", info.BuildDate)
+}
+
+// PrintHelp prints the help message for the version command.
+func PrintHelp() {
+	fmt.Println()
+	fmt.Printf("%s\n", term.CyanString("Usage:"))
+	fmt.Printf("  %s\n", term.BoldString("lynx version"))
+	fmt.Println()
+	fmt.Printf("%s\n", term.CyanString("Description:"))
+	fmt.Println("  Show version information for CLI and Daemon.")
+	fmt.Println()
+	fmt.Printf("%s\n", term.CyanString("Options:"))
+	fmt.Printf(
+		"  %s, %s    Show this help message.\n",
+		term.BoldString("-h"),
+		term.BoldString("--help"),
+	)
+	fmt.Println()
 }

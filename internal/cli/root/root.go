@@ -2,41 +2,33 @@
 package root
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"os"
 
 	"github.com/Jaro-c/Lynx/internal/cli/commands/list"
 	"github.com/Jaro-c/Lynx/internal/cli/commands/version"
+	"github.com/Jaro-c/Lynx/internal/cli/errs"
 	"github.com/Jaro-c/Lynx/internal/ipc"
 	"github.com/Jaro-c/Lynx/internal/term"
 )
 
 const (
 	cmdList    = "list"
-	cmdStart   = "start"
-	cmdStop    = "stop"
 	cmdVersion = "version"
 )
 
 // Execute executes the root CLI command.
-func Execute() error {
-	if len(os.Args) < 2 {
-		fmt.Fprintf(os.Stderr,
-			"%s\n",
-			term.RedString("[Lynx][ERROR] Missing command"))
+func Execute(args []string) error {
+	if len(args) < 1 {
+		printError(os.Stderr, "Missing command")
 		printHelp(os.Stderr)
 		os.Exit(1)
 		return nil
 	}
 
-	command := normalizeCommand(os.Args[1])
-
-	// Handle unsupported flag -V explicitly
-	if command == "-V" {
-		fmt.Fprintf(os.Stderr, "%s\n", term.RedString("Unknown flag: -V (use --version)"))
-		os.Exit(1)
-	}
+	command := normalizeCommand(args[0])
 
 	// Handle global help
 	if command == "-h" || command == "--help" {
@@ -44,54 +36,58 @@ func Execute() error {
 		return nil
 	}
 
-	// Validate command before connecting
+	// Handle subcommand help (bypass IPC)
+	if len(args) > 1 && isHelpRequest(args[1:]) {
+		switch command {
+		case cmdList:
+			list.PrintHelp()
+			return nil
+		case cmdVersion:
+			version.PrintHelp()
+			return nil
+		}
+	}
+
+	var cmdErr error
+
 	switch command {
-	case cmdList, cmdStart, cmdStop:
-		// Valid command, proceed
+	case cmdList:
+		client, err := ipc.NewClient()
+		if err != nil {
+			return fmt.Errorf("failed to connect to daemon: %w", err)
+		}
+		defer func() {
+			_ = client.Close()
+		}()
+		cmdErr = list.Run(client, args[1:])
+
 	case cmdVersion:
-		return version.Run(os.Stdout)
+		cmdErr = version.Run(os.Stdout, args[1:])
+
 	default:
-		fmt.Fprintf(os.Stderr,
-			"%s\n",
-			term.RedString("[Lynx][ERROR] Command not found: %s", os.Args[1]))
+		// Unknown command or flag
+		printError(os.Stderr, "Command not found: %s", args[0])
 		printHelp(os.Stderr)
 		os.Exit(1)
 		return nil
 	}
 
-	// Handle subcommand help (bypass IPC)
-	// Check for help flags before connecting to daemon.
-	// Future commands (start, stop, logs) must follow this pattern.
-	if isHelpRequest(os.Args[2:]) {
-		switch command {
-		case cmdList:
-			list.PrintHelp()
-			return nil
-		default:
-			// No specific help for other commands yet
+	if cmdErr != nil {
+		var usageErr *errs.UsageError
+		if errors.As(cmdErr, &usageErr) {
+			printError(os.Stderr, "%s", usageErr.Message)
+			switch command {
+			case cmdList:
+				list.PrintHelp()
+			case cmdVersion:
+				version.PrintHelp()
+			}
+			os.Exit(1)
 		}
+		return cmdErr
 	}
 
-	// Common client setup
-	client, err := ipc.NewClient()
-	if err != nil {
-		return fmt.Errorf("failed to connect to daemon: %w", err)
-	}
-	defer func() {
-		_ = client.Close()
-	}()
-
-	switch command {
-	case cmdList:
-		return list.Run(client)
-	case cmdStart, cmdStop:
-		// Placeholder for start/stop commands as requested in the prompt
-		// These would be implemented in their respective packages
-		return fmt.Errorf("command '%s' not fully implemented in refactor yet", command)
-	default:
-		// Should be unreachable due to pre-validation
-		return fmt.Errorf("unknown command: %s", command)
-	}
+	return nil
 }
 
 func normalizeCommand(cmd string) string {
@@ -100,9 +96,6 @@ func normalizeCommand(cmd string) string {
 		return cmdList
 	case "--version":
 		return cmdVersion
-	case "-V":
-		// Explicitly return it so it can be caught in Execute
-		return "-V"
 	default:
 		return cmd
 	}
@@ -117,10 +110,17 @@ func isHelpRequest(args []string) bool {
 	return false
 }
 
+func printError(w io.Writer, format string, a ...any) {
+	msg := fmt.Sprintf(format, a...)
+	fmt.Fprintf(w, "%s\n", term.RedString("[Lynx][ERROR] %s", msg))
+}
+
 func printHelp(w io.Writer) {
 	fmt.Fprintf(w, "\n%s\n", term.CyanString("Usage:"))
 	fmt.Fprintf(w, "  lynx <command> [flags]\n")
-
+	fmt.Fprintf(w, "\n%s\n", term.CyanString("Commands:"))
+	fmt.Fprintf(w, "  %s\tList managed processes\n", term.BoldString("list, ls, ps"))
+	fmt.Fprintf(w, "  %s\tShow version information\n", term.BoldString("version"))
 	fmt.Fprintf(w, "\n%s\n", term.CyanString("Get Help:"))
 	fmt.Fprintf(w, "  lynx --help\n")
 	fmt.Fprintf(w, "  lynx <command> --help\n")

@@ -2,13 +2,16 @@
 package list
 
 import (
+	"flag"
 	"fmt"
+	"io"
 	"os"
 	"strconv"
 	"strings"
 	"time"
 	"unicode/utf8"
 
+	"github.com/Jaro-c/Lynx/internal/cli/errs"
 	"github.com/Jaro-c/Lynx/internal/ipc"
 	"github.com/Jaro-c/Lynx/internal/term"
 	"github.com/Jaro-c/Lynx/internal/types"
@@ -16,7 +19,22 @@ import (
 )
 
 // Run executes the list command.
-func Run(client *ipc.Client) error {
+func Run(client *ipc.Client, args []string) error {
+	fs := flag.NewFlagSet("list", flag.ContinueOnError)
+	fs.SetOutput(io.Discard)
+
+	if err := fs.Parse(args); err != nil {
+		if strings.HasPrefix(err.Error(), "flag provided but not defined: -") {
+			flagName := strings.TrimPrefix(err.Error(), "flag provided but not defined: -")
+			return &errs.UsageError{Message: fmt.Sprintf("Unknown flag: -%s", flagName)}
+		}
+		return &errs.UsageError{Message: err.Error()}
+	}
+
+	if len(fs.Args()) > 0 {
+		return &errs.UsageError{Message: fmt.Sprintf("unexpected arguments: %v", fs.Args())}
+	}
+
 	var processes []types.ProcessInfo
 	if err := client.Call("list", nil, &processes); err != nil {
 		return fmt.Errorf("list failed: %w", err)
@@ -45,7 +63,7 @@ func renderTable(processes []types.ProcessInfo) {
 
 	t := newTable(headers)
 	t.maxColWidths = []int{
-		5,  // id
+		8,  // id
 		30, // name
 		20, // namespace
 		10, // version
