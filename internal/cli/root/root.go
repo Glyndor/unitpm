@@ -49,6 +49,12 @@ func Execute() error {
 		return nil
 	}
 
+	// Handle subcommand help (bypass IPC)
+	if command == cmdList && hasHelpFlag(os.Args[2:]) {
+		list.PrintHelp()
+		return nil
+	}
+
 	// Common client setup
 	client, err := ipc.NewClient()
 	if err != nil {
@@ -73,11 +79,20 @@ func Execute() error {
 
 func normalizeCommand(cmd string) string {
 	switch cmd {
-	case "ls":
+	case "ls", "ps":
 		return cmdList
 	default:
 		return cmd
 	}
+}
+
+func hasHelpFlag(args []string) bool {
+	for _, arg := range args {
+		if arg == "-h" || arg == "--help" {
+			return true
+		}
+	}
+	return false
 }
 
 func printHelp(w io.Writer) {

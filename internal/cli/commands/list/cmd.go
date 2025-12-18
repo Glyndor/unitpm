@@ -116,6 +116,24 @@ func renderTable(processes []types.ProcessInfo) {
 	t.render()
 }
 
+// PrintHelp prints the help message for the list command.
+func PrintHelp() {
+	fmt.Println()
+	fmt.Printf("%s\n", term.CyanString("Usage:"))
+	fmt.Printf("  %s [options]\n", term.BoldString("lynx list|ls|ps"))
+	fmt.Println()
+	fmt.Printf("%s\n", term.CyanString("Description:"))
+	fmt.Println("  List all managed processes.")
+	fmt.Println()
+	fmt.Printf("%s\n", term.CyanString("Options:"))
+	fmt.Printf(
+		"  %s, %s    Show this help message.\n",
+		term.BoldString("-h"),
+		term.BoldString("--help"),
+	)
+	fmt.Println()
+}
+
 // formatUptime formats milliseconds into a human-readable string (max 2 units).
 func formatUptime(ms int64) string {
 	if ms <= 0 {
