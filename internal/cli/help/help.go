@@ -125,3 +125,13 @@ func RenderRootHelp(w io.Writer, specs []CommandSpec, showCommands bool) {
 	fmt.Fprintf(w, "  lynx --help\n")
 	fmt.Fprintf(w, "  lynx <command> --help\n")
 }
+
+// IsHelp checks if the arguments contain a help flag (-h, --help, or -help).
+func IsHelp(args []string) bool {
+	for _, arg := range args {
+		if arg == "-h" || arg == "--help" || arg == "-help" {
+			return true
+		}
+	}
+	return false
+}

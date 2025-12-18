@@ -21,6 +21,11 @@ func Run(w io.Writer, args []string) error {
 	fs := flag.NewFlagSet("version", flag.ContinueOnError)
 	fs.SetOutput(io.Discard)
 
+	if help.IsHelp(args) {
+		PrintHelp()
+		return nil
+	}
+
 	if err := fs.Parse(args); err != nil {
 		if strings.HasPrefix(err.Error(), "flag provided but not defined: -") {
 			flagName := strings.TrimPrefix(err.Error(), "flag provided but not defined: -")
