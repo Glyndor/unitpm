@@ -21,11 +21,10 @@ const (
 )
 
 // Execute executes the root CLI command.
-func Execute(args []string) error {
+func Execute(args []string) int {
 	if len(args) < 1 {
 		printHelp(os.Stdout, false)
-		os.Exit(0)
-		return nil
+		return 0
 	}
 
 	command := normalizeCommand(args[0])
@@ -33,7 +32,7 @@ func Execute(args []string) error {
 	// Handle global help
 	if command == "-h" || command == "--help" {
 		printHelp(os.Stdout, true)
-		return nil
+		return 0
 	}
 
 	// Handle subcommand help (bypass IPC)
@@ -41,10 +40,10 @@ func Execute(args []string) error {
 		switch command {
 		case cmdList:
 			list.PrintHelp()
-			return nil
+			return 0
 		case cmdVersion:
 			version.PrintHelp()
-			return nil
+			return 0
 		}
 	}
 
@@ -54,7 +53,8 @@ func Execute(args []string) error {
 	case cmdList:
 		client, err := ipc.NewClient()
 		if err != nil {
-			return fmt.Errorf("failed to connect to daemon: %w", err)
+			printError(os.Stderr, "failed to connect to daemon: %v", err)
+			return 1
 		}
 		defer func() {
 			_ = client.Close()
@@ -68,8 +68,7 @@ func Execute(args []string) error {
 		// Unknown command or flag
 		printError(os.Stderr, "Command not found: %s", args[0])
 		printHelp(os.Stderr, true)
-		os.Exit(1)
-		return nil
+		return 1
 	}
 
 	if cmdErr != nil {
@@ -82,12 +81,13 @@ func Execute(args []string) error {
 			case cmdVersion:
 				version.PrintHelp()
 			}
-			os.Exit(1)
+			return 1
 		}
-		return cmdErr
+		printError(os.Stderr, "%v", cmdErr)
+		return 1
 	}
 
-	return nil
+	return 0
 }
 
 func normalizeCommand(cmd string) string {
@@ -139,7 +139,7 @@ func printHelp(w io.Writer, showCommands bool) {
 
 		for _, cmd := range commands {
 			padding := strings.Repeat(" ", maxLen-len(cmd.Name)+3)
-			fmt.Fprintf(w, "  %s%s%s\n", term.BoldString(cmd.Name), padding, cmd.Desc)
+			fmt.Fprintf(w, "  %s%s%s\n", term.BoldString("%s", cmd.Name), padding, cmd.Desc)
 		}
 	}
 

@@ -21,7 +21,7 @@ func Run(w io.Writer, args []string) error {
 	if err := fs.Parse(args); err != nil {
 		if strings.HasPrefix(err.Error(), "flag provided but not defined: -") {
 			flagName := strings.TrimPrefix(err.Error(), "flag provided but not defined: -")
-			return &errs.UsageError{Message: fmt.Sprintf("Unknown flag: -%s", flagName)}
+			return &errs.UsageError{Message: "Unknown flag: -" + flagName}
 		}
 		return &errs.UsageError{Message: err.Error()}
 	}
@@ -33,7 +33,7 @@ func Run(w io.Writer, args []string) error {
 	local := version.Get()
 
 	// 1. Print local CLI version
-	fmt.Fprintf(w, "%s\n", term.CyanString(term.BoldString("Lynx CLI")))
+	fmt.Fprintf(w, "%s\n", term.CyanString("%s", term.BoldString("Lynx CLI")))
 	printVersionInfo(w, local)
 
 	// 2. Attempt to connect to daemon
@@ -66,7 +66,7 @@ func Run(w io.Writer, args []string) error {
 
 	// 4. Print daemon version
 	fmt.Fprintln(w)
-	fmt.Fprintf(w, "%s\n", term.CyanString(term.BoldString("Lynx Daemon")))
+	fmt.Fprintf(w, "%s\n", term.CyanString("%s", term.BoldString("Lynx Daemon")))
 	printVersionInfo(w, daemonInfo)
 
 	// 5. Print Protocol
@@ -122,9 +122,9 @@ func handleProtocolMismatch(w io.Writer, local version.Info, err error) bool {
 }
 
 func printVersionInfo(w io.Writer, info version.Info) {
-	fmt.Fprintf(w, "  %s : %s\n", term.DimString("Version"), term.BoldString(info.Version))
-	fmt.Fprintf(w, "  %s : %s\n", term.DimString("Commit"), term.BoldString(info.Commit))
-	fmt.Fprintf(w, "  %s : %s\n", term.DimString("Built"), term.BoldString(info.BuildDate))
+	fmt.Fprintf(w, "  %s : %s\n", term.DimString("Version"), term.BoldString("%s", info.Version))
+	fmt.Fprintf(w, "  %s : %s\n", term.DimString("Commit"), term.BoldString("%s", info.Commit))
+	fmt.Fprintf(w, "  %s : %s\n", term.DimString("Built"), term.BoldString("%s", info.BuildDate))
 }
 
 // PrintHelp prints the help message for the version command.

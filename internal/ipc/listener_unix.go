@@ -1,5 +1,6 @@
 //go:build !windows
 
+// Package ipc implements the Inter-Process Communication between lynx CLI and daemon.
 package ipc
 
 import (
