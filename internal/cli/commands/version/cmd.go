@@ -33,7 +33,7 @@ func Run(w io.Writer, args []string) error {
 	local := version.Get()
 
 	// 1. Print local CLI version
-	fmt.Fprintf(w, "Lynx CLI\n")
+	fmt.Fprintf(w, "%s\n", term.CyanString(term.BoldString("Lynx CLI")))
 	printVersionInfo(w, local)
 
 	// 2. Attempt to connect to daemon
@@ -43,8 +43,8 @@ func Run(w io.Writer, args []string) error {
 		// Daemon not running or unreachable.
 		// Print only Protocol section and exit 0.
 		fmt.Fprintln(w)
-		fmt.Fprintf(w, "Protocol\n")
-		fmt.Fprintf(w, "  CLI     : v%d\n", local.ProtocolVersion)
+		fmt.Fprintf(w, "%s\n", term.CyanString("Protocol"))
+		fmt.Fprintf(w, "  %s : %s\n", term.DimString("CLI"), term.BoldString("v%d", local.ProtocolVersion))
 		return nil
 	}
 	defer client.Close()
@@ -59,21 +59,21 @@ func Run(w io.Writer, args []string) error {
 
 		// Other errors (e.g. timeout, or daemon internal error)
 		fmt.Fprintln(w)
-		fmt.Fprintf(w, "Protocol\n")
-		fmt.Fprintf(w, "  CLI     : v%d\n", local.ProtocolVersion)
+		fmt.Fprintf(w, "%s\n", term.CyanString("Protocol"))
+		fmt.Fprintf(w, "  %s : %s\n", term.DimString("CLI"), term.BoldString("v%d", local.ProtocolVersion))
 		return nil
 	}
 
 	// 4. Print daemon version
 	fmt.Fprintln(w)
-	fmt.Fprintf(w, "Lynx Daemon\n")
+	fmt.Fprintf(w, "%s\n", term.CyanString(term.BoldString("Lynx Daemon")))
 	printVersionInfo(w, daemonInfo)
 
 	// 5. Print Protocol
 	fmt.Fprintln(w)
-	fmt.Fprintf(w, "Protocol\n")
-	fmt.Fprintf(w, "  CLI     : v%d\n", local.ProtocolVersion)
-	fmt.Fprintf(w, "  Daemon  : v%d\n", daemonInfo.ProtocolVersion)
+	fmt.Fprintf(w, "%s\n", term.CyanString("Protocol"))
+	fmt.Fprintf(w, "  %s : %s\n", term.DimString("CLI"), term.BoldString("v%d", local.ProtocolVersion))
+	fmt.Fprintf(w, "  %s : %s\n", term.DimString("Daemon"), term.BoldString("v%d", daemonInfo.ProtocolVersion))
 
 	return nil
 }
@@ -92,12 +92,12 @@ func handleProtocolMismatch(w io.Writer, local version.Info, err error) bool {
 
 	// Print Protocol section with error details
 	fmt.Fprintln(w)
-	fmt.Fprintf(w, "Protocol\n")
-	fmt.Fprintf(w, "  CLI     : v%d\n", local.ProtocolVersion)
+	fmt.Fprintf(w, "%s\n", term.CyanString("Protocol"))
+	fmt.Fprintf(w, "  %s : %s\n", term.DimString("CLI"), term.BoldString("v%d", local.ProtocolVersion))
 	if supported > 0 {
-		fmt.Fprintf(w, "  Daemon  : v%d\n", supported)
+		fmt.Fprintf(w, "  %s : %s\n", term.DimString("Daemon"), term.BoldString("v%d", supported))
 	} else {
-		fmt.Fprintf(w, "  Daemon  : unknown\n")
+		fmt.Fprintf(w, "  %s : %s\n", term.DimString("Daemon"), term.BoldString("unknown"))
 	}
 
 	fmt.Fprintln(w)
@@ -122,9 +122,9 @@ func handleProtocolMismatch(w io.Writer, local version.Info, err error) bool {
 }
 
 func printVersionInfo(w io.Writer, info version.Info) {
-	fmt.Fprintf(w, "  Version : %s\n", info.Version)
-	fmt.Fprintf(w, "  Commit  : %s\n", info.Commit)
-	fmt.Fprintf(w, "  Built   : %s\n", info.BuildDate)
+	fmt.Fprintf(w, "  %s : %s\n", term.DimString("Version"), term.BoldString(info.Version))
+	fmt.Fprintf(w, "  %s : %s\n", term.DimString("Commit"), term.BoldString(info.Commit))
+	fmt.Fprintf(w, "  %s : %s\n", term.DimString("Built"), term.BoldString(info.BuildDate))
 }
 
 // PrintHelp prints the help message for the version command.
