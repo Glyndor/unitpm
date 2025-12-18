@@ -33,7 +33,7 @@ func Run(client *ipc.Client, args []string) error {
 	}
 
 	if len(fs.Args()) > 0 {
-		return &errs.UsageError{Message: fmt.Sprintf("unexpected arguments: %v", fs.Args())}
+		return &errs.UsageError{Message: fmt.Sprintf("Unexpected arguments: %v", fs.Args())}
 	}
 
 	var processes []types.ProcessInfo
