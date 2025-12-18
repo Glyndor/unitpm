@@ -27,7 +27,7 @@ func Run(w io.Writer, args []string) error {
 	}
 
 	if len(fs.Args()) > 0 {
-		return &errs.UsageError{Message: fmt.Sprintf("unexpected arguments: %v", fs.Args())}
+		return &errs.UsageError{Message: fmt.Sprintf("Unexpected arguments: %v", fs.Args())}
 	}
 
 	local := version.Get()

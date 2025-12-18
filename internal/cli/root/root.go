@@ -22,8 +22,7 @@ const (
 // Execute executes the root CLI command.
 func Execute(args []string) error {
 	if len(args) < 1 {
-		printError(os.Stderr, "Missing command")
-		printHelp(os.Stderr)
+		printHelp(os.Stderr, false)
 		os.Exit(1)
 		return nil
 	}
@@ -32,7 +31,7 @@ func Execute(args []string) error {
 
 	// Handle global help
 	if command == "-h" || command == "--help" {
-		printHelp(os.Stdout)
+		printHelp(os.Stdout, true)
 		return nil
 	}
 
@@ -67,7 +66,7 @@ func Execute(args []string) error {
 	default:
 		// Unknown command or flag
 		printError(os.Stderr, "Command not found: %s", args[0])
-		printHelp(os.Stderr)
+		printHelp(os.Stderr, true)
 		os.Exit(1)
 		return nil
 	}
@@ -115,12 +114,16 @@ func printError(w io.Writer, format string, a ...any) {
 	fmt.Fprintf(w, "%s\n", term.RedString("[Lynx][ERROR] %s", msg))
 }
 
-func printHelp(w io.Writer) {
+func printHelp(w io.Writer, showCommands bool) {
 	fmt.Fprintf(w, "\n%s\n", term.CyanString("Usage:"))
 	fmt.Fprintf(w, "  lynx <command> [flags]\n")
-	fmt.Fprintf(w, "\n%s\n", term.CyanString("Commands:"))
-	fmt.Fprintf(w, "  %s\tList managed processes\n", term.BoldString("list, ls, ps"))
-	fmt.Fprintf(w, "  %s\tShow version information\n", term.BoldString("version"))
+
+	if showCommands {
+		fmt.Fprintf(w, "\n%s\n", term.CyanString("Commands:"))
+		fmt.Fprintf(w, "  %s   List managed processes\n", term.BoldString("list, ls, ps"))
+		fmt.Fprintf(w, "  %s        Show version information\n", term.BoldString("version"))
+	}
+
 	fmt.Fprintf(w, "\n%s\n", term.CyanString("Get Help:"))
 	fmt.Fprintf(w, "  lynx --help\n")
 	fmt.Fprintf(w, "  lynx <command> --help\n")
