@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"strings"
 
 	"github.com/Jaro-c/Lynx/internal/cli/commands/list"
 	"github.com/Jaro-c/Lynx/internal/cli/commands/version"
@@ -22,8 +23,8 @@ const (
 // Execute executes the root CLI command.
 func Execute(args []string) error {
 	if len(args) < 1 {
-		printHelp(os.Stderr, false)
-		os.Exit(1)
+		printHelp(os.Stdout, false)
+		os.Exit(0)
 		return nil
 	}
 
@@ -120,8 +121,26 @@ func printHelp(w io.Writer, showCommands bool) {
 
 	if showCommands {
 		fmt.Fprintf(w, "\n%s\n", term.CyanString("Commands:"))
-		fmt.Fprintf(w, "  %s   List managed processes\n", term.BoldString("list, ls, ps"))
-		fmt.Fprintf(w, "  %s        Show version information\n", term.BoldString("version"))
+
+		commands := []struct {
+			Name string
+			Desc string
+		}{
+			{"list, ls, ps", "List managed processes"},
+			{"version", "Show version information"},
+		}
+
+		maxLen := 0
+		for _, cmd := range commands {
+			if len(cmd.Name) > maxLen {
+				maxLen = len(cmd.Name)
+			}
+		}
+
+		for _, cmd := range commands {
+			padding := strings.Repeat(" ", maxLen-len(cmd.Name)+3)
+			fmt.Fprintf(w, "  %s%s%s\n", term.BoldString(cmd.Name), padding, cmd.Desc)
+		}
 	}
 
 	fmt.Fprintf(w, "\n%s\n", term.CyanString("Get Help:"))
