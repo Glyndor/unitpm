@@ -3,34 +3,21 @@ package daemon
 import (
 	"encoding/json"
 
-	"github.com/Jaro-c/Lynx/internal/ipc"
+	"github.com/Jaro-c/Lynx/internal/daemon/handlers"
+	"github.com/Jaro-c/Lynx/internal/daemon/manager"
+	"github.com/Jaro-c/Lynx/internal/ipc/transport"
 	"github.com/Jaro-c/Lynx/internal/version"
 )
 
 // RegisterHandlers registers all daemon IPC handlers.
-func RegisterHandlers(server *ipc.Server, mgr *Manager) {
+func RegisterHandlers(server *transport.Server, mgr *manager.Manager, privileged bool) {
 	// Register ping handler
 	server.Register("ping", func(_ json.RawMessage) (json.RawMessage, error) {
 		return json.Marshal(map[string]string{"response": "pong"})
 	})
 
 	// Register start handler
-	server.Register("start", func(params json.RawMessage) (json.RawMessage, error) {
-		var args struct {
-			Name    string `json:"name"`
-			Command string `json:"command"`
-		}
-		if err := json.Unmarshal(params, &args); err != nil {
-			return nil, err
-		}
-
-		id, err := mgr.Start(args.Name, args.Command)
-		if err != nil {
-			return nil, err
-		}
-
-		return json.Marshal(map[string]int{"id": id})
-	})
+	server.Register("start", handlers.StartHandler(mgr, privileged))
 
 	// Register stop handler
 	server.Register("stop", func(params json.RawMessage) (json.RawMessage, error) {

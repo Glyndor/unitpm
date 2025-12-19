@@ -1,10 +1,13 @@
-// Package daemon implements the core process management logic.
-package daemon
+// Package manager implements the core process management logic.
+package manager
 
 import (
 	"fmt"
+	"os"
+	"strings"
 	"sync"
 
+	"github.com/Jaro-c/Lynx/internal/ipc/protocol"
 	"github.com/Jaro-c/Lynx/internal/types"
 )
 
@@ -24,24 +27,46 @@ func NewManager() *Manager {
 }
 
 // Start creates and starts a new process.
+// Deprecated: Use StartWithSpec instead.
 func (m *Manager) Start(name, command string) (int, error) {
+	parts := strings.Fields(command)
+	if len(parts) == 0 {
+		return 0, os.ErrInvalid
+	}
+
+	spec := protocol.StartSpec{
+		Name:  name,
+		Cmd:   parts[0],
+		Args:  parts[1:],
+		RunAs: protocol.RunAsPolicy{Mode: "self"},
+	}
+
+	info, err := m.StartWithSpec(spec)
+	if err != nil {
+		return 0, err
+	}
+	return info.ID, nil
+}
+
+// StartWithSpec creates and starts a new process based on the spec.
+func (m *Manager) StartWithSpec(spec protocol.StartSpec) (types.ProcessInfo, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
 	id := m.nextID
 	m.nextID++
 
-	proc, err := NewProcess(id, name, command)
+	proc, err := NewProcess(id, spec)
 	if err != nil {
-		return 0, err
+		return types.ProcessInfo{}, err
 	}
 
 	if err := proc.Start(); err != nil {
-		return 0, err
+		return types.ProcessInfo{}, err
 	}
 
 	m.processes[id] = proc
-	return id, nil
+	return proc.Info(), nil
 }
 
 // Stop signals a process to stop.

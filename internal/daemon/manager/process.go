@@ -1,13 +1,16 @@
-package daemon
+package manager
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"os/exec"
-	"strings"
+	"path/filepath"
 	"sync"
 	"time"
 
+	"github.com/Jaro-c/Lynx/internal/daemon/runtime"
+	"github.com/Jaro-c/Lynx/internal/ipc/protocol"
 	"github.com/Jaro-c/Lynx/internal/types"
 )
 
@@ -23,15 +26,60 @@ type Process struct {
 
 // NewProcess creates a new process instance.
 // It does not start the process.
-func NewProcess(id int, name, command string) (*Process, error) {
-	// Simple command parsing (naive split)
-	parts := strings.Fields(command)
-	if len(parts) == 0 {
+func NewProcess(id int, spec protocol.StartSpec) (*Process, error) {
+	// Explicit execution: NO shell, NO strings.Fields
+	if spec.Cmd == "" {
 		return nil, os.ErrInvalid
 	}
 
+	// Security Hardening: Max Args Limit
+	if len(spec.Args) > 256 {
+		return nil, fmt.Errorf("ERR_LIMITS: too many arguments (max 256)")
+	}
+
 	// Use CommandContext to satisfy linter, though we use Background for now.
-	cmd := exec.CommandContext(context.Background(), parts[0], parts[1:]...)
+	// SECURITY: Relative paths in spec.Cmd are resolved using the daemon's PATH.
+	cmd := exec.CommandContext(context.Background(), spec.Cmd, spec.Args...)
+
+	if spec.Cwd != "" {
+		// Security Hardening: Cwd Validation
+		info, err := os.Stat(spec.Cwd)
+		if err != nil || !info.IsDir() {
+			return nil, fmt.Errorf("ERR_BAD_REQUEST: invalid cwd: %w", err)
+		}
+		cmd.Dir = spec.Cwd
+	}
+
+	// Environment: Inherit from OS and append/overwrite with spec.Env
+	// This ensures PATH and other system vars are present.
+	// SECURITY: We use an inherit+overlay policy. spec.Env is validated for limits in the handler.
+	if len(spec.Env) > 0 {
+		env := os.Environ()
+		for k, v := range spec.Env {
+			env = append(env, fmt.Sprintf("%s=%s", k, v))
+		}
+		cmd.Env = env
+	}
+
+	// Stdio handling
+	if spec.Stdio == "inherit" {
+		cmd.Stdout = os.Stdout
+		cmd.Stderr = os.Stderr
+		cmd.Stdin = os.Stdin
+	}
+	// "pipe" and "file" are unsupported in this phase, handled by caller or ignored.
+
+	// Configure isolation (platform specific)
+	// TODO: Verify client identity via socket credentials before applying isolation policies.
+	// Currently, identity is implicitly trusted if the client can connect.
+	if err := runtime.ConfigureProcessIsolation(cmd, spec.RunAs); err != nil {
+		return nil, err
+	}
+
+	name := spec.Name
+	if name == "" {
+		name = filepath.Base(spec.Cmd)
+	}
 
 	return &Process{
 		cmd: cmd,
