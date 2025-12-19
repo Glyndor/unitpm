@@ -1,6 +1,7 @@
 //go:build !windows
 
-package ipc
+// Package transport implements the Inter-Process Communication transport layer.
+package transport
 
 import (
 	"net"

@@ -1,6 +1,6 @@
 //go:build !linux && !windows
 
-package ipc
+package transport
 
 import "net"
 

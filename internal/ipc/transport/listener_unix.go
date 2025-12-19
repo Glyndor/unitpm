@@ -1,7 +1,7 @@
 //go:build !windows
 
-// Package ipc implements the Inter-Process Communication between lynx CLI and daemon.
-package ipc
+// Package transport implements the Inter-Process Communication transport layer.
+package transport
 
 import (
 	"net"

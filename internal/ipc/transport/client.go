@@ -1,5 +1,5 @@
-// Package ipc implements the Inter-Process Communication between lynx CLI and daemon.
-package ipc
+// Package transport implements the Inter-Process Communication transport layer.
+package transport
 
 import (
 	"bufio"
@@ -11,7 +11,7 @@ import (
 	"net"
 	"time"
 
-	"github.com/Jaro-c/Lynx/internal/version"
+	"github.com/Jaro-c/Lynx/internal/ipc/protocol"
 )
 
 // Client handles communication with the daemon.
@@ -36,8 +36,8 @@ func NewClient() (*Client, error) {
 	}
 
 	scanner := bufio.NewScanner(conn)
-	// Enforce 1MB max message size for responses too
-	scanner.Buffer(make([]byte, 4096), 1024*1024)
+	// Enforce MaxMsgSize for responses too
+	scanner.Buffer(make([]byte, 4096), MaxMsgSize)
 
 	return &Client{
 		conn:    conn,
@@ -73,16 +73,15 @@ func (c *Client) sendRequest(reqID string, command string, params any) error {
 		paramBytes = b
 	}
 
-	req := Request{
-		Version:   version.ProtocolVersion,
+	req := protocol.Request{
+		Version:   protocol.Version,
 		ID:        reqID,
 		Command:   command,
 		Params:    paramBytes,
-		Timestamp: time.Now().Unix(),
 	}
 
 	// Set write deadline
-	if err := c.conn.SetWriteDeadline(time.Now().Add(2 * time.Second)); err != nil {
+	if err := c.conn.SetWriteDeadline(time.Now().Add(WriteTimeout)); err != nil {
 		return fmt.Errorf("set write deadline error: %w", err)
 	}
 
@@ -95,7 +94,7 @@ func (c *Client) sendRequest(reqID string, command string, params any) error {
 func (c *Client) readResponse(reqID string, result any) error {
 	// Read response
 	// Set read deadline
-	if err := c.conn.SetReadDeadline(time.Now().Add(5 * time.Second)); err != nil {
+	if err := c.conn.SetReadDeadline(time.Now().Add(ReadTimeout)); err != nil {
 		return fmt.Errorf("set read deadline error: %w", err)
 	}
 
@@ -106,7 +105,7 @@ func (c *Client) readResponse(reqID string, result any) error {
 		return errors.New("connection closed by server")
 	}
 
-	var resp Response
+	var resp protocol.Response
 	if err := json.Unmarshal(c.scanner.Bytes(), &resp); err != nil {
 		return fmt.Errorf("receive error (invalid json): %w", err)
 	}
@@ -128,7 +127,7 @@ func (c *Client) readResponse(reqID string, result any) error {
 	return nil
 }
 
-func (c *Client) checkStatus(resp *Response) error {
+func (c *Client) checkStatus(resp *protocol.Response) error {
 	if resp.Status != statusError {
 		return nil
 	}
@@ -144,14 +143,14 @@ func (c *Client) checkStatus(resp *Response) error {
 		// The Data field is likely a map[string]interface{} (from json decoding into any)
 		// We need to re-encode and decode it into the struct to be safe and clean.
 		if dataBytes, err := json.Marshal(resp.Error.Data); err == nil {
-			var mismatchData ProtocolMismatchData
+			var mismatchData protocol.ProtocolMismatchData
 			if err := json.Unmarshal(dataBytes, &mismatchData); err == nil {
 				errData = mismatchData
 			}
 		}
 	}
 
-	return &RemoteError{
+	return &protocol.RemoteError{
 		Code:    resp.Error.Code,
 		Message: resp.Error.Message,
 		Data:    errData,
