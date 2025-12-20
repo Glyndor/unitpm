@@ -8,11 +8,12 @@ import (
 	"github.com/Jaro-c/Lynx/internal/daemon/manager"
 	"github.com/Jaro-c/Lynx/internal/daemon/policy"
 	"github.com/Jaro-c/Lynx/internal/ipc/protocol"
+	"github.com/Jaro-c/Lynx/internal/ipc/transport"
 	"github.com/Jaro-c/Lynx/internal/types"
 )
 
 // StartProcess handles the process start request with full validation and policy enforcement.
-func StartProcess(mgr *manager.Manager, spec protocol.StartSpec, privileged bool) (types.ProcessInfo, error) {
+func StartProcess(mgr *manager.Manager, spec protocol.StartSpec, identity *transport.Identity, daemonPrivileged bool) (types.ProcessInfo, error) {
 	// Validation
 	if spec.Cmd == "" {
 		return types.ProcessInfo{}, fmt.Errorf("ERR_BAD_REQUEST: cmd is required")
@@ -49,7 +50,7 @@ func StartProcess(mgr *manager.Manager, spec protocol.StartSpec, privileged bool
 		}
 	}
 
-	if err := policy.AuthorizeStart(spec, privileged); err != nil {
+	if err := policy.AuthorizeStart(spec, identity, daemonPrivileged); err != nil {
 		return types.ProcessInfo{}, err
 	}
 

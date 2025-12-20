@@ -15,9 +15,9 @@ func ConfigureProcessIsolation(cmd *exec.Cmd, runAs protocol.RunAsPolicy) error 
 		return nil
 	case "app_user":
 		// Placeholder for Job Objects / Token handling
-		return nil
+		return fmt.Errorf("ERR_UNSUPPORTED: run_as=app_user not supported on Windows yet")
 	case "explicit_user":
-		return fmt.Errorf("ERR_UNSUPPORTED: run_as=explicit_user not supported")
+		return fmt.Errorf("ERR_UNSUPPORTED: run_as=explicit_user not supported on Windows yet")
 	default:
 		return nil
 	}

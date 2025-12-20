@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"runtime"
@@ -9,11 +10,19 @@ import (
 
 	"github.com/Jaro-c/Lynx/internal/daemon/manager"
 	"github.com/Jaro-c/Lynx/internal/ipc/protocol"
+	"github.com/Jaro-c/Lynx/internal/ipc/transport"
 )
 
 func TestStartHandler_Validation(t *testing.T) {
 	mgr := manager.NewManager()
 	handler := StartHandler(mgr, false) // unprivileged
+
+	// Context with identity
+	ctx := context.WithValue(context.Background(), transport.ContextKeyIdentity, &transport.Identity{
+		UID: "1000",
+		GID: "1000",
+		PID: 1234,
+	})
 
 	tests := []struct {
 		name      string
@@ -128,20 +137,20 @@ func TestStartHandler_Validation(t *testing.T) {
 			errCode: "ERR_FORBIDDEN",
 		},
 		{
-			name: "explicit_user unsupported",
+			name: "explicit_user unprivileged daemon",
 			spec: protocol.StartSpec{
 				Cmd:   "echo",
 				RunAs: protocol.RunAsPolicy{Mode: "explicit_user"},
 			},
 			wantErr: true,
-			errCode: "ERR_UNSUPPORTED",
+			errCode: "ERR_FORBIDDEN",
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			params, _ := json.Marshal(tt.spec)
-			_, err := handler(params)
+			_, err := handler(ctx, params)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("StartHandler() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -158,6 +167,13 @@ func TestStartHandler_Validation(t *testing.T) {
 func TestStartHandler_Execution(t *testing.T) {
 	mgr := manager.NewManager()
 	handler := StartHandler(mgr, false)
+
+	// Context with identity
+	ctx := context.WithValue(context.Background(), transport.ContextKeyIdentity, &transport.Identity{
+		UID: "1000",
+		GID: "1000",
+		PID: 1234,
+	})
 
 	var cmd string
 	var args []string
@@ -177,7 +193,7 @@ func TestStartHandler_Execution(t *testing.T) {
 	}
 
 	params, _ := json.Marshal(spec)
-	res, err := handler(params)
+	res, err := handler(ctx, params)
 	if err != nil {
 		t.Fatalf("StartHandler failed: %v", err)
 	}

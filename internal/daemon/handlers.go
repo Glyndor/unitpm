@@ -1,6 +1,7 @@
 package daemon
 
 import (
+	"context"
 	"encoding/json"
 
 	"github.com/Jaro-c/Lynx/internal/daemon/handlers"
@@ -12,7 +13,7 @@ import (
 // RegisterHandlers registers all daemon IPC handlers.
 func RegisterHandlers(server *transport.Server, mgr *manager.Manager, privileged bool) {
 	// Register ping handler
-	server.Register("ping", func(_ json.RawMessage) (json.RawMessage, error) {
+	server.Register("ping", func(_ context.Context, _ json.RawMessage) (json.RawMessage, error) {
 		return json.Marshal(map[string]string{"response": "pong"})
 	})
 
@@ -20,7 +21,7 @@ func RegisterHandlers(server *transport.Server, mgr *manager.Manager, privileged
 	server.Register("start", handlers.StartHandler(mgr, privileged))
 
 	// Register stop handler
-	server.Register("stop", func(params json.RawMessage) (json.RawMessage, error) {
+	server.Register("stop", func(_ context.Context, params json.RawMessage) (json.RawMessage, error) {
 		var args struct {
 			ID int `json:"id"`
 		}
@@ -37,12 +38,12 @@ func RegisterHandlers(server *transport.Server, mgr *manager.Manager, privileged
 
 	// Register list handler (replacing status)
 	// Returns a list of processes with their detailed status
-	server.Register("list", func(_ json.RawMessage) (json.RawMessage, error) {
+	server.Register("list", func(_ context.Context, _ json.RawMessage) (json.RawMessage, error) {
 		return json.Marshal(mgr.List())
 	})
 
 	// Register version handler
-	server.Register("version", func(_ json.RawMessage) (json.RawMessage, error) {
+	server.Register("version", func(_ context.Context, _ json.RawMessage) (json.RawMessage, error) {
 		return json.Marshal(version.Get())
 	})
 }

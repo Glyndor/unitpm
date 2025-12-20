@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"time"
@@ -12,14 +13,21 @@ import (
 
 // StartHandler handles the start command.
 func StartHandler(mgr *manager.Manager, privileged bool) transport.CommandHandler {
-	return func(params json.RawMessage) (json.RawMessage, error) {
+	return func(ctx context.Context, params json.RawMessage) (json.RawMessage, error) {
 		var spec protocol.StartSpec
 		if err := json.Unmarshal(params, &spec); err != nil {
 			return nil, fmt.Errorf("ERR_BAD_REQUEST: %w", err)
 		}
 
+		// TODO: Validate identity from ctx if needed for explicit_user
+		identity, ok := ctx.Value(transport.ContextKeyIdentity).(*transport.Identity)
+		if !ok {
+			// Should not happen if server logic is correct
+			return nil, fmt.Errorf("INTERNAL_ERROR: identity not found")
+		}
+
 		// Start process via Daemon logic
-		procInfo, err := StartProcess(mgr, spec, privileged)
+		procInfo, err := StartProcess(mgr, spec, identity, privileged)
 		if err != nil {
 			return nil, err
 		}
