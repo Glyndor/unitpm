@@ -6,18 +6,19 @@ import (
 	"fmt"
 	"net"
 	"os"
+	"strconv"
 	"syscall"
 )
 
-func validateIdentity(conn net.Conn) error {
+func validateIdentity(conn net.Conn) (*Identity, error) {
 	unixConn, ok := conn.(*net.UnixConn)
 	if !ok {
-		return fmt.Errorf("invalid connection type")
+		return nil, fmt.Errorf("invalid connection type")
 	}
 
 	rawConn, err := unixConn.SyscallConn()
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	var cred *syscall.Ucred
@@ -28,15 +29,19 @@ func validateIdentity(conn net.Conn) error {
 	})
 
 	if err != nil {
-		return err
+		return nil, err
 	}
 	if credErr != nil {
-		return credErr
+		return nil, credErr
 	}
 
 	if int(cred.Uid) != os.Getuid() {
-		return fmt.Errorf("unauthorized user: %d", cred.Uid)
+		return nil, fmt.Errorf("unauthorized user: %d", cred.Uid)
 	}
 
-	return nil
+	return &Identity{
+		UID: strconv.Itoa(int(cred.Uid)),
+		GID: strconv.Itoa(int(cred.Gid)),
+		PID: int(cred.Pid),
+	}, nil
 }

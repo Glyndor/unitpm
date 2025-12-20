@@ -1,7 +1,11 @@
 package transport_test
 
 import (
+	"context"
 	"encoding/json"
+	"fmt"
+	"os"
+	"runtime"
 	"strings"
 	"testing"
 	"time"
@@ -14,7 +18,7 @@ func TestIPC(t *testing.T) {
 	server := transport.NewServer()
 
 	// Register ping handler
-	server.Register("ping", func(_ json.RawMessage) (json.RawMessage, error) {
+	server.Register("ping", func(_ context.Context, _ json.RawMessage) (json.RawMessage, error) {
 		return json.Marshal(map[string]string{"response": "pong"})
 	})
 
@@ -57,11 +61,83 @@ func TestIPC(t *testing.T) {
 	}
 }
 
+func TestSocketPermissions(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("Skipping Unix permissions test on Windows")
+	}
+
+	server := transport.NewServer()
+	if err := server.Start(); err != nil {
+		t.Fatalf("Failed to start server: %v", err)
+	}
+	defer func() { _ = server.Close() }()
+
+	time.Sleep(100 * time.Millisecond)
+
+	path, err := transport.GetSocketPath()
+	if err != nil {
+		t.Fatalf("Failed to get socket path: %v", err)
+	}
+
+	info, err := os.Stat(path)
+	if err != nil {
+		t.Fatalf("Failed to stat socket: %v", err)
+	}
+
+	perm := info.Mode().Perm()
+	if perm != 0600 {
+		t.Errorf("Socket permissions = %o, want 0600", perm)
+	}
+}
+
+func TestIdentity(t *testing.T) {
+	server := transport.NewServer()
+	server.Register("whoami", func(ctx context.Context, _ json.RawMessage) (json.RawMessage, error) {
+		id, ok := ctx.Value(transport.ContextKeyIdentity).(*transport.Identity)
+		if !ok {
+			return nil, fmt.Errorf("identity not found in context")
+		}
+		return json.Marshal(id)
+	})
+
+	if err := server.Start(); err != nil {
+		t.Fatalf("Failed to start server: %v", err)
+	}
+	defer func() { _ = server.Close() }()
+
+	time.Sleep(100 * time.Millisecond)
+
+	client, err := transport.NewClient()
+	if err != nil {
+		t.Fatalf("Failed to create client: %v", err)
+	}
+	defer func() { _ = client.Close() }()
+
+	var identity transport.Identity
+	if err := client.Call("whoami", nil, &identity); err != nil {
+		t.Fatalf("whoami failed: %v", err)
+	}
+
+	t.Logf("Got identity: %+v", identity)
+
+	if runtime.GOOS == "linux" {
+		uid := os.Getuid()
+		if identity.UID != fmt.Sprintf("%d", uid) {
+			t.Errorf("UID mismatch: got %s, want %d", identity.UID, uid)
+		}
+	} else {
+		// Windows/Stub returns "0"
+		if identity.UID != "0" {
+			t.Errorf("UID mismatch: got %s, want 0", identity.UID)
+		}
+	}
+}
+
 func TestIPC_Limits(t *testing.T) {
 	// Start server
 	server := transport.NewServer()
 	// Register echo handler
-	server.Register("echo", func(params json.RawMessage) (json.RawMessage, error) {
+	server.Register("echo", func(_ context.Context, params json.RawMessage) (json.RawMessage, error) {
 		return params, nil
 	})
 

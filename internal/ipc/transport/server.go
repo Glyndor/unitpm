@@ -3,6 +3,7 @@ package transport
 
 import (
 	"bufio"
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -14,8 +15,20 @@ import (
 	"github.com/Jaro-c/Lynx/internal/ipc/protocol"
 )
 
+// Identity represents the authenticated identity of an IPC client.
+type Identity struct {
+	UID string // User ID (Unix) or SID (Windows)
+	GID string // Group ID (Unix) or Primary Group SID (Windows)
+	PID int    // Process ID
+}
+
+type contextKey string
+
+// ContextKeyIdentity is the context key for the client identity.
+const ContextKeyIdentity contextKey = "identity"
+
 // CommandHandler is a function that handles an IPC command.
-type CommandHandler func(params json.RawMessage) (json.RawMessage, error)
+type CommandHandler func(ctx context.Context, params json.RawMessage) (json.RawMessage, error)
 
 // Server accepts connections and dispatches commands.
 type Server struct {
@@ -90,9 +103,13 @@ func (s *Server) handleConnection(conn net.Conn) {
 		_ = conn.Close()
 	}()
 
-	if err := validateIdentity(conn); err != nil {
+	identity, err := validateIdentity(conn)
+	if err != nil {
 		return
 	}
+
+	// Create context with identity
+	ctx := context.WithValue(context.Background(), ContextKeyIdentity, identity)
 
 	// Use bufio.Scanner to enforce newline-delimited messages and size limits
 	scanner := bufio.NewScanner(conn)
@@ -129,7 +146,7 @@ func (s *Server) handleConnection(conn net.Conn) {
 		var resp any
 
 		if univReq.Type == "start" {
-			resp = s.dispatchStart(&univReq)
+			resp = s.dispatchStart(ctx, &univReq)
 		} else {
 			req := &protocol.Request{
 				Version: univReq.Version,
@@ -137,7 +154,7 @@ func (s *Server) handleConnection(conn net.Conn) {
 				Command: univReq.Command,
 				Params:  univReq.Params,
 			}
-			resp = s.dispatch(req)
+			resp = s.dispatch(ctx, req)
 		}
 
 		// Set write deadline
@@ -162,7 +179,7 @@ func (s *Server) sendError(encoder *json.Encoder, code, message string) {
 	_ = encoder.Encode(resp)
 }
 
-func (s *Server) dispatchStart(req *UniversalRequest) *protocol.StartResponse {
+func (s *Server) dispatchStart(ctx context.Context, req *UniversalRequest) *protocol.StartResponse {
 	resp := &protocol.StartResponse{
 		ProtocolVersion: protocol.Version,
 		Type:            "start_result",
@@ -192,7 +209,7 @@ func (s *Server) dispatchStart(req *UniversalRequest) *protocol.StartResponse {
 		return resp
 	}
 
-	res, err := handler(req.Spec)
+	res, err := handler(ctx, req.Spec)
 	if err != nil {
 		resp.Ok = false
 		resp.Error = &protocol.StartError{
@@ -216,7 +233,7 @@ func (s *Server) dispatchStart(req *UniversalRequest) *protocol.StartResponse {
 	return resp
 }
 
-func (s *Server) dispatch(req *protocol.Request) *protocol.Response {
+func (s *Server) dispatch(ctx context.Context, req *protocol.Request) *protocol.Response {
 	resp := &protocol.Response{
 		ID: req.ID,
 	}
@@ -252,7 +269,7 @@ func (s *Server) dispatch(req *protocol.Request) *protocol.Response {
 		return resp
 	}
 
-	res, err := handler(req.Params)
+	res, err := handler(ctx, req.Params)
 	if err != nil {
 		resp.Status = "error"
 		resp.Error = &protocol.Error{
