@@ -8,23 +8,24 @@ import (
 	"syscall"
 
 	"github.com/Jaro-c/Lynx/internal/daemon"
-	"github.com/Jaro-c/Lynx/internal/ipc"
+	"github.com/Jaro-c/Lynx/internal/daemon/manager"
+	"github.com/Jaro-c/Lynx/internal/ipc/transport"
 )
 
 func main() {
 	log.Println("lynxd starting...")
 
-	mgr := daemon.NewManager()
-	server := ipc.NewServer()
+	mgr := manager.NewManager()
+	server := transport.NewServer()
 
 	// Register all handlers
-	daemon.RegisterHandlers(server, mgr)
+	daemon.RegisterHandlers(server, mgr, false)
 
 	if err := server.Start(); err != nil {
 		log.Fatalf("Failed to start IPC server: %v", err)
 	}
 
-	path, err := ipc.GetSocketPath()
+	path, err := transport.GetSocketPath()
 	if err != nil {
 		log.Fatalf("Failed to get socket path: %v", err)
 	}
