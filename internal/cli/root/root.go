@@ -8,16 +8,18 @@ import (
 	"os"
 
 	"github.com/Jaro-c/Lynx/internal/cli/commands/list"
+	"github.com/Jaro-c/Lynx/internal/cli/commands/start"
 	"github.com/Jaro-c/Lynx/internal/cli/commands/version"
 	"github.com/Jaro-c/Lynx/internal/cli/errs"
 	"github.com/Jaro-c/Lynx/internal/cli/help"
 	"github.com/Jaro-c/Lynx/internal/cli/registry"
-	"github.com/Jaro-c/Lynx/internal/ipc"
+	"github.com/Jaro-c/Lynx/internal/ipc/transport"
 	"github.com/Jaro-c/Lynx/internal/term"
 )
 
 const (
 	cmdList    = "list"
+	cmdStart   = "start"
 	cmdVersion = "version"
 )
 
@@ -52,6 +54,9 @@ func Execute(args []string) int {
 		case cmdList:
 			list.PrintHelp()
 			return 0
+		case cmdStart:
+			start.PrintHelp()
+			return 0
 		case cmdVersion:
 			version.PrintHelp()
 			return 0
@@ -62,7 +67,7 @@ func Execute(args []string) int {
 
 	switch command {
 	case cmdList:
-		client, err := ipc.NewClient()
+		client, err := transport.NewClient()
 		if err != nil {
 			printError(os.Stderr, "failed to connect to daemon: %v", err)
 			return 1
@@ -71,6 +76,17 @@ func Execute(args []string) int {
 			_ = client.Close()
 		}()
 		cmdErr = list.Run(client, args[1:])
+
+	case cmdStart:
+		client, err := transport.NewClient()
+		if err != nil {
+			printError(os.Stderr, "failed to connect to daemon: %v", err)
+			return 1
+		}
+		defer func() {
+			_ = client.Close()
+		}()
+		cmdErr = start.Run(client, args[1:])
 
 	case cmdVersion:
 		cmdErr = version.Run(os.Stdout, args[1:])
@@ -89,6 +105,8 @@ func Execute(args []string) int {
 			switch command {
 			case cmdList:
 				list.PrintHelp()
+			case cmdStart:
+				start.PrintHelp()
 			case cmdVersion:
 				version.PrintHelp()
 			}
@@ -117,5 +135,6 @@ func printError(w io.Writer, format string, a ...any) {
 
 func registerCommands() {
 	registry.Register(list.GetSpec())
+	registry.Register(start.GetSpec())
 	registry.Register(version.GetSpec())
 }

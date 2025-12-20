@@ -11,7 +11,8 @@ import (
 
 	"github.com/Jaro-c/Lynx/internal/cli/errs"
 	"github.com/Jaro-c/Lynx/internal/cli/help"
-	"github.com/Jaro-c/Lynx/internal/ipc"
+	"github.com/Jaro-c/Lynx/internal/ipc/protocol"
+	"github.com/Jaro-c/Lynx/internal/ipc/transport"
 	"github.com/Jaro-c/Lynx/internal/term"
 	"github.com/Jaro-c/Lynx/internal/version"
 )
@@ -46,7 +47,7 @@ func Run(w io.Writer, args []string) error {
 
 	// 2. Attempt to connect to daemon
 	// We handle the connection manually here because failure is not an error for this command.
-	client, err := ipc.NewClient()
+	client, err := transport.NewClient()
 	if err != nil {
 		// Daemon not running or unreachable.
 		// Print only Protocol section and exit 0.
@@ -107,14 +108,14 @@ func Run(w io.Writer, args []string) error {
 }
 
 func handleProtocolMismatch(w io.Writer, local version.Info, err error) bool {
-	var remoteErr *ipc.RemoteError
+	var remoteErr *protocol.RemoteError
 	if !errors.As(err, &remoteErr) || remoteErr.Code != "PROTOCOL_MISMATCH" {
 		return false
 	}
 
 	// Extract supported version safely using typed struct
 	var supported int
-	if data, ok := remoteErr.Data.(ipc.ProtocolMismatchData); ok {
+	if data, ok := remoteErr.Data.(protocol.ProtocolMismatchData); ok {
 		supported = data.Supported
 	}
 
