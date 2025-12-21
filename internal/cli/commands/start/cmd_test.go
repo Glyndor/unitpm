@@ -168,6 +168,7 @@ func TestTokenize(t *testing.T) {
 		want    []string
 		wantErr bool
 	}{
+		// Validation cases from requirements
 		{
 			input: "bun dev",
 			want:  []string{"bun", "dev"},
@@ -177,6 +178,15 @@ func TestTokenize(t *testing.T) {
 			want:  []string{"node", "--run", "dev"},
 		},
 		{
+			input: "a 'b c' d",
+			want:  []string{"a", "b c", "d"},
+		},
+		{
+			input: "a \"b c\"",
+			want:  []string{"a", "b c"},
+		},
+		// Additional cases
+		{
 			input: "'single quoted'",
 			want:  []string{"single quoted"},
 		},
@@ -185,19 +195,31 @@ func TestTokenize(t *testing.T) {
 			want:  []string{"double quoted"},
 		},
 		{
-			input: "escaped\\ space",
-			want:  []string{"escaped space"},
+			input: "escaped\\ space", // Backslash is literal outside quotes
+			want:  []string{"escaped\\", "space"},
 		},
 		{
-			input: "\"escaped \\\" quote\"",
+			input: "\"escaped \\\" quote\"", // Valid escape inside double quotes
 			want:  []string{"escaped \" quote"},
+		},
+		{
+			input: "\"escaped \\\\ backslash\"", // Valid escape inside double quotes
+			want:  []string{"escaped \\ backslash"},
 		},
 		{
 			input:   "unclosed quote '",
 			wantErr: true,
 		},
 		{
-			input:   "trailing backslash \\",
+			input: "trailing backslash \\", // Literal backslash is allowed at end
+			want:  []string{"trailing", "backslash", "\\"},
+		},
+		{
+			input:   "\"invalid escape \\z\"",
+			wantErr: true,
+		},
+		{
+			input:   "\"trailing escape \\\"",
 			wantErr: true,
 		},
 	}
