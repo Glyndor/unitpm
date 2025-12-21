@@ -3,9 +3,10 @@ package transport_test
 import (
 	"context"
 	"encoding/json"
-	"fmt"
+	"errors"
 	"os"
 	"runtime"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -92,10 +93,13 @@ func TestSocketPermissions(t *testing.T) {
 
 func TestIdentity(t *testing.T) {
 	server := transport.NewServer()
-	server.Register("whoami", func(ctx context.Context, _ json.RawMessage) (json.RawMessage, error) {
+	server.Register("whoami", func(
+		ctx context.Context,
+		_ json.RawMessage,
+	) (json.RawMessage, error) {
 		id, ok := ctx.Value(transport.ContextKeyIdentity).(*transport.Identity)
 		if !ok {
-			return nil, fmt.Errorf("identity not found in context")
+			return nil, errors.New("identity not found in context")
 		}
 		return json.Marshal(id)
 	})
@@ -115,29 +119,23 @@ func TestIdentity(t *testing.T) {
 
 	var identity transport.Identity
 	if err := client.Call("whoami", nil, &identity); err != nil {
-		t.Fatalf("whoami failed: %v", err)
+		t.Fatalf("Whoami failed: %v", err)
 	}
 
-	t.Logf("Got identity: %+v", identity)
-
-	if runtime.GOOS == "linux" {
-		uid := os.Getuid()
-		if identity.UID != fmt.Sprintf("%d", uid) {
-			t.Errorf("UID mismatch: got %s, want %d", identity.UID, uid)
-		}
-	} else {
-		// Windows/Stub returns "0"
-		if identity.UID != "0" {
-			t.Errorf("UID mismatch: got %s, want 0", identity.UID)
-		}
+	uid := os.Getuid()
+	if identity.UID != strconv.Itoa(uid) {
+		t.Errorf("Identity UID = %s, want %d", identity.UID, uid)
 	}
 }
 
-func TestIPC_Limits(t *testing.T) {
-	// Start server
+func TestLimits(t *testing.T) {
+	// Start server with small limits
 	server := transport.NewServer()
 	// Register echo handler
-	server.Register("echo", func(_ context.Context, params json.RawMessage) (json.RawMessage, error) {
+	server.Register("echo", func(
+		_ context.Context,
+		params json.RawMessage,
+	) (json.RawMessage, error) {
 		return params, nil
 	})
 
@@ -168,8 +166,9 @@ func TestIPC_Limits(t *testing.T) {
 		t.Logf("Got expected error: %v", err)
 		// We expect ERR_LIMITS or connection closed
 		if !strings.Contains(err.Error(), "ERR_LIMITS") && !strings.Contains(err.Error(), "EOF") && !strings.Contains(err.Error(), "connection reset") {
-             // It's possible the server closes before sending response, or client fails to read response.
-             // But valid behavior is error.
+			// It's possible the server closes before sending response, or client fails to read response.
+			// But valid behavior is error.
+			t.Errorf("Unexpected error: %v", err)
 		}
 	}
 }

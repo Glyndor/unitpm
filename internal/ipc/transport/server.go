@@ -30,6 +30,11 @@ const ContextKeyIdentity contextKey = "identity"
 // CommandHandler is a function that handles an IPC command.
 type CommandHandler func(ctx context.Context, params json.RawMessage) (json.RawMessage, error)
 
+const (
+	statusError   = "error"
+	statusSuccess = "success"
+)
+
 // Server accepts connections and dispatches commands.
 type Server struct {
 	handlers map[string]CommandHandler
@@ -120,63 +125,79 @@ func (s *Server) handleConnection(conn net.Conn) {
 	encoder := json.NewEncoder(conn)
 
 	for {
-		// Set read deadline per request
-		if err := conn.SetReadDeadline(time.Now().Add(ReadTimeout)); err != nil {
-			return
-		}
-
-		if !scanner.Scan() {
-			if err := scanner.Err(); err != nil {
-				if errors.Is(err, bufio.ErrTooLong) {
-					s.sendError(encoder, "ERR_LIMITS", "Message too large")
-				} else if errors.Is(err, os.ErrDeadlineExceeded) {
-					s.sendError(encoder, "ERR_TIMEOUT", "Read timed out")
-				}
-			}
-			return
-		}
-
-		// Decode into UniversalRequest to determine type
-		var univReq UniversalRequest
-		if err := json.Unmarshal(scanner.Bytes(), &univReq); err != nil {
-			s.sendError(encoder, "ERR_BAD_REQUEST", "Invalid JSON")
-			return
-		}
-
-		var resp any
-
-		if univReq.Type == "start" {
-			resp = s.dispatchStart(ctx, &univReq)
-		} else {
-			req := &protocol.Request{
-				Version: univReq.Version,
-				ID:      univReq.ID,
-				Command: univReq.Command,
-				Params:  univReq.Params,
-			}
-			resp = s.dispatch(ctx, req)
-		}
-
-		// Set write deadline
-		if err := conn.SetWriteDeadline(time.Now().Add(WriteTimeout)); err != nil {
-			return
-		}
-
-		if err := encoder.Encode(resp); err != nil {
+		if !s.handleRequest(ctx, conn, scanner, encoder) {
 			return
 		}
 	}
 }
 
+func (s *Server) handleRequest(
+	ctx context.Context,
+	conn net.Conn,
+	scanner *bufio.Scanner,
+	encoder *json.Encoder,
+) bool {
+	// Set read deadline per request
+	if err := conn.SetReadDeadline(time.Now().Add(ReadTimeout)); err != nil {
+		return false
+	}
+
+	if !scanner.Scan() {
+		if err := scanner.Err(); err != nil {
+			if errors.Is(err, bufio.ErrTooLong) {
+				s.sendError(encoder, "ERR_LIMITS", "Message too large")
+			} else if errors.Is(err, os.ErrDeadlineExceeded) {
+				s.sendError(encoder, "ERR_TIMEOUT", "Read timed out")
+			}
+		}
+		return false
+	}
+
+	// Decode into UniversalRequest to determine type
+	var univReq UniversalRequest
+	if err := json.Unmarshal(scanner.Bytes(), &univReq); err != nil {
+		s.sendError(encoder, "ERR_BAD_REQUEST", "Invalid JSON")
+		return false
+	}
+
+	var resp any
+
+	if univReq.Type == "start" {
+		resp = s.dispatchStart(ctx, &univReq)
+	} else {
+		req := &protocol.Request{
+			Version: univReq.Version,
+			ID:      univReq.ID,
+			Command: univReq.Command,
+			Params:  univReq.Params,
+		}
+		resp = s.dispatch(ctx, req)
+	}
+
+	// Set write deadline
+	if err := conn.SetWriteDeadline(time.Now().Add(WriteTimeout)); err != nil {
+		return false
+	}
+
+	if err := encoder.Encode(resp); err != nil {
+		return false
+	}
+
+	return true
+}
+
 func (s *Server) sendError(encoder *json.Encoder, code, message string) {
 	resp := &protocol.Response{
-		Status: "error",
+		Status: statusError,
 		Error: &protocol.Error{
 			Code:    code,
 			Message: message,
 		},
 	}
-	_ = encoder.Encode(resp)
+	if err := encoder.Encode(resp); err != nil {
+		// Connection likely broken or closed
+		return
+	}
 }
 
 func (s *Server) dispatchStart(ctx context.Context, req *UniversalRequest) *protocol.StartResponse {
@@ -190,8 +211,12 @@ func (s *Server) dispatchStart(ctx context.Context, req *UniversalRequest) *prot
 	if req.ProtocolVersion != protocol.Version {
 		resp.Ok = false
 		resp.Error = &protocol.StartError{
-			Code:    "PROTOCOL_MISMATCH",
-			Message: fmt.Sprintf("Protocol mismatch: server v%d, client v%d", protocol.Version, req.ProtocolVersion),
+			Code: "PROTOCOL_MISMATCH",
+			Message: fmt.Sprintf(
+				"Protocol mismatch: server v%d, client v%d",
+				protocol.Version,
+				req.ProtocolVersion,
+			),
 		}
 		return resp
 	}
@@ -240,7 +265,7 @@ func (s *Server) dispatch(ctx context.Context, req *protocol.Request) *protocol.
 
 	// Validate protocol version
 	if req.Version != protocol.Version {
-		resp.Status = "error"
+		resp.Status = statusError
 		resp.Error = &protocol.Error{
 			Code: "PROTOCOL_MISMATCH",
 			Message: fmt.Sprintf(
@@ -248,7 +273,7 @@ func (s *Server) dispatch(ctx context.Context, req *protocol.Request) *protocol.
 				protocol.Version,
 				req.Version,
 			),
-			Data: protocol.ProtocolMismatchData{
+			Data: protocol.MismatchData{
 				Supported: protocol.Version,
 				Received:  req.Version,
 			},
@@ -261,7 +286,7 @@ func (s *Server) dispatch(ctx context.Context, req *protocol.Request) *protocol.
 	s.mu.RUnlock()
 
 	if !ok {
-		resp.Status = "error"
+		resp.Status = statusError
 		resp.Error = &protocol.Error{
 			Code:    "UNKNOWN_COMMAND",
 			Message: "Command not found",
@@ -271,13 +296,13 @@ func (s *Server) dispatch(ctx context.Context, req *protocol.Request) *protocol.
 
 	res, err := handler(ctx, req.Params)
 	if err != nil {
-		resp.Status = "error"
+		resp.Status = statusError
 		resp.Error = &protocol.Error{
 			Code:    "INTERNAL_ERROR",
 			Message: err.Error(),
 		}
 	} else {
-		resp.Status = "success"
+		resp.Status = statusSuccess
 		resp.Result = res
 	}
 

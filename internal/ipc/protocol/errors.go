@@ -1,3 +1,4 @@
+// Package protocol defines the IPC protocol structures and constants.
 package protocol
 
 import "fmt"
@@ -16,8 +17,8 @@ type RemoteError struct {
 	Data    any
 }
 
-// ProtocolMismatchData contains details about a protocol version mismatch.
-type ProtocolMismatchData struct {
+// MismatchData contains details about a protocol version mismatch.
+type MismatchData struct {
 	Supported int `json:"supported"`
 	Received  int `json:"received"`
 }

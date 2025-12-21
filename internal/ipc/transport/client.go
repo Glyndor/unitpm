@@ -21,8 +21,6 @@ type Client struct {
 	encoder *json.Encoder
 }
 
-const statusError = "error"
-
 // NewClient establishes a connection to the daemon.
 func NewClient() (*Client, error) {
 	path, err := GetSocketPath()
@@ -74,10 +72,10 @@ func (c *Client) sendRequest(reqID string, command string, params any) error {
 	}
 
 	req := protocol.Request{
-		Version:   protocol.Version,
-		ID:        reqID,
-		Command:   command,
-		Params:    paramBytes,
+		Version: protocol.Version,
+		ID:      reqID,
+		Command: command,
+		Params:  paramBytes,
 	}
 
 	// Set write deadline
@@ -143,7 +141,7 @@ func (c *Client) checkStatus(resp *protocol.Response) error {
 		// The Data field is likely a map[string]interface{} (from json decoding into any)
 		// We need to re-encode and decode it into the struct to be safe and clean.
 		if dataBytes, err := json.Marshal(resp.Error.Data); err == nil {
-			var mismatchData protocol.ProtocolMismatchData
+			var mismatchData protocol.MismatchData
 			if err := json.Unmarshal(dataBytes, &mismatchData); err == nil {
 				errData = mismatchData
 			}
