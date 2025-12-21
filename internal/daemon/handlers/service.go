@@ -1,7 +1,8 @@
+// Package handlers provides the request handlers for the daemon.
 package handlers
 
 import (
-	"fmt"
+	"errors"
 	"os"
 	"regexp"
 
@@ -12,42 +13,17 @@ import (
 	"github.com/Jaro-c/Lynx/internal/types"
 )
 
+var nameRegex = regexp.MustCompile(`^[a-zA-Z0-9][a-zA-Z0-9._-]{0,63}$`)
+
 // StartProcess handles the process start request with full validation and policy enforcement.
-func StartProcess(mgr *manager.Manager, spec protocol.StartSpec, identity *transport.Identity, daemonPrivileged bool) (types.ProcessInfo, error) {
-	// Validation
-	if spec.Cmd == "" {
-		return types.ProcessInfo{}, fmt.Errorf("ERR_BAD_REQUEST: cmd is required")
-	}
-	if len(spec.Cmd) > 4096 {
-		return types.ProcessInfo{}, fmt.Errorf("ERR_LIMITS: cmd too long")
-	}
-
-	if len(spec.Args) > 256 {
-		return types.ProcessInfo{}, fmt.Errorf("ERR_LIMITS: too many arguments")
-	}
-	for _, arg := range spec.Args {
-		if len(arg) > 4096 {
-			return types.ProcessInfo{}, fmt.Errorf("ERR_LIMITS: argument too long")
-		}
-	}
-
-	if spec.Name != "" {
-		matched, _ := regexp.MatchString(`^[a-zA-Z0-9][a-zA-Z0-9._-]{0,63}$`, spec.Name)
-		if !matched {
-			return types.ProcessInfo{}, fmt.Errorf("ERR_BAD_REQUEST: invalid name format")
-		}
-	}
-
-	if len(spec.Env) > 128 {
-		return types.ProcessInfo{}, fmt.Errorf("ERR_LIMITS: too many environment variables")
-	}
-	for k, v := range spec.Env {
-		if len(k) > 256 {
-			return types.ProcessInfo{}, fmt.Errorf("ERR_LIMITS: env key too long")
-		}
-		if len(v) > 8192 {
-			return types.ProcessInfo{}, fmt.Errorf("ERR_LIMITS: env value too long")
-		}
+func StartProcess(
+	mgr *manager.Manager,
+	spec protocol.StartSpec,
+	identity *transport.Identity,
+	daemonPrivileged bool,
+) (types.ProcessInfo, error) {
+	if err := validateSpec(spec); err != nil {
+		return types.ProcessInfo{}, err
 	}
 
 	if err := policy.AuthorizeStart(spec, identity, daemonPrivileged); err != nil {
@@ -57,14 +33,51 @@ func StartProcess(mgr *manager.Manager, spec protocol.StartSpec, identity *trans
 	// Validate Cwd
 	if spec.Cwd != "" {
 		if len(spec.Cwd) > 4096 {
-			return types.ProcessInfo{}, fmt.Errorf("ERR_LIMITS: cwd too long")
+			return types.ProcessInfo{}, errors.New("ERR_LIMITS: cwd too long")
 		}
 		info, err := os.Stat(spec.Cwd)
 		if err != nil || !info.IsDir() {
-			return types.ProcessInfo{}, fmt.Errorf("ERR_BAD_REQUEST: invalid cwd")
+			return types.ProcessInfo{}, errors.New("ERR_BAD_REQUEST: invalid cwd")
 		}
 	}
 
 	// Start process via Manager
 	return mgr.StartWithSpec(spec)
+}
+
+func validateSpec(spec protocol.StartSpec) error {
+	if spec.Cmd == "" {
+		return errors.New("ERR_BAD_REQUEST: cmd is required")
+	}
+	if len(spec.Cmd) > 4096 {
+		return errors.New("ERR_LIMITS: cmd too long")
+	}
+
+	if len(spec.Args) > 256 {
+		return errors.New("ERR_LIMITS: too many arguments")
+	}
+	for _, arg := range spec.Args {
+		if len(arg) > 4096 {
+			return errors.New("ERR_LIMITS: argument too long")
+		}
+	}
+
+	if spec.Name != "" {
+		if !nameRegex.MatchString(spec.Name) {
+			return errors.New("ERR_BAD_REQUEST: invalid name format")
+		}
+	}
+
+	if len(spec.Env) > 128 {
+		return errors.New("ERR_LIMITS: too many environment variables")
+	}
+	for k, v := range spec.Env {
+		if len(k) > 256 {
+			return errors.New("ERR_LIMITS: env key too long")
+		}
+		if len(v) > 8192 {
+			return errors.New("ERR_LIMITS: env value too long")
+		}
+	}
+	return nil
 }

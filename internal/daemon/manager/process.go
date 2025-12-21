@@ -2,6 +2,7 @@ package manager
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"os/exec"
@@ -34,7 +35,7 @@ func NewProcess(id int, spec protocol.StartSpec) (*Process, error) {
 
 	// Security Hardening: Max Args Limit
 	if len(spec.Args) > 256 {
-		return nil, fmt.Errorf("ERR_LIMITS: too many arguments (max 256)")
+		return nil, errors.New("ERR_LIMITS: too many arguments (max 256)")
 	}
 
 	// Use CommandContext to satisfy linter, though we use Background for now.

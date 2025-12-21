@@ -27,6 +27,7 @@ func NewManager() *Manager {
 }
 
 // Start creates and starts a new process.
+//
 // Deprecated: Use StartWithSpec instead.
 func (m *Manager) Start(name, command string) (int, error) {
 	parts := strings.Fields(command)

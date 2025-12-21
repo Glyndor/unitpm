@@ -3,7 +3,9 @@ package handlers
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
+	"strconv"
 	"time"
 
 	"github.com/Jaro-c/Lynx/internal/daemon/manager"
@@ -23,7 +25,7 @@ func StartHandler(mgr *manager.Manager, privileged bool) transport.CommandHandle
 		identity, ok := ctx.Value(transport.ContextKeyIdentity).(*transport.Identity)
 		if !ok {
 			// Should not happen if server logic is correct
-			return nil, fmt.Errorf("INTERNAL_ERROR: identity not found")
+			return nil, errors.New("INTERNAL_ERROR: identity not found")
 		}
 
 		// Start process via Daemon logic
@@ -31,14 +33,14 @@ func StartHandler(mgr *manager.Manager, privileged bool) transport.CommandHandle
 		if err != nil {
 			return nil, err
 		}
-		
+
 		respData := protocol.StartResponseData{
-			ProcID:    fmt.Sprintf("%d", procInfo.ID),
+			ProcID:    strconv.Itoa(procInfo.ID),
 			PID:       procInfo.PID,
 			Status:    string(procInfo.State),
 			CreatedAt: time.Now().Format(time.RFC3339),
 		}
-		
+
 		return json.Marshal(respData)
 	}
 }

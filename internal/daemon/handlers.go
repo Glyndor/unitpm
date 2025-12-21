@@ -1,3 +1,4 @@
+// Package daemon provides the core daemon logic and initialization.
 package daemon
 
 import (
@@ -21,7 +22,10 @@ func RegisterHandlers(server *transport.Server, mgr *manager.Manager, privileged
 	server.Register("start", handlers.StartHandler(mgr, privileged))
 
 	// Register stop handler
-	server.Register("stop", func(_ context.Context, params json.RawMessage) (json.RawMessage, error) {
+	server.Register("stop", func(
+		_ context.Context,
+		params json.RawMessage,
+	) (json.RawMessage, error) {
 		var args struct {
 			ID int `json:"id"`
 		}

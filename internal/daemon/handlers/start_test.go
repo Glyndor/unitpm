@@ -1,13 +1,13 @@
-package handlers
+package handlers_test
 
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"runtime"
 	"strings"
 	"testing"
 
+	"github.com/Jaro-c/Lynx/internal/daemon/handlers"
 	"github.com/Jaro-c/Lynx/internal/daemon/manager"
 	"github.com/Jaro-c/Lynx/internal/ipc/protocol"
 	"github.com/Jaro-c/Lynx/internal/ipc/transport"
@@ -15,20 +15,24 @@ import (
 
 func TestStartHandler_Validation(t *testing.T) {
 	mgr := manager.NewManager()
-	handler := StartHandler(mgr, false) // unprivileged
+	handler := handlers.StartHandler(mgr, false) // unprivileged
 
 	// Context with identity
-	ctx := context.WithValue(context.Background(), transport.ContextKeyIdentity, &transport.Identity{
-		UID: "1000",
-		GID: "1000",
-		PID: 1234,
-	})
+	ctx := context.WithValue(
+		context.Background(),
+		transport.ContextKeyIdentity,
+		&transport.Identity{
+			UID: "1000",
+			GID: "1000",
+			PID: 1234,
+		},
+	)
 
 	tests := []struct {
-		name      string
-		spec      protocol.StartSpec
-		wantErr   bool
-		errCode   string
+		name    string
+		spec    protocol.StartSpec
+		wantErr bool
+		errCode string
 	}{
 		{
 			name: "valid self",
@@ -149,14 +153,19 @@ func TestStartHandler_Validation(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			params, _ := json.Marshal(tt.spec)
-			_, err := handler(ctx, params)
+			// Mock request
+			reqBytes, err := json.Marshal(tt.spec)
+			if err != nil {
+				t.Fatalf("Failed to marshal spec: %v", err)
+			}
+
+			_, err = handler(ctx, reqBytes)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("StartHandler() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
-			if tt.wantErr && err != nil {
-				if !strings.Contains(err.Error(), tt.errCode) {
+			if tt.wantErr {
+				if tt.errCode != "" && !strings.Contains(err.Error(), tt.errCode) {
 					t.Errorf("StartHandler() error = %v, want code %v", err, tt.errCode)
 				}
 			}
@@ -166,14 +175,18 @@ func TestStartHandler_Validation(t *testing.T) {
 
 func TestStartHandler_Execution(t *testing.T) {
 	mgr := manager.NewManager()
-	handler := StartHandler(mgr, false)
+	handler := handlers.StartHandler(mgr, false)
 
 	// Context with identity
-	ctx := context.WithValue(context.Background(), transport.ContextKeyIdentity, &transport.Identity{
-		UID: "1000",
-		GID: "1000",
-		PID: 1234,
-	})
+	ctx := context.WithValue(
+		context.Background(),
+		transport.ContextKeyIdentity,
+		&transport.Identity{
+			UID: "1000",
+			GID: "1000",
+			PID: 1234,
+		},
+	)
 
 	var cmd string
 	var args []string
@@ -192,7 +205,10 @@ func TestStartHandler_Execution(t *testing.T) {
 		RunAs: protocol.RunAsPolicy{Mode: "self"},
 	}
 
-	params, _ := json.Marshal(spec)
+	params, err := json.Marshal(spec)
+	if err != nil {
+		t.Fatalf("Failed to marshal spec: %v", err)
+	}
 	res, err := handler(ctx, params)
 	if err != nil {
 		t.Fatalf("StartHandler failed: %v", err)
@@ -210,9 +226,14 @@ func TestStartHandler_Execution(t *testing.T) {
 }
 
 func makeEnv(n int) map[string]string {
-	m := make(map[string]string)
+	env := make(map[string]string)
 	for i := 0; i < n; i++ {
-		m[fmt.Sprintf("K%d", i)] = "v"
+		// Using handlers.MockEnvKey helps if that helper existed, but here we construct manually
+		// to avoid circular dependency if MockEnvKey is internal.
+		// Since we changed package to handlers_test, we can't access internal helpers unless exported.
+		// Assuming makeEnv is local to this test file.
+		k := "K" + strings.Repeat("x", i)
+		env[k] = "v"
 	}
-	return m
+	return env
 }
