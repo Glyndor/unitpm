@@ -1,10 +1,11 @@
-package start
+package start_test
 
 import (
 	"reflect"
 	"strings"
 	"testing"
 
+	"github.com/Jaro-c/Lynx/internal/cli/commands/start"
 	"github.com/Jaro-c/Lynx/internal/ipc/protocol"
 )
 
@@ -142,21 +143,19 @@ func TestParseStartSpec(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := parseStartSpec(tt.args)
+			got, err := start.ParseStartSpec(tt.args)
 			if (err != nil) != tt.wantErr {
-				t.Errorf("parseStartSpec() error = %v, wantErr %v", err, tt.wantErr)
+				t.Errorf("ParseStartSpec() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
-			if tt.wantErr && err != nil {
+			if tt.wantErr {
 				if tt.errCode != "" && !strings.Contains(err.Error(), tt.errCode) {
-					t.Errorf("parseStartSpec() error = %v, want code %v", err, tt.errCode)
+					t.Errorf("ParseStartSpec() error = %v, want code %v", err, tt.errCode)
 				}
 				return
 			}
-			if !tt.wantErr {
-				if !reflect.DeepEqual(got, tt.want) {
-					t.Errorf("parseStartSpec() = %+v, want %+v", got, tt.want)
-				}
+			if !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("ParseStartSpec() = %v, want %v", got, tt.want)
 			}
 		})
 	}
@@ -168,73 +167,28 @@ func TestTokenize(t *testing.T) {
 		want    []string
 		wantErr bool
 	}{
-		// Validation cases from requirements
-		{
-			input: "bun dev",
-			want:  []string{"bun", "dev"},
-		},
-		{
-			input: "node --run dev",
-			want:  []string{"node", "--run", "dev"},
-		},
-		{
-			input: "a 'b c' d",
-			want:  []string{"a", "b c", "d"},
-		},
-		{
-			input: "a \"b c\"",
-			want:  []string{"a", "b c"},
-		},
-		// Additional cases
-		{
-			input: "'single quoted'",
-			want:  []string{"single quoted"},
-		},
-		{
-			input: "\"double quoted\"",
-			want:  []string{"double quoted"},
-		},
-		{
-			input: "escaped\\ space", // Backslash is literal outside quotes
-			want:  []string{"escaped\\", "space"},
-		},
-		{
-			input: "\"escaped \\\" quote\"", // Valid escape inside double quotes
-			want:  []string{"escaped \" quote"},
-		},
-		{
-			input: "\"escaped \\\\ backslash\"", // Valid escape inside double quotes
-			want:  []string{"escaped \\ backslash"},
-		},
-		{
-			input:   "unclosed quote '",
-			wantErr: true,
-		},
-		{
-			input: "trailing backslash \\", // Literal backslash is allowed at end
-			want:  []string{"trailing", "backslash", "\\"},
-		},
-		{
-			input:   "\"invalid escape \\z\"",
-			wantErr: true,
-		},
-		{
-			input:   "\"trailing escape \\\"",
-			wantErr: true,
-		},
+		{input: "a b c", want: []string{"a", "b", "c"}},
+		{input: "a 'b c' d", want: []string{"a", "b c", "d"}},
+		{input: "a \"b c\"", want: []string{"a", "b c"}},
+		{input: "a 'b \"c\" d'", want: []string{"a", "b \"c\" d"}},
+		{input: "a \"b 'c' d\"", want: []string{"a", "b 'c' d"}},
+		{input: "a\\ b", want: []string{"a\\", "b"}}, // Backslash is literal outside quotes
+		{input: "'a b", wantErr: true},
+		{input: "\"a b", wantErr: true},
+		{input: "\"invalid escape \\z\"", wantErr: true},
+		{input: "\"valid escape \\\" \"", want: []string{"valid escape \" "}},
+		{input: "\"valid escape \\\\ \"", want: []string{"valid escape \\ "}},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.input, func(t *testing.T) {
-			got, err := tokenize(tt.input)
+			got, err := start.Tokenize(tt.input)
 			if (err != nil) != tt.wantErr {
-				t.Errorf("tokenize() error = %v, wantErr %v", err, tt.wantErr)
+				t.Errorf("Tokenize() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
-			if !tt.wantErr {
-				if !reflect.DeepEqual(got, tt.want) {
-					t.Errorf("tokenize() = %v, want %v", got, tt.want)
-				}
+			if !tt.wantErr && !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("Tokenize() = %v, want %v", got, tt.want)
 			}
 		})
 	}

@@ -115,7 +115,7 @@ func handleProtocolMismatch(w io.Writer, local version.Info, err error) bool {
 
 	// Extract supported version safely using typed struct
 	var supported int
-	if data, ok := remoteErr.Data.(protocol.ProtocolMismatchData); ok {
+	if data, ok := remoteErr.Data.(protocol.MismatchData); ok {
 		supported = data.Supported
 	}
 

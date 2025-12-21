@@ -7,79 +7,99 @@ import (
 	"unicode"
 )
 
-// tokenize parses a command line string into arguments, handling quotes and escapes.
+// Tokenize parses a command line string into arguments, handling quotes and escapes.
 // It does NOT support shell features like globbing or env expansion.
-func tokenize(input string) ([]string, error) {
-	var args []string
-	var current strings.Builder
+func Tokenize(input string) ([]string, error) {
+	l := &lexer{input: []rune(input)}
+	return l.tokenize()
+}
 
-	// State machine states
-	const (
-		stateNormal = iota
-		stateSingle
-		stateDouble
-	)
-	state := stateNormal
+type lexer struct {
+	input []rune
+	pos   int
+	args  []string
+	cur   strings.Builder
+	state int
+}
 
-	runes := []rune(input)
+const (
+	stateNormal = iota
+	stateSingle
+	stateDouble
+)
 
-	for i := 0; i < len(runes); i++ {
-		r := runes[i]
-
-		switch state {
+func (l *lexer) tokenize() ([]string, error) {
+	for l.pos = 0; l.pos < len(l.input); l.pos++ {
+		r := l.input[l.pos]
+		var err error
+		switch l.state {
 		case stateNormal:
-			if unicode.IsSpace(r) {
-				if current.Len() > 0 {
-					args = append(args, current.String())
-					current.Reset()
-				}
-			} else if r == '\'' {
-				state = stateSingle
-			} else if r == '"' {
-				state = stateDouble
-			} else {
-				// Treat everything else literally, including backslash, pipe, etc.
-				current.WriteRune(r)
-			}
-
+			l.handleNormal(r)
 		case stateSingle:
-			if r == '\'' {
-				state = stateNormal
-			} else {
-				// Inside single quotes, everything is literal, including backslash
-				current.WriteRune(r)
-			}
-
+			l.handleSingle(r)
 		case stateDouble:
-			if r == '"' {
-				state = stateNormal
-			} else if r == '\\' {
-				// Handle escape sequence
-				if i+1 >= len(runes) {
-					return nil, errors.New("invalid escape sequence: trailing backslash")
-				}
-				next := runes[i+1]
-				// Only allow escaping " and \ inside double quotes
-				switch next {
-				case '"', '\\':
-					current.WriteRune(next)
-					i++ // skip next
-				default:
-					return nil, fmt.Errorf("invalid escape sequence: \\%c", next)
-				}
-			} else {
-				current.WriteRune(r)
-			}
+			err = l.handleDouble(r)
+		}
+		if err != nil {
+			return nil, err
 		}
 	}
-
-	if state != stateNormal {
+	if l.state != stateNormal {
 		return nil, errors.New("unclosed quote")
 	}
-
-	if current.Len() > 0 {
-		args = append(args, current.String())
+	if l.cur.Len() > 0 {
+		l.args = append(l.args, l.cur.String())
 	}
+	return l.args, nil
+}
 
-	return args, nil
+func (l *lexer) handleNormal(r rune) {
+	switch {
+	case unicode.IsSpace(r):
+		if l.cur.Len() > 0 {
+			l.args = append(l.args, l.cur.String())
+			l.cur.Reset()
+		}
+	case r == '\'':
+		l.state = stateSingle
+	case r == '"':
+		l.state = stateDouble
+	default:
+		l.cur.WriteRune(r)
+	}
+}
+
+func (l *lexer) handleSingle(r rune) {
+	if r == '\'' {
+		l.state = stateNormal
+	} else {
+		l.cur.WriteRune(r)
+	}
+}
+
+func (l *lexer) handleDouble(r rune) error {
+	switch r {
+	case '"':
+		l.state = stateNormal
+	case '\\':
+		return l.handleEscape()
+	default:
+		l.cur.WriteRune(r)
+	}
+	return nil
+}
+
+func (l *lexer) handleEscape() error {
+	if l.pos+1 >= len(l.input) {
+		return errors.New("invalid escape sequence: trailing backslash")
+	}
+	next := l.input[l.pos+1]
+	switch next {
+	case '"', '\\':
+		l.cur.WriteRune(next)
+		l.pos++ // skip next
+		return nil
+	default:
+		return fmt.Errorf("invalid escape sequence: \\%c", next)
+	}
 }
