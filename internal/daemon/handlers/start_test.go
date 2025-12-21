@@ -128,22 +128,22 @@ func TestStartHandler_Validation(t *testing.T) {
 			errCode: "ERR_BAD_REQUEST",
 		},
 		{
-			name: "app_user unprivileged",
+			name: "app_user unsupported",
 			spec: protocol.StartSpec{
 				Cmd:   "echo",
 				RunAs: protocol.RunAsPolicy{Mode: "app_user"},
 			},
 			wantErr: true,
-			errCode: "ERR_FORBIDDEN",
+			errCode: "ERR_UNSUPPORTED",
 		},
 		{
-			name: "explicit_user unprivileged daemon",
+			name: "explicit_user unsupported",
 			spec: protocol.StartSpec{
 				Cmd:   "echo",
 				RunAs: protocol.RunAsPolicy{Mode: "explicit_user"},
 			},
 			wantErr: true,
-			errCode: "ERR_FORBIDDEN",
+			errCode: "ERR_UNSUPPORTED",
 		},
 	}
 
