@@ -21,6 +21,7 @@ const (
 	cmdList    = "list"
 	cmdStart   = "start"
 	cmdVersion = "version"
+	flagHelp   = "--help"
 )
 
 // Execute executes the root CLI command.
@@ -33,90 +34,83 @@ func Execute(args []string) int {
 		return 0
 	}
 
-	command, found := registry.Resolve(args[0])
-	if !found {
-		if args[0] == "--version" {
-			command = cmdVersion
-		} else {
-			command = args[0]
-		}
-	}
-
-	// Handle global help
-	if command == "-h" || command == "--help" {
-		help.RenderRootHelp(os.Stdout, specs, true)
-		return 0
-	}
-
-	// Handle subcommand help (bypass IPC)
-	if len(args) > 1 && isHelpRequest(args[1:]) {
-		switch command {
-		case cmdList:
-			list.PrintHelp()
-			return 0
-		case cmdStart:
-			start.PrintHelp()
-			return 0
-		case cmdVersion:
-			version.PrintHelp()
-			return 0
-		}
-	}
-
-	var cmdErr error
-
-	switch command {
-	case cmdList:
-		client, err := transport.NewClient()
-		if err != nil {
-			printError(os.Stderr, "failed to connect to daemon: %v", err)
-			return 1
-		}
-		defer func() {
-			_ = client.Close()
-		}()
-		cmdErr = list.Run(client, args[1:])
-
-	case cmdStart:
-		client, err := transport.NewClient()
-		if err != nil {
-			printError(os.Stderr, "failed to connect to daemon: %v", err)
-			return 1
-		}
-		defer func() {
-			_ = client.Close()
-		}()
-		cmdErr = start.Run(client, args[1:])
-
-	case cmdVersion:
-		cmdErr = version.Run(os.Stdout, args[1:])
-
-	default:
-		// Unknown command or flag
+	cmdName := resolveCommand(args[0])
+	if cmdName == "" {
 		printError(os.Stderr, "Command not found: %s", args[0])
 		help.RenderRootHelp(os.Stderr, specs, false)
 		return 1
 	}
 
-	if cmdErr != nil {
-		var usageErr *errs.UsageError
-		if errors.As(cmdErr, &usageErr) {
-			printError(os.Stderr, "%s", usageErr.Message)
-			switch command {
-			case cmdList:
-				list.PrintHelp()
-			case cmdStart:
-				start.PrintHelp()
-			case cmdVersion:
-				version.PrintHelp()
-			}
-			return 1
-		}
-		printError(os.Stderr, "%v", cmdErr)
-		return 1
+	if cmdName == "-h" || cmdName == flagHelp {
+		help.RenderRootHelp(os.Stdout, specs, true)
+		return 0
 	}
 
+	// Handle subcommand help
+	if len(args) > 1 && isHelpRequest(args[1:]) {
+		return printCommandHelp(cmdName)
+	}
+
+	err := runCommand(cmdName, args[1:])
+	if err != nil {
+		handleError(err, cmdName)
+		return 1
+	}
 	return 0
+}
+
+func resolveCommand(name string) string {
+	if name == "--version" {
+		return cmdVersion
+	}
+	if name == "-h" || name == "--help" {
+		return name
+	}
+	if resolved, found := registry.Resolve(name); found {
+		return resolved
+	}
+	return ""
+}
+
+func runCommand(name string, args []string) error {
+	switch name {
+	case cmdVersion:
+		return version.Run(os.Stdout, args)
+	case cmdList, cmdStart:
+		client, err := transport.NewClient()
+		if err != nil {
+			return fmt.Errorf("failed to connect to daemon: %w", err)
+		}
+		defer client.Close()
+
+		if name == cmdList {
+			return list.Run(client, args)
+		}
+		return start.Run(client, args)
+	}
+	return nil
+}
+
+func printCommandHelp(name string) int {
+	switch name {
+	case cmdList:
+		list.PrintHelp()
+	case cmdStart:
+		start.PrintHelp()
+	case cmdVersion:
+		version.PrintHelp()
+	}
+	return 0
+}
+
+func handleError(err error, cmdName string) {
+	var usageErr *errs.UsageError
+	if errors.As(err, &usageErr) {
+		printError(os.Stderr, "%s", usageErr.Message)
+		printCommandHelp(cmdName)
+	} else {
+		printError(os.Stderr, "%v", err)
+	}
 }
 
 func isHelpRequest(args []string) bool {
