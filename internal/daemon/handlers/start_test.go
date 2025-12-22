@@ -1,9 +1,10 @@
+//go:build linux
+
 package handlers_test
 
 import (
 	"context"
 	"encoding/json"
-	"runtime"
 	"strings"
 	"testing"
 
@@ -191,13 +192,8 @@ func TestStartHandler_Execution(t *testing.T) {
 	var cmd string
 	var args []string
 
-	if runtime.GOOS == "windows" {
-		cmd = "ping"
-		args = []string{"-n", "2", "127.0.0.1"}
-	} else {
-		cmd = "sleep"
-		args = []string{"0.1"}
-	}
+	cmd = "sleep"
+	args = []string{"0.1"}
 
 	spec := protocol.StartSpec{
 		Cmd:   cmd,

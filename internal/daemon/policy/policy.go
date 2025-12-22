@@ -1,3 +1,5 @@
+//go:build linux
+
 // Package policy implements authorization policies for the daemon.
 package policy
 
