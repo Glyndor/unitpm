@@ -1,6 +1,11 @@
 # Lynx
 
-Lynx is a cross-platform process manager written in Go. It allows you to manage and supervise processes on Windows and Linux through a lightweight daemon and a command-line interface.
+Lynx is a process manager written in Go. It allows you to manage and supervise processes on Linux (specifically Debian/Ubuntu with systemd) through a lightweight daemon and a command-line interface.
+
+## Supported Platforms
+
+*   **OS:** Linux (Debian/Ubuntu)
+*   **Init System:** systemd
 
 ## Components
 
