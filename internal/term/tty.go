@@ -3,7 +3,6 @@ package term
 
 import (
 	"os"
-	"runtime"
 )
 
 // IsTTY returns true if stdout is a terminal.
@@ -33,13 +32,6 @@ func ShouldUseColor() bool {
 		return false
 	}
 
-	// On Windows, if we are in a TTY and TERM is empty, we assume it's a modern Windows terminal
-	// (or at least one that supports basic ANSI since Win10 1511).
 	// On Unix, empty TERM usually means no capabilities.
-	if runtime.GOOS == "windows" {
-		return true
-	}
-
-	// On non-Windows, we require a TERM env var to be present
 	return term != ""
 }
