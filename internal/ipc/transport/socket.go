@@ -1,3 +1,5 @@
+//go:build linux
+
 // Package transport implements the Inter-Process Communication transport layer.
 package transport
 
@@ -6,7 +8,6 @@ import (
 	"os"
 	"os/user"
 	"path/filepath"
-	"runtime"
 )
 
 // GetSocketPath returns the OS-specific path for the IPC socket/pipe.
@@ -14,12 +15,6 @@ func GetSocketPath() (string, error) {
 	u, err := user.Current()
 	if err != nil {
 		return "", fmt.Errorf("failed to get current user: %w", err)
-	}
-
-	if runtime.GOOS == "windows" {
-		// Named pipe: \\.\pipe\lynx-<sid>
-		// using SID is safer than username (which can have spaces/backslashes)
-		return `\\.\pipe\lynx-` + u.Uid, nil
 	}
 
 	// Unix

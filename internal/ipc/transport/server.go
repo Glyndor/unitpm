@@ -1,3 +1,5 @@
+//go:build linux
+
 // Package transport implements the Inter-Process Communication transport layer.
 package transport
 
@@ -17,8 +19,8 @@ import (
 
 // Identity represents the authenticated identity of an IPC client.
 type Identity struct {
-	UID string // User ID (Unix) or SID (Windows)
-	GID string // Group ID (Unix) or Primary Group SID (Windows)
+	UID string // User ID
+	GID string // Group ID
 	PID int    // Process ID
 }
 

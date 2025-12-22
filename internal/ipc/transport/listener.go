@@ -1,9 +1,10 @@
-//go:build !windows
+//go:build linux
 
 // Package transport implements the Inter-Process Communication transport layer.
 package transport
 
 import (
+	"context"
 	"net"
 	"os"
 	"syscall"
@@ -22,7 +23,8 @@ func listen(path string) (net.Listener, error) {
 	oldMask := syscall.Umask(0077)
 	defer syscall.Umask(oldMask)
 
-	l, err := net.Listen("unix", path)
+	var lc net.ListenConfig
+	l, err := lc.Listen(context.Background(), "unix", path)
 	if err != nil {
 		return nil, err
 	}

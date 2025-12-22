@@ -3,6 +3,7 @@
 package transport
 
 import (
+	"errors"
 	"fmt"
 	"net"
 	"os"
@@ -13,7 +14,7 @@ import (
 func validateIdentity(conn net.Conn) (*Identity, error) {
 	unixConn, ok := conn.(*net.UnixConn)
 	if !ok {
-		return nil, fmt.Errorf("invalid connection type")
+		return nil, errors.New("invalid connection type")
 	}
 
 	rawConn, err := unixConn.SyscallConn()
