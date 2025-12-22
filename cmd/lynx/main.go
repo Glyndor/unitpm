@@ -1,3 +1,5 @@
+//go:build linux
+
 // Package main provides the CLI for interacting with the Lynx daemon.
 package main
 
