@@ -1,3 +1,5 @@
+//go:build linux
+
 // Package errs defines CLI error types.
 package errs
 

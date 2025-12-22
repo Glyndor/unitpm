@@ -1,3 +1,5 @@
+//go:build linux
+
 // Package root implements the root command.
 package root
 
@@ -9,6 +11,7 @@ import (
 
 	"github.com/Jaro-c/Lynx/internal/cli/commands/list"
 	"github.com/Jaro-c/Lynx/internal/cli/commands/start"
+	"github.com/Jaro-c/Lynx/internal/cli/commands/startup"
 	"github.com/Jaro-c/Lynx/internal/cli/commands/version"
 	"github.com/Jaro-c/Lynx/internal/cli/errs"
 	"github.com/Jaro-c/Lynx/internal/cli/help"
@@ -20,6 +23,7 @@ import (
 const (
 	cmdList    = "list"
 	cmdStart   = "start"
+	cmdStartup = "startup"
 	cmdVersion = "version"
 	flagHelp   = "--help"
 )
@@ -76,6 +80,8 @@ func runCommand(name string, args []string) error {
 	switch name {
 	case cmdVersion:
 		return version.Run(os.Stdout, args)
+	case cmdStartup:
+		return startup.Run(nil, args)
 	case cmdList, cmdStart:
 		client, err := transport.NewClient()
 		if err != nil {
@@ -97,6 +103,8 @@ func printCommandHelp(name string) int {
 		list.PrintHelp()
 	case cmdStart:
 		start.PrintHelp()
+	case cmdStartup:
+		startup.PrintHelp()
 	case cmdVersion:
 		version.PrintHelp()
 	}
@@ -130,5 +138,6 @@ func printError(w io.Writer, format string, a ...any) {
 func registerCommands() {
 	registry.Register(list.GetSpec())
 	registry.Register(start.GetSpec())
+	registry.Register(startup.GetSpec())
 	registry.Register(version.GetSpec())
 }

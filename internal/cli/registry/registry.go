@@ -1,3 +1,5 @@
+//go:build linux
+
 // Package registry provides a central command registry for the CLI.
 package registry
 

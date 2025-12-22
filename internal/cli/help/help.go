@@ -1,3 +1,5 @@
+//go:build linux
+
 // Package help provides a centralized help renderer for the CLI.
 package help
 
