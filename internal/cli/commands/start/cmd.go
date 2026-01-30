@@ -1,5 +1,3 @@
-//go:build linux
-
 // Package start implements the start command.
 package start
 
@@ -7,12 +5,15 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/Jaro-c/Lynx/internal/cli/errs"
 	"github.com/Jaro-c/Lynx/internal/cli/help"
 	"github.com/Jaro-c/Lynx/internal/ipc/protocol"
 	"github.com/Jaro-c/Lynx/internal/ipc/transport"
+	"github.com/Jaro-c/Lynx/internal/spec"
 	"github.com/Jaro-c/Lynx/internal/term"
 )
 
@@ -23,36 +24,47 @@ func Run(client *transport.Client, args []string) error {
 		return nil
 	}
 
-	spec, err := ParseStartSpec(args)
+	appSpec, err := ParseAppSpec(args)
 	if err != nil {
 		return err
 	}
 
+	// Generate ID
+	id, err := spec.GenerateUUIDv4()
+	if err != nil {
+		return fmt.Errorf("failed to generate ID: %w", err)
+	}
+	appSpec.Id = id
+	appSpec.CreatedAt = time.Now().Format(time.RFC3339)
+
+	// Save Spec to disk
+	savedPath, err := spec.SaveSpec(appSpec.Id, appSpec)
+	if err != nil {
+		return fmt.Errorf("failed to save spec: %w", err)
+	}
+	_, _ = term.Printf("Spec saved to %s\n", savedPath)
+
 	// Send Request
-	var startResp protocol.StartResponse
-	err = client.Call("start", spec, &startResp)
+	req := protocol.StartRequest{
+		ProtocolVersion: 1,
+		Type:            "start",
+		RequestID:       id, // Use same ID for request correlation
+		Spec:            appSpec,
+	}
+
+	var startResp protocol.StartResponseData
+	err = client.Call("start", req, &startResp)
 	if err != nil {
 		return fmt.Errorf("start failed: %w", err)
 	}
 
-	// Handle Response
-	if !startResp.Ok {
-		if startResp.Error != nil {
-			printErrorResponse(startResp.Error)
-			return errors.New("process start failed")
-		}
-		return errors.New("process start failed with unknown error")
-	}
-
-	if startResp.Data != nil {
-		printSuccessResponse(startResp.Data, spec.Name)
-	}
+	printSuccessResponse(&startResp, appSpec.Name)
 
 	return nil
 }
 
-// ParseStartSpec parses command-line arguments into a StartSpec.
-func ParseStartSpec(args []string) (protocol.StartSpec, error) {
+// ParseAppSpec parses command-line arguments into an AppSpec.
+func ParseAppSpec(args []string) (protocol.AppSpec, error) {
 	return (&specParser{args: args}).parse()
 }
 
@@ -64,14 +76,16 @@ type specParser struct {
 	cwd      string
 	stdio    string
 	runAs    string
-	username string
-	envs     []string
 	cmdParts []string
+	cron     string
+	runtime  string
+	envFile  string
+	shell    bool
 
 	parsingFlags bool
 }
 
-func (p *specParser) parse() (protocol.StartSpec, error) {
+func (p *specParser) parse() (protocol.AppSpec, error) {
 	p.parsingFlags = true
 	p.stdio = "inherit"
 	p.runAs = "self"
@@ -85,15 +99,30 @@ func (p *specParser) parse() (protocol.StartSpec, error) {
 		}
 
 		if arg == "--" {
-			p.parsingFlags = false
-			continue
+			p.pos++ // Skip "--"
+			// Append remaining args to cmdParts
+			for ; p.pos < len(p.args); p.pos++ {
+				p.cmdParts = append(p.cmdParts, p.args[p.pos])
+			}
+			break
 		}
 
 		if strings.HasPrefix(arg, "-") {
-			if err := p.handleFlag(arg); err != nil {
-				return protocol.StartSpec{}, err
+			// Check if it's a known flag
+			err := p.handleFlag(arg)
+			if err == nil {
+				continue
 			}
-			continue
+
+			// If unknown flag:
+			// If we already have a command, treat it as an argument to that command.
+			if len(p.cmdParts) > 0 {
+				p.cmdParts = append(p.cmdParts, arg)
+				continue
+			}
+
+			// If no command yet, it's an invalid flag for lynx
+			return protocol.AppSpec{}, err
 		}
 
 		p.cmdParts = append(p.cmdParts, arg)
@@ -103,215 +132,157 @@ func (p *specParser) parse() (protocol.StartSpec, error) {
 }
 
 func (p *specParser) handleFlag(arg string) error {
-	var flagName, flagValue string
-	var hasValue bool
-
-	if strings.Contains(arg, "=") {
-		parts := strings.SplitN(arg, "=", 2)
-		flagName = parts[0]
-		flagValue = parts[1]
-		hasValue = true
-	} else {
-		flagName = arg
-		hasValue = false
-	}
-
-	flagName = strings.TrimLeft(flagName, "-")
-
-	getValue := func() (string, error) {
-		if hasValue {
-			return flagValue, nil
-		}
-		if p.pos+1 >= len(p.args) {
-			return "", fmt.Errorf("flag --%s requires a value", flagName)
-		}
-		p.pos++
-		return p.args[p.pos], nil
-	}
-
-	switch flagName {
-	case "name":
-		val, err := getValue()
-		if err != nil {
-			return &errs.UsageError{Message: err.Error()}
-		}
-		p.name = val
-	case "cwd":
-		val, err := getValue()
-		if err != nil {
-			return &errs.UsageError{Message: err.Error()}
-		}
-		p.cwd = val
-	case "stdio":
-		val, err := getValue()
-		if err != nil {
-			return &errs.UsageError{Message: err.Error()}
-		}
-		p.stdio = val
-	case "run-as":
-		val, err := getValue()
-		if err != nil {
-			return &errs.UsageError{Message: err.Error()}
-		}
-		p.runAs = val
-	case "username":
-		val, err := getValue()
-		if err != nil {
-			return &errs.UsageError{Message: err.Error()}
-		}
-		p.username = val
-	case "env":
-		val, err := getValue()
-		if err != nil {
-			return &errs.UsageError{Message: err.Error()}
-		}
-		p.envs = append(p.envs, val)
-	case "cron":
-		return &errs.UsageError{Message: "ERR_UNSUPPORTED: cron scheduling is not implemented yet"}
+	switch arg {
+	case "--name":
+		return p.readStringValue(&p.name)
+	case "--cwd":
+		return p.readStringValue(&p.cwd)
+	case "--cron":
+		return p.readStringValue(&p.cron)
+	case "--runtime":
+		return p.readStringValue(&p.runtime)
+	case "--shell":
+		p.shell = true
+		return nil
+	case "--env-file":
+		return p.readStringValue(&p.envFile)
+	// TODO: Add support for other flags if needed
 	default:
-		p.cmdParts = append(p.cmdParts, arg)
+		return fmt.Errorf("unknown flag: %s", arg)
 	}
+}
+
+func (p *specParser) readStringValue(target *string) error {
+	p.pos++
+	if p.pos >= len(p.args) {
+		return errors.New("missing value for flag")
+	}
+	*target = p.args[p.pos]
 	return nil
 }
 
-func (p *specParser) finalize() (protocol.StartSpec, error) {
+func (p *specParser) finalize() (protocol.AppSpec, error) {
 	if len(p.cmdParts) == 0 {
-		return protocol.StartSpec{}, &errs.UsageError{Message: "Command is required"}
+		return protocol.AppSpec{}, errs.NewUsageError("missing command or entry file")
 	}
 
-	var cmd string
-	var procArgs []string
-
-	// Command Resolution Logic
-	if len(p.cmdParts) == 1 && strings.Contains(p.cmdParts[0], " ") {
-		tokenized, err := Tokenize(p.cmdParts[0])
+	// Resolve CWD
+	cwd := p.cwd
+	if cwd == "" {
+		var err error
+		cwd, err = os.Getwd()
 		if err != nil {
-			return protocol.StartSpec{}, &errs.UsageError{
-				Message: fmt.Sprintf("Failed to parse command line: %v", err),
-			}
-		}
-		if len(tokenized) == 0 {
-			return protocol.StartSpec{}, &errs.UsageError{Message: "Command is empty"}
-		}
-		cmd = tokenized[0]
-		procArgs = tokenized[1:]
-	} else {
-		cmd = p.cmdParts[0]
-		procArgs = p.cmdParts[1:]
-	}
-
-	if p.runAs == "explicit_user" && p.username == "" {
-		return protocol.StartSpec{}, &errs.UsageError{
-			Message: "--username is required for explicit_user mode",
+			return protocol.AppSpec{}, fmt.Errorf("failed to get current directory: %w", err)
 		}
 	}
-
-	if p.stdio == "file" {
-		return protocol.StartSpec{}, &errs.UsageError{
-			Message: "stdio 'file' is not supported in CLI yet",
-		}
+	cwd, err := filepath.Abs(cwd)
+	if err != nil {
+		return protocol.AppSpec{}, fmt.Errorf("failed to resolve absolute path for cwd: %w", err)
 	}
 
-	if p.stdio != "inherit" && p.stdio != "pipe" && p.stdio != "file" {
-		return protocol.StartSpec{}, &errs.UsageError{Message: "Invalid stdio mode"}
-	}
-
-	envMap := make(map[string]string)
-	for _, e := range p.envs {
-		parts := strings.SplitN(e, "=", 2)
-		if len(parts) != 2 || parts[0] == "" {
-			return protocol.StartSpec{}, &errs.UsageError{
-				Message: "Invalid env format: " + e,
-			}
-		}
-		envMap[parts[0]] = parts[1]
-	}
-
-	return protocol.StartSpec{
-		Name:  p.name,
-		Cmd:   cmd,
-		Args:  procArgs,
-		Cwd:   p.cwd,
-		Env:   envMap,
-		Stdio: p.stdio,
-		RunAs: protocol.RunAsPolicy{
-			Mode:     p.runAs,
-			Username: p.username,
+	spec := protocol.AppSpec{
+		Version: 1,
+		Name:    p.name,
+		Cwd:     cwd,
+		Cron:    p.cron,
+		Logs: &protocol.AppLogs{
+			Mode: p.stdio,
 		},
-	}, nil
+		Env: make(map[string]string),
+	}
+
+	// Analyze command parts for Entry vs Command
+	if len(p.cmdParts) == 1 {
+		// Single token: might be "bun dev" (quoted) or "main.js"
+		token := p.cmdParts[0]
+
+		// If explicit runtime is provided, treat as Entry
+		if p.runtime != "" {
+			spec.Exec = protocol.AppExec{
+				Type:    "entry",
+				Entry:   token,
+				Runtime: p.runtime,
+			}
+		} else {
+			// Try to tokenize to see if it's a command string
+			parts, err := Tokenize(token)
+			if err == nil && len(parts) > 1 {
+				// It was a quoted string with multiple parts -> Command
+				spec.Exec = protocol.AppExec{
+					Type:    "command",
+					Command: parts[0],
+					Args:    parts[1:],
+				}
+			} else {
+				// Single part. Check extension for inference.
+				ext := filepath.Ext(token)
+				switch ext {
+				case ".js", ".mjs", ".cjs":
+					spec.Exec = protocol.AppExec{
+						Type:    "entry",
+						Entry:   token,
+						Runtime: "node",
+					}
+				case ".go":
+					spec.Exec = protocol.AppExec{
+						Type:    "entry",
+						Entry:   token,
+						Runtime: "go run",
+					}
+				default:
+					// Treat as simple command
+					spec.Exec = protocol.AppExec{
+						Type:    "command",
+						Command: token,
+					}
+				}
+			}
+		}
+	} else {
+		// Multiple tokens: "node index.js" -> Command
+		spec.Exec = protocol.AppExec{
+			Type:    "command",
+			Command: p.cmdParts[0],
+			Args:    p.cmdParts[1:],
+		}
+	}
+
+	return spec, nil
 }
 
-func printSuccessResponse(data *protocol.StartResponseData, requestedName string) {
-	name := requestedName
-	if name == "" {
-		name = data.ProcID
-	}
-	fmt.Printf("Started: %s (pid=%d, status=%s)\n",
-		term.BoldString("%s", name),
-		data.PID,
-		term.GreenString("%s", data.Status),
-	)
+func PrintHelp() {
+	fmt.Println("Usage: lynx start <command|file> [flags]")
+	fmt.Println("\nFlags:")
+	fmt.Println("  --name <name>      Assign a name to the process")
+	fmt.Println("  --cwd <dir>        Working directory")
+	fmt.Println("  --cron <schedule>  Cron schedule")
+	fmt.Println("  --runtime <rt>     Runtime for entry file (e.g., node, python)")
+}
+
+func printSuccessResponse(data *protocol.StartResponseData, name string) {
+	fmt.Printf("Started %s\n", name)
+	fmt.Printf("  ID: %s\n", data.ProcID)
+	fmt.Printf("  PID: %d\n", data.PID)
+	fmt.Printf("  Status: %s\n", data.Status)
 }
 
 func printErrorResponse(err *protocol.StartError) {
-	fmt.Printf("%s: %s: %s\n",
-		term.RedString("Error"),
-		term.BoldString("%s", err.Code),
-		err.Message,
-	)
+	fmt.Printf("Error: %s (%s)\n", err.Message, err.Code)
 }
 
 // GetSpec returns the command specification.
 func GetSpec() help.CommandSpec {
 	return help.CommandSpec{
-		Name:    "start",
-		Aliases: []string{"run"},
-		Usage:   term.BoldString("lynx start") + " [options] <cmd> [args...]",
-		Description: "Start a new process.\n\n" +
-			"Flags can be placed before or after the command.\n" +
-			"Arguments after -- are treated as the command and its arguments.\n" +
-			"Example: lynx start --name myapp --env PORT=8080 node server.js",
+		Name:        "start",
+		Usage:       term.BoldString("lynx start <command|file> [flags]"),
+		Description: "Start a new process.",
 		Options: []help.Option{
-			{
-				Short:       "",
-				Long:        "--name",
-				Description: "Process name",
-			},
-			{
-				Short:       "",
-				Long:        "--cwd",
-				Description: "Working directory",
-			},
-			{
-				Short:       "",
-				Long:        "--env",
-				Description: "Environment variable (KEY=VALUE). Can be repeated.",
-			},
-			{
-				Short:       "",
-				Long:        "--stdio",
-				Description: "IO mode: inherit, pipe, file (default: inherit)",
-			},
-			{
-				Short:       "",
-				Long:        "--run-as",
-				Description: "Execution mode: self, app_user, explicit_user (default: self)",
-			},
-			{
-				Short:       "",
-				Long:        "--username",
-				Description: "Username for explicit_user mode",
-			},
-			{
-				Short:       "-h",
-				Long:        "--help",
-				Description: "Show this help message.",
-			},
+			{Short: "", Long: "--name", Description: "Assign a name to the process"},
+			{Short: "", Long: "--cwd", Description: "Working directory"},
+			{Short: "", Long: "--shell", Description: "Execute command in shell"},
+			{Short: "", Long: "--cron", Description: "Cron schedule"},
+			{Short: "", Long: "--runtime", Description: "Runtime for entry file (e.g., node, python)"},
+			{Short: "", Long: "--env-file", Description: "Path to environment file"},
 		},
 	}
-}
-
-// PrintHelp prints the help message for the start command.
-func PrintHelp() {
-	help.RenderCommandHelp(os.Stdout, GetSpec())
 }

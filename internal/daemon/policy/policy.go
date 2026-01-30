@@ -1,5 +1,3 @@
-//go:build linux
-
 // Package policy implements authorization policies for the daemon.
 package policy
 
@@ -11,7 +9,12 @@ import (
 )
 
 // AuthorizeStart checks if the start request is allowed.
-func AuthorizeStart(spec protocol.StartSpec, _ *transport.Identity, _ bool) error {
+func AuthorizeStart(spec protocol.AppSpec, _ *transport.Identity, _ bool) error {
+	if spec.RunAs == nil {
+		// Default to self if not specified, which is allowed
+		return nil
+	}
+
 	switch spec.RunAs.Mode {
 	case "self":
 		// User can always run as themselves

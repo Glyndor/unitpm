@@ -1,18 +1,21 @@
 //go:build linux
 
+// Package manager implements the core process management logic.
 package manager
 
 import (
+	"bufio"
 	"context"
 	"errors"
 	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 	"sync"
 	"time"
 
-	"github.com/Jaro-c/Lynx/internal/daemon/runtime"
+	daemonRuntime "github.com/Jaro-c/Lynx/internal/daemon/runtime"
 	"github.com/Jaro-c/Lynx/internal/ipc/protocol"
 	"github.com/Jaro-c/Lynx/internal/types"
 )
@@ -25,24 +28,66 @@ type Process struct {
 	stoppedByUser bool
 	exitError     error
 	startTime     time.Time
+	logFiles      []*os.File
 }
 
 // NewProcess creates a new process instance.
 // It does not start the process.
-func NewProcess(id int, spec protocol.StartSpec) (*Process, error) {
-	// Explicit execution: NO shell, NO strings.Fields
-	if spec.Cmd == "" {
-		return nil, os.ErrInvalid
+func NewProcess(id string, spec protocol.AppSpec) (*Process, error) {
+	// Explicit execution: NO shell unless explicitly requested (not implemented here yet)
+	// We handle "command" and "entry" types.
+
+	var cmd *exec.Cmd
+	ctx := context.Background()
+
+	// Prepare the command parts based on type
+	var finalBin string
+	var finalArgs []string
+
+	switch spec.Exec.Type {
+	case "command":
+		if spec.Exec.Command == "" {
+			return nil, os.ErrInvalid
+		}
+		finalBin = spec.Exec.Command
+		finalArgs = spec.Exec.Args
+
+	case "entry":
+		if spec.Exec.Entry == "" || spec.Exec.Runtime == "" {
+			return nil, errors.New("ERR_BAD_REQUEST: entry and runtime required")
+		}
+		rtParts := strings.Fields(spec.Exec.Runtime)
+		if len(rtParts) == 0 {
+			return nil, errors.New("ERR_BAD_REQUEST: invalid runtime")
+		}
+		finalBin = rtParts[0]
+		finalArgs = append(rtParts[1:], spec.Exec.Entry)
+		finalArgs = append(finalArgs, spec.Exec.Args...)
+
+	default:
+		return nil, errors.New("ERR_BAD_REQUEST: invalid exec type")
 	}
 
-	// Security Hardening: Max Args Limit
-	if len(spec.Args) > 256 {
+	// Apply argument limits
+	if len(finalArgs) > 256 {
 		return nil, errors.New("ERR_LIMITS: too many arguments (max 256)")
 	}
 
-	// Use CommandContext to satisfy linter, though we use Background for now.
-	// SECURITY: Relative paths in spec.Cmd are resolved using the daemon's PATH.
-	cmd := exec.CommandContext(context.Background(), spec.Cmd, spec.Args...)
+	// Handle Shell Execution
+	if spec.Exec.Shell {
+		shellBin := "/bin/sh"
+		shellArgs := []string{"-c"}
+
+		// Construct command line
+		cmdLine := finalBin
+		if len(finalArgs) > 0 {
+			cmdLine += " " + strings.Join(finalArgs, " ")
+		}
+
+		cmd = exec.CommandContext(ctx, shellBin, append(shellArgs, cmdLine)...)
+	} else {
+		cmd = exec.CommandContext(ctx, finalBin, finalArgs...)
+	}
 
 	if spec.Cwd != "" {
 		// Security Hardening: Cwd Validation
@@ -53,19 +98,49 @@ func NewProcess(id int, spec protocol.StartSpec) (*Process, error) {
 		cmd.Dir = spec.Cwd
 	}
 
-	// Environment: Inherit from OS and append/overwrite with spec.Env
-	// This ensures PATH and other system vars are present.
-	// SECURITY: We use an inherit+overlay policy. spec.Env is validated for limits in the handler.
+	// Environment preparation
+	// Inherit from OS, then EnvFile, then explicit Env
+	env := os.Environ()
+
+	// Load EnvFile if present
+	if spec.EnvFile != "" {
+		file, err := os.Open(spec.EnvFile)
+		if err != nil {
+			return nil, fmt.Errorf("ERR_BAD_REQUEST: failed to open env file: %w", err)
+		}
+
+		scanner := bufio.NewScanner(file)
+		for scanner.Scan() {
+			line := strings.TrimSpace(scanner.Text())
+			if line == "" || strings.HasPrefix(line, "#") {
+				continue
+			}
+			env = append(env, line)
+		}
+		_ = file.Close()
+
+		if err := scanner.Err(); err != nil {
+			return nil, fmt.Errorf("ERR_BAD_REQUEST: failed to read env file: %w", err)
+		}
+	}
+
+	// Apply explicit Env vars
 	if len(spec.Env) > 0 {
-		env := os.Environ()
 		for k, v := range spec.Env {
 			env = append(env, fmt.Sprintf("%s=%s", k, v))
 		}
-		cmd.Env = env
 	}
+	
+	cmd.Env = env
 
 	// Stdio handling
-	if spec.Stdio == "inherit" {
+	// Default to inherit if Logs is nil
+	logMode := "inherit"
+	if spec.Logs != nil {
+		logMode = spec.Logs.Mode
+	}
+
+	if logMode == "inherit" {
 		cmd.Stdout = os.Stdout
 		cmd.Stderr = os.Stderr
 		cmd.Stdin = os.Stdin
@@ -75,13 +150,21 @@ func NewProcess(id int, spec protocol.StartSpec) (*Process, error) {
 	// Configure isolation (platform specific)
 	// TODO: Verify client identity via socket credentials before applying isolation policies.
 	// Currently, identity is implicitly trusted if the client can connect.
-	if err := runtime.ConfigureProcessIsolation(cmd, spec.RunAs); err != nil {
+	runAs := protocol.RunAsPolicy{Mode: "self"}
+	if spec.RunAs != nil {
+		runAs = *spec.RunAs
+	}
+	if err := daemonRuntime.ConfigureProcessIsolation(cmd, runAs); err != nil {
 		return nil, err
 	}
 
 	name := spec.Name
 	if name == "" {
-		name = filepath.Base(spec.Cmd)
+		if spec.Exec.Type == "entry" {
+			name = filepath.Base(spec.Exec.Entry)
+		} else {
+			name = filepath.Base(spec.Exec.Command)
+		}
 	}
 
 	return &Process{
@@ -103,78 +186,82 @@ func (p *Process) Start() error {
 	p.mu.Lock()
 	defer p.mu.Unlock()
 
-	// Reset state in case of reuse (though exec.Cmd prevents easy reuse)
-	p.stoppedByUser = false
-	p.exitError = nil
-	p.startTime = time.Now()
+	if p.cmd.Process != nil {
+		return errors.New("process already started")
+	}
 
+	p.startTime = time.Now()
 	if err := p.cmd.Start(); err != nil {
 		p.info.State = types.StateFailed
-		return err
+		return fmt.Errorf("failed to start process: %w", err)
 	}
 
 	p.info.PID = p.cmd.Process.Pid
 	p.info.State = types.StateRunning
+	p.exitError = nil
+	p.stoppedByUser = false
 
-	// Spawn monitor goroutine
 	go p.monitor()
 
 	return nil
 }
 
-// monitor waits for the process to exit and updates state.
+// monitor waits for process exit and updates state.
 func (p *Process) monitor() {
-	// Block until process exits.
-	// This must be done outside the lock.
 	err := p.cmd.Wait()
+
+	// Close log files
+	for _, f := range p.logFiles {
+		_ = f.Close()
+	}
 
 	p.mu.Lock()
 	defer p.mu.Unlock()
 
 	p.exitError = err
-	p.info.PID = 0 // Process is gone
-
-	switch {
-	case p.stoppedByUser:
+	if p.stoppedByUser {
 		p.info.State = types.StateStopped
-	case err != nil:
+	} else if err != nil {
 		p.info.State = types.StateFailed
-	default:
+	} else {
 		p.info.State = types.StateExited
 	}
+	// Reset PID to indicate not running
+	p.info.PID = 0
 }
 
-// Stop signals the process to stop.
+// Stop signals the process to terminate.
 func (p *Process) Stop() error {
 	p.mu.Lock()
-	p.stoppedByUser = true
-
-	if p.cmd.Process == nil {
+	if p.info.State != types.StateRunning {
 		p.mu.Unlock()
-		return nil // Not started or already dead (though Process struct might stick around)
+		return nil // Already stopped
 	}
-
-	// Check if already exited to avoid sending signal to non-existent process?
-	// os.Process.Signal handles this usually, or returns error.
+	p.stoppedByUser = true
 	proc := p.cmd.Process
 	p.mu.Unlock()
 
-	// Send Interrupt first.
-	// In a real supervisor, we'd wait and then Kill.
-	// For minimal implementation, just Signal.
-	return proc.Signal(os.Interrupt)
+	if proc == nil {
+		return nil
+	}
+
+	// Try graceful termination first (SIGTERM equivalent)
+	// On Windows, Kill is the only option usually, but Go's Signal might map.
+	// For now, simple Kill.
+	return proc.Kill()
 }
 
-// Info returns a snapshot of the process state.
+// Info returns the current process info.
 func (p *Process) Info() types.ProcessInfo {
 	p.mu.Lock()
 	defer p.mu.Unlock()
 
-	info := p.info
-	if info.State == types.StateRunning {
-		info.Uptime = time.Since(p.startTime).Milliseconds()
+	// Update uptime if running
+	if p.info.State == types.StateRunning {
+		p.info.Uptime = time.Since(p.startTime).Milliseconds()
 	} else {
-		info.Uptime = 0
+		p.info.Uptime = 0
 	}
-	return info
+
+	return p.info
 }

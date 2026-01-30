@@ -22,7 +22,7 @@ const (
 // ProcessInfo represents the status of a managed process
 // It contains only raw data, no formatting.
 type ProcessInfo struct {
-	ID        int          `json:"id"`
+	ID        string       `json:"id"`
 	Name      string       `json:"name"`
 	Namespace string       `json:"namespace"`
 	Version   string       `json:"version"`

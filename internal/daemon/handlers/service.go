@@ -1,5 +1,3 @@
-//go:build linux
-
 // Package handlers provides the request handlers for the daemon.
 package handlers
 
@@ -20,7 +18,7 @@ var nameRegex = regexp.MustCompile(`^[a-zA-Z0-9][a-zA-Z0-9._-]{0,63}$`)
 // StartProcess handles the process start request with full validation and policy enforcement.
 func StartProcess(
 	mgr *manager.Manager,
-	spec protocol.StartSpec,
+	spec protocol.AppSpec,
 	identity *transport.Identity,
 	daemonPrivileged bool,
 ) (types.ProcessInfo, error) {
@@ -47,18 +45,31 @@ func StartProcess(
 	return mgr.StartWithSpec(spec)
 }
 
-func validateSpec(spec protocol.StartSpec) error {
-	if spec.Cmd == "" {
-		return errors.New("ERR_BAD_REQUEST: cmd is required")
-	}
-	if len(spec.Cmd) > 4096 {
-		return errors.New("ERR_LIMITS: cmd too long")
+func validateSpec(spec protocol.AppSpec) error {
+	if spec.Exec.Type == "" {
+		return errors.New("ERR_BAD_REQUEST: exec type is required")
 	}
 
-	if len(spec.Args) > 256 {
+	switch spec.Exec.Type {
+	case "command":
+		if spec.Exec.Command == "" {
+			return errors.New("ERR_BAD_REQUEST: command is required")
+		}
+		if len(spec.Exec.Command) > 4096 {
+			return errors.New("ERR_LIMITS: command too long")
+		}
+	case "entry":
+		if spec.Exec.Entry == "" {
+			return errors.New("ERR_BAD_REQUEST: entry file is required")
+		}
+	default:
+		return errors.New("ERR_BAD_REQUEST: invalid exec type")
+	}
+
+	if len(spec.Exec.Args) > 256 {
 		return errors.New("ERR_LIMITS: too many arguments")
 	}
-	for _, arg := range spec.Args {
+	for _, arg := range spec.Exec.Args {
 		if len(arg) > 4096 {
 			return errors.New("ERR_LIMITS: argument too long")
 		}

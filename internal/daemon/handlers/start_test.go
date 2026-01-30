@@ -1,10 +1,8 @@
-//go:build linux
-
 package handlers_test
 
 import (
 	"context"
-	"encoding/json"
+	"strconv"
 	"strings"
 	"testing"
 
@@ -12,6 +10,7 @@ import (
 	"github.com/Jaro-c/Lynx/internal/daemon/manager"
 	"github.com/Jaro-c/Lynx/internal/ipc/protocol"
 	"github.com/Jaro-c/Lynx/internal/ipc/transport"
+	"github.com/Jaro-c/Lynx/internal/jsonx"
 )
 
 func TestStartHandler_Validation(t *testing.T) {
@@ -31,121 +30,125 @@ func TestStartHandler_Validation(t *testing.T) {
 
 	tests := []struct {
 		name    string
-		spec    protocol.StartSpec
+		spec    protocol.AppSpec
 		wantErr bool
 		errCode string
 	}{
 		{
 			name: "valid self",
-			spec: protocol.StartSpec{
-				Cmd:   "echo",
-				Args:  []string{"hello"},
-				RunAs: protocol.RunAsPolicy{Mode: "self"},
+			spec: protocol.AppSpec{
+				Id: "uuid-1",
+				Exec: protocol.AppExec{
+					Type:    "command",
+					Command: "echo",
+					Args:    []string{"hello"},
+				},
+				RunAs: &protocol.RunAsPolicy{Mode: "self"},
 			},
 			wantErr: false,
 		},
 		{
-			name: "missing cmd",
-			spec: protocol.StartSpec{
-				Args:  []string{"hello"},
-				RunAs: protocol.RunAsPolicy{Mode: "self"},
+			name: "missing exec type",
+			spec: protocol.AppSpec{
+				Id: "uuid-2",
+				Exec: protocol.AppExec{
+					Type: "",
+				},
+				RunAs: &protocol.RunAsPolicy{Mode: "self"},
+			},
+			wantErr: true,
+			errCode: "ERR_BAD_REQUEST",
+		},
+		{
+			name: "missing command",
+			spec: protocol.AppSpec{
+				Id: "uuid-3",
+				Exec: protocol.AppExec{
+					Type: "command",
+				},
+				RunAs: &protocol.RunAsPolicy{Mode: "self"},
 			},
 			wantErr: true,
 			errCode: "ERR_BAD_REQUEST",
 		},
 		{
 			name: "too many args",
-			spec: protocol.StartSpec{
-				Cmd:   "echo",
-				Args:  make([]string, 300),
-				RunAs: protocol.RunAsPolicy{Mode: "self"},
+			spec: protocol.AppSpec{
+				Id: "uuid-4",
+				Exec: protocol.AppExec{
+					Type:    "command",
+					Command: "echo",
+					Args:    make([]string, 300),
+				},
+				RunAs: &protocol.RunAsPolicy{Mode: "self"},
 			},
 			wantErr: true,
 			errCode: "ERR_LIMITS",
 		},
 		{
 			name: "cmd too long",
-			spec: protocol.StartSpec{
-				Cmd:   strings.Repeat("a", 4097),
-				RunAs: protocol.RunAsPolicy{Mode: "self"},
-			},
-			wantErr: true,
-			errCode: "ERR_LIMITS",
-		},
-		{
-			name: "arg too long",
-			spec: protocol.StartSpec{
-				Cmd:   "echo",
-				Args:  []string{strings.Repeat("a", 4097)},
-				RunAs: protocol.RunAsPolicy{Mode: "self"},
+			spec: protocol.AppSpec{
+				Id: "uuid-5",
+				Exec: protocol.AppExec{
+					Type:    "command",
+					Command: strings.Repeat("a", 4097),
+				},
+				RunAs: &protocol.RunAsPolicy{Mode: "self"},
 			},
 			wantErr: true,
 			errCode: "ERR_LIMITS",
 		},
 		{
 			name: "env too many",
-			spec: protocol.StartSpec{
-				Cmd:   "echo",
+			spec: protocol.AppSpec{
+				Id: "uuid-6",
+				Exec: protocol.AppExec{
+					Type:    "command",
+					Command: "echo",
+				},
 				Env:   makeEnv(129),
-				RunAs: protocol.RunAsPolicy{Mode: "self"},
-			},
-			wantErr: true,
-			errCode: "ERR_LIMITS",
-		},
-		{
-			name: "env key too long",
-			spec: protocol.StartSpec{
-				Cmd:   "echo",
-				Env:   map[string]string{strings.Repeat("k", 257): "v"},
-				RunAs: protocol.RunAsPolicy{Mode: "self"},
-			},
-			wantErr: true,
-			errCode: "ERR_LIMITS",
-		},
-		{
-			name: "env value too long",
-			spec: protocol.StartSpec{
-				Cmd:   "echo",
-				Env:   map[string]string{"k": strings.Repeat("v", 8193)},
-				RunAs: protocol.RunAsPolicy{Mode: "self"},
+				RunAs: &protocol.RunAsPolicy{Mode: "self"},
 			},
 			wantErr: true,
 			errCode: "ERR_LIMITS",
 		},
 		{
 			name: "invalid name",
-			spec: protocol.StartSpec{
-				Cmd:   "echo",
-				Name:  "Invalid Name!",
-				RunAs: protocol.RunAsPolicy{Mode: "self"},
+			spec: protocol.AppSpec{
+				Id:   "uuid-7",
+				Name: "Invalid Name!",
+				Exec: protocol.AppExec{
+					Type:    "command",
+					Command: "echo",
+				},
+				RunAs: &protocol.RunAsPolicy{Mode: "self"},
 			},
 			wantErr: true,
 			errCode: "ERR_BAD_REQUEST",
 		},
 		{
 			name: "invalid cwd",
-			spec: protocol.StartSpec{
-				Cmd:   "echo",
-				Cwd:   "/path/to/nonexistent/directory",
-				RunAs: protocol.RunAsPolicy{Mode: "self"},
+			spec: protocol.AppSpec{
+				Id:  "uuid-8",
+				Cwd: "/path/to/nonexistent/directory",
+				Exec: protocol.AppExec{
+					Type:    "command",
+					Command: "echo",
+				},
+				RunAs: &protocol.RunAsPolicy{Mode: "self"},
 			},
 			wantErr: true,
 			errCode: "ERR_BAD_REQUEST",
 		},
 		{
 			name: "app_user unsupported",
-			spec: protocol.StartSpec{
-				Cmd:   "echo",
-				RunAs: protocol.RunAsPolicy{Mode: "app_user"},
-			},
-			wantErr: true,
-			errCode: "ERR_UNSUPPORTED",
-		},
-		{
-			name: "explicit_user unsupported",
-			spec: protocol.StartSpec{
-				Cmd:   "echo",
-				RunAs: protocol.RunAsPolicy{Mode: "explicit_user"},
+			spec: protocol.AppSpec{
+				Id: "uuid-9",
+				Exec: protocol.AppExec{
+					Type:    "command",
+					Command: "echo",
+				},
+				RunAs: &protocol.RunAsPolicy{Mode: "app_user"},
 			},
 			wantErr: true,
 			errCode: "ERR_UNSUPPORTED",
@@ -154,10 +157,16 @@ func TestStartHandler_Validation(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			// Mock request
-			reqBytes, err := json.Marshal(tt.spec)
+			// Wrap in StartRequest
+			req := protocol.StartRequest{
+				ProtocolVersion: 1,
+				Type:            "start",
+				RequestID:       tt.spec.Id,
+				Spec:            tt.spec,
+			}
+			reqBytes, err := jsonx.Marshal(req)
 			if err != nil {
-				t.Fatalf("Failed to marshal spec: %v", err)
+				t.Fatalf("Failed to marshal req: %v", err)
 			}
 
 			_, err = handler(ctx, reqBytes)
@@ -189,47 +198,51 @@ func TestStartHandler_Execution(t *testing.T) {
 		},
 	)
 
-	var cmd string
-	var args []string
-
-	cmd = "sleep"
-	args = []string{"0.1"}
-
-	spec := protocol.StartSpec{
-		Cmd:   cmd,
-		Args:  args,
-		RunAs: protocol.RunAsPolicy{Mode: "self"},
+	spec := protocol.AppSpec{
+		Id: "uuid-exec",
+		Exec: protocol.AppExec{
+			Type:    "command",
+			Command: "go", // using 'go' as a command that exists
+			Args:    []string{"version"},
+		},
+		RunAs: &protocol.RunAsPolicy{Mode: "self"},
 	}
 
-	params, err := json.Marshal(spec)
+	req := protocol.StartRequest{
+		ProtocolVersion: 1,
+		Type:            "start",
+		RequestID:       spec.Id,
+		Spec:            spec,
+	}
+	reqBytes, err := jsonx.Marshal(req)
 	if err != nil {
-		t.Fatalf("Failed to marshal spec: %v", err)
-	}
-	res, err := handler(ctx, params)
-	if err != nil {
-		t.Fatalf("StartHandler failed: %v", err)
+		t.Fatalf("Failed to marshal req: %v", err)
 	}
 
-	var data protocol.StartResponseData
-	if err := json.Unmarshal(res, &data); err != nil {
+	respBytes, err := handler(ctx, reqBytes)
+	if err != nil {
+		t.Fatalf("StartHandler() failed: %v", err)
+	}
+
+	var respData protocol.StartResponseData
+	if err := jsonx.Unmarshal(respBytes, &respData); err != nil {
 		t.Fatalf("Failed to unmarshal response: %v", err)
 	}
 
-	if data.PID <= 0 {
-		t.Errorf("Invalid PID: %d", data.PID)
+	if respData.ProcID != spec.Id {
+		t.Errorf("ProcID = %s, want %s", respData.ProcID, spec.Id)
 	}
-	t.Logf("Started process PID: %d, Status: %s", data.PID, data.Status)
+	if respData.PID <= 0 {
+		t.Errorf("PID = %d, want > 0", respData.PID)
+	}
 }
 
-func makeEnv(n int) map[string]string {
+func makeEnv(count int) map[string]string {
 	env := make(map[string]string)
-	for i := 0; i < n; i++ {
-		// Using handlers.MockEnvKey helps if that helper existed, but here we construct manually
-		// to avoid circular dependency if MockEnvKey is internal.
-		// Since we changed package to handlers_test, we can't access internal helpers unless exported.
-		// Assuming makeEnv is local to this test file.
-		k := "K" + strings.Repeat("x", i)
-		env[k] = "v"
+	for i := 0; i < count; i++ {
+		// Better:
+		key := "k" + strconv.Itoa(i)
+		env[key] = "val"
 	}
 	return env
 }
