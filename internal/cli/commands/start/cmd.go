@@ -25,47 +25,71 @@ func Run(client *transport.Client, args []string) error {
 		return nil
 	}
 
-	appSpec, err := ParseAppSpec(args)
+	appSpec, scale, err := ParseAppSpec(args)
 	if err != nil {
 		return err
 	}
 
-	// Generate ID
-	id, err := spec.GenerateUUIDv4()
-	if err != nil {
-		return fmt.Errorf("failed to generate ID: %w", err)
-	}
-	appSpec.ID = id
-	appSpec.CreatedAt = time.Now().Format(time.RFC3339)
-
-	// Save Spec to disk
-	savedPath, err := spec.SaveSpec(appSpec.ID, appSpec)
-	if err != nil {
-		return fmt.Errorf("failed to save spec: %w", err)
-	}
-	_, _ = term.Printf("Spec saved to %s\n", savedPath)
-
-	// Send Request
-	req := protocol.StartRequest{
-		ProtocolVersion: 1,
-		Type:            "start",
-		RequestID:       id, // Use same ID for request correlation
-		Spec:            appSpec,
+	if scale < 1 {
+		scale = 1
 	}
 
-	var startResp protocol.StartResponseData
-	err = client.Call("start", req, &startResp)
-	if err != nil {
-		return fmt.Errorf("start failed: %w", err)
+	// Derive base name if empty
+	baseName := appSpec.Name
+	if baseName == "" {
+		if appSpec.Exec.Type == "entry" {
+			baseName = filepath.Base(appSpec.Exec.Entry)
+		} else {
+			baseName = filepath.Base(appSpec.Exec.Command)
+		}
 	}
 
-	printSuccessResponse(&startResp, appSpec.Name)
+	for i := 0; i < scale; i++ {
+		thisSpec := appSpec
+		
+		// Set Name with index if scaling
+		if scale > 1 {
+			thisSpec.Name = fmt.Sprintf("%s-%d", baseName, i+1)
+		} else {
+			thisSpec.Name = baseName
+		}
+
+		// Generate ID
+		id, err := spec.GenerateUUIDv4()
+		if err != nil {
+			return fmt.Errorf("failed to generate ID: %w", err)
+		}
+		thisSpec.ID = id
+		thisSpec.CreatedAt = time.Now().Format(time.RFC3339)
+
+		// Save Spec to disk
+		_, err = spec.SaveSpec(thisSpec.ID, thisSpec)
+		if err != nil {
+			return fmt.Errorf("failed to save spec: %w", err)
+		}
+		
+		// Send Request
+		req := protocol.StartRequest{
+			ProtocolVersion: 1,
+			Type:            "start",
+			RequestID:       id, // Use same ID for request correlation
+			Spec:            thisSpec,
+		}
+
+		var startResp protocol.StartResponseData
+		err = client.Call("start", req, &startResp)
+		if err != nil {
+			return fmt.Errorf("start failed for instance %d: %w", i+1, err)
+		}
+
+		printSuccessResponse(&startResp, thisSpec.Name)
+	}
 
 	return nil
 }
 
 // ParseAppSpec parses command-line arguments into an AppSpec.
-func ParseAppSpec(args []string) (protocol.AppSpec, error) {
+func ParseAppSpec(args []string) (protocol.AppSpec, int, error) {
 	return (&specParser{args: args}).parse()
 }
 
@@ -94,10 +118,12 @@ type specParser struct {
 	logTimestamp  string
 
 	parsingFlags bool
+	scale        int
 }
 
-func (p *specParser) parse() (protocol.AppSpec, error) {
+func (p *specParser) parse() (protocol.AppSpec, int, error) {
 	p.parsingFlags = true
+	p.scale = 1
 	p.stdio = "inherit"
 	p.runAs = "self"
 	p.restartPolicy = "on-failure"
@@ -140,13 +166,17 @@ func (p *specParser) parse() (protocol.AppSpec, error) {
 			}
 
 			// If no command yet, it's an invalid flag for lynx
-			return protocol.AppSpec{}, err
+			return protocol.AppSpec{}, 0, err
 		}
 
 		p.cmdParts = append(p.cmdParts, arg)
 	}
 
-	return p.finalize()
+	spec, err := p.finalize()
+	if err != nil {
+		return protocol.AppSpec{}, 0, err
+	}
+	return spec, p.scale, nil
 }
 
 func (p *specParser) handleFlag(arg string) error {
@@ -186,6 +216,8 @@ func (p *specParser) handleFlag(arg string) error {
 		return p.readStringValue(&p.logFormat)
 	case "--log-timestamp":
 		return p.readStringValue(&p.logTimestamp)
+	case "--scale", "--instances":
+		return p.readIntValue(&p.scale)
 	default:
 		return fmt.Errorf("unknown flag: %s", arg)
 	}

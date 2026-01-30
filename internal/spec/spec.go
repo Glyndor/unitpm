@@ -56,3 +56,17 @@ func SaveSpec(id string, data interface{}) (string, error) {
 
 	return path, nil
 }
+
+// DeleteSpec removes the spec file.
+func DeleteSpec(id string) error {
+	dir, err := GetSpecDir()
+	if err != nil {
+		return err
+	}
+
+	path := filepath.Join(dir, id+".json")
+	if err := os.Remove(path); err != nil && !os.IsNotExist(err) {
+		return err
+	}
+	return nil
+}
