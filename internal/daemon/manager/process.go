@@ -641,7 +641,13 @@ func (p *Process) ResetBackoff() {
 }
 
 func (p *Process) getLynxBinary() (string, error) {
-	// Try to find adjacent to current binary (lynxd)
+	// 1. Prefer standard PATH lookup (safe for Debian /usr/bin installs)
+	path, err := exec.LookPath("lynx")
+	if err == nil {
+		return path, nil
+	}
+
+	// 2. Fallback: adjacent to current binary (useful for dev/testing)
 	exe, err := os.Executable()
 	if err == nil {
 		dir := filepath.Dir(exe)
@@ -650,6 +656,6 @@ func (p *Process) getLynxBinary() (string, error) {
 			return lynxPath, nil
 		}
 	}
-	// Fallback to path lookup
-	return exec.LookPath("lynx")
+
+	return "", fmt.Errorf("lynx binary not found in PATH or adjacent to daemon")
 }
