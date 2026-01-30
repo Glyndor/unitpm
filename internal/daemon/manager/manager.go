@@ -6,6 +6,7 @@ package manager
 import (
 	"errors"
 	"fmt"
+	"strings"
 	"sync"
 
 	"github.com/Jaro-c/Lynx/internal/ipc/protocol"
@@ -57,7 +58,15 @@ func (m *Manager) StartWithSpec(spec protocol.AppSpec) (types.ProcessInfo, error
 	return proc.Info(), nil
 }
 
-// Stop signals a process to stop and removes it from the manager.
+// Get returns a process by ID.
+func (m *Manager) Get(id string) (*Process, bool) {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	p, ok := m.processes[id]
+	return p, ok
+}
+
+// Stop signals a process to stop.
 func (m *Manager) Stop(id string) error {
 	m.mu.RLock()
 	proc, exists := m.processes[id]
@@ -67,15 +76,67 @@ func (m *Manager) Stop(id string) error {
 		return fmt.Errorf("process not found: %s", id)
 	}
 
-	if err := proc.Stop(); err != nil {
-		return err
-	}
+	return proc.Stop()
+}
+
+// Delete stops a process and removes it from the manager.
+func (m *Manager) Delete(id string) error {
+	// Best effort stop
+	_ = m.Stop(id)
 
 	m.mu.Lock()
-	delete(m.processes, id)
-	m.mu.Unlock()
+	defer m.mu.Unlock()
 
+	if _, exists := m.processes[id]; !exists {
+		return fmt.Errorf("process not found: %s", id)
+	}
+
+	delete(m.processes, id)
 	return nil
+}
+
+// Restart restarts a process.
+func (m *Manager) Restart(id string) error {
+	m.mu.RLock()
+	proc, exists := m.processes[id]
+	m.mu.RUnlock()
+
+	if !exists {
+		return fmt.Errorf("process not found: %s", id)
+	}
+
+	return proc.Restart()
+}
+
+// ResolveID resolves an identifier (ID, prefix, or name) to a unique ID.
+func (m *Manager) ResolveID(identifier string) (string, error) {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+
+	// 1. Exact ID match
+	if _, exists := m.processes[identifier]; exists {
+		return identifier, nil
+	}
+
+	var candidates []string
+
+	// 2. Prefix or Name match
+	for id, proc := range m.processes {
+		if strings.HasPrefix(id, identifier) {
+			candidates = append(candidates, id)
+		} else if proc.info.Name == identifier {
+			candidates = append(candidates, id)
+		}
+	}
+
+	if len(candidates) == 0 {
+		return "", fmt.Errorf("process not found: %s", identifier)
+	}
+	if len(candidates) > 1 {
+		return "", fmt.Errorf("ambiguous selector '%s': matches %v", identifier, candidates)
+	}
+
+	return candidates[0], nil
 }
 
 // List returns a snapshot of all managed processes.

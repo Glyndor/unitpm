@@ -9,6 +9,9 @@ import (
 
 	"github.com/Jaro-c/Lynx/internal/cli/commands/list"
 	"github.com/Jaro-c/Lynx/internal/cli/commands/start"
+	"github.com/Jaro-c/Lynx/internal/cli/commands/stop"
+	"github.com/Jaro-c/Lynx/internal/cli/commands/restart"
+	"github.com/Jaro-c/Lynx/internal/cli/commands/delete"
 	"github.com/Jaro-c/Lynx/internal/cli/commands/startup"
 	"github.com/Jaro-c/Lynx/internal/cli/commands/version"
 	"github.com/Jaro-c/Lynx/internal/cli/errs"
@@ -21,6 +24,9 @@ import (
 const (
 	cmdList    = "list"
 	cmdStart   = "start"
+	cmdStop    = "stop"
+	cmdRestart = "restart"
+	cmdDelete  = "delete"
 	cmdStartup = "startup"
 	cmdVersion = "version"
 	cmdHelp    = "help"
@@ -102,17 +108,25 @@ func runCommand(name string, args []string) error {
 		return version.Run(os.Stdout, args)
 	case cmdStartup:
 		return startup.Run(nil, args)
-	case cmdList, cmdStart:
+	case cmdList, cmdStart, cmdStop, cmdRestart, cmdDelete:
 		client, err := transport.NewClient()
 		if err != nil {
 			return fmt.Errorf("failed to connect to daemon: %w", err)
 		}
 		defer func() { _ = client.Close() }()
 
-		if name == cmdList {
+		switch name {
+		case cmdList:
 			return list.Run(client, args)
+		case cmdStart:
+			return start.Run(client, args)
+		case cmdStop:
+			return stop.Run(client, args)
+		case cmdRestart:
+			return restart.Run(client, args)
+		case cmdDelete:
+			return delete.Run(client, args)
 		}
-		return start.Run(client, args)
 	}
 	return nil
 }
@@ -123,6 +137,12 @@ func printCommandHelp(name string) int {
 		list.PrintHelp()
 	case cmdStart:
 		start.PrintHelp()
+	case cmdStop:
+		stop.PrintHelp()
+	case cmdRestart:
+		restart.PrintHelp()
+	case cmdDelete:
+		delete.PrintHelp()
 	case cmdStartup:
 		startup.PrintHelp()
 	case cmdVersion:

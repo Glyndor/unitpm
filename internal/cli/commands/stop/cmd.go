@@ -1,0 +1,46 @@
+package stop
+
+import (
+	"fmt"
+	"os"
+
+	"github.com/Jaro-c/Lynx/internal/cli/help"
+	"github.com/Jaro-c/Lynx/internal/ipc/transport"
+	"github.com/Jaro-c/Lynx/internal/term"
+)
+
+// Run executes the stop command.
+func Run(client *transport.Client, args []string) error {
+	if len(args) == 0 {
+		return fmt.Errorf("missing process ID or name")
+	}
+
+	for _, id := range args {
+		var resp struct {
+			Status string `json:"status"`
+			ID     string `json:"id"`
+		}
+		
+		err := client.Call("stop", map[string]string{"id": id}, &resp)
+		if err != nil {
+			term.Printf("Failed to stop %s: %v\n", id, err)
+			continue
+		}
+		term.Printf("Stopped %s\n", resp.ID)
+	}
+	return nil
+}
+
+// GetSpec returns the command specification.
+func GetSpec() help.CommandSpec {
+	return help.CommandSpec{
+		Name:        "stop",
+		Description: "Stop a running process",
+		Usage:       "lynx stop <id|name>...",
+	}
+}
+
+// PrintHelp prints the help message.
+func PrintHelp() {
+	help.RenderCommandHelp(os.Stdout, GetSpec())
+}
