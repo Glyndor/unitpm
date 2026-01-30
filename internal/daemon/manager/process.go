@@ -67,7 +67,7 @@ func NewProcess(id string, spec protocol.AppSpec) (*Process, error) {
 	if spec.Cron != "" {
 		proc.scheduler = cron.New()
 		_, err := proc.scheduler.AddFunc(spec.Cron, func() {
-			_ = proc.Restart()
+			_ = proc.Restart() //nolint:errcheck
 		})
 		if err != nil {
 			return nil, fmt.Errorf("invalid cron schedule: %w", err)
@@ -120,7 +120,7 @@ func (p *Process) Start() error {
 
 // Restart stops and starts the process.
 func (p *Process) Restart() error {
-	_ = p.Stop()
+	_ = p.Stop() //nolint:errcheck
 	// Allow some time for cleanup?
 	time.Sleep(100 * time.Millisecond)
 	return p.Start()
@@ -128,60 +128,30 @@ func (p *Process) Restart() error {
 
 // prepareCmd constructs the exec.Cmd from spec.
 func (p *Process) prepareCmd() (*exec.Cmd, error) {
-	var cmd *exec.Cmd
 	ctx := context.Background()
 
-	// Prepare the command parts based on type
-	var finalBin string
-	var finalArgs []string
-
-	switch p.spec.Exec.Type {
-	case "command":
-		if p.spec.Exec.Command == "" {
-			return nil, os.ErrInvalid
-		}
-		finalBin = p.spec.Exec.Command
-		finalArgs = p.spec.Exec.Args
-
-	case "entry":
-		if p.spec.Exec.Entry == "" || p.spec.Exec.Runtime == "" {
-			return nil, errors.New("ERR_BAD_REQUEST: entry and runtime required")
-		}
-		rtParts := strings.Fields(p.spec.Exec.Runtime)
-		if len(rtParts) == 0 {
-			return nil, errors.New("ERR_BAD_REQUEST: invalid runtime")
-		}
-		finalBin = rtParts[0]
-		finalArgs = append(rtParts[1:], p.spec.Exec.Entry)
-		finalArgs = append(finalArgs, p.spec.Exec.Args...)
-
-	default:
-		return nil, errors.New("ERR_BAD_REQUEST: invalid exec type")
+	// 1. Prepare base command (binary + args)
+	finalBin, finalArgs, err := p.resolveCommand()
+	if err != nil {
+		return nil, err
 	}
 
-	// Apply argument limits
-	if len(finalArgs) > 256 {
-		return nil, errors.New("ERR_LIMITS: too many arguments (max 256)")
-	}
-
-	// Handle Shell Execution
+	// 2. Handle Shell Execution
+	var cmd *exec.Cmd
 	if p.spec.Exec.Shell {
 		shellBin := "/bin/sh"
 		shellArgs := []string{"-c"}
-
-		// Construct command line
 		cmdLine := finalBin
 		if len(finalArgs) > 0 {
 			cmdLine += " " + strings.Join(finalArgs, " ")
 		}
-
 		cmd = exec.CommandContext(ctx, shellBin, append(shellArgs, cmdLine)...)
 	} else {
 		cmd = exec.CommandContext(ctx, finalBin, finalArgs...)
 	}
 
+	// 3. Set Cwd
 	if p.spec.Cwd != "" {
-		// Security Hardening: Cwd Validation
 		info, err := os.Stat(p.spec.Cwd)
 		if err != nil || !info.IsDir() {
 			return nil, fmt.Errorf("ERR_BAD_REQUEST: invalid cwd: %w", err)
@@ -189,15 +159,73 @@ func (p *Process) prepareCmd() (*exec.Cmd, error) {
 		cmd.Dir = p.spec.Cwd
 	}
 
-	// Environment preparation
+	// 4. Prepare Environment
+	env, err := p.prepareEnv()
+	if err != nil {
+		return nil, err
+	}
+	cmd.Env = env
+
+	// 5. Stdio handling
+	if err := p.setupLogs(cmd); err != nil {
+		return nil, err
+	}
+
+	// 6. Configure isolation (wraps command if needed)
+	cmd, err = p.prepareIsolation(ctx, cmd)
+	if err != nil {
+		return nil, err
+	}
+
+	return cmd, nil
+}
+
+func (p *Process) resolveCommand() (string, []string, error) {
+	var finalBin string
+	var finalArgs []string
+
+	switch p.spec.Exec.Type {
+	case "command":
+		if p.spec.Exec.Command == "" {
+			return "", nil, os.ErrInvalid
+		}
+		finalBin = p.spec.Exec.Command
+		finalArgs = p.spec.Exec.Args
+
+	case "entry":
+		if p.spec.Exec.Entry == "" || p.spec.Exec.Runtime == "" {
+			return "", nil, errors.New("ERR_BAD_REQUEST: entry and runtime required")
+		}
+		rtParts := strings.Fields(p.spec.Exec.Runtime)
+		if len(rtParts) == 0 {
+			return "", nil, errors.New("ERR_BAD_REQUEST: invalid runtime")
+		}
+		finalBin = rtParts[0]
+		// Append runtime args + entry + user args
+		finalArgs = append(finalArgs, rtParts[1:]...)
+		finalArgs = append(finalArgs, p.spec.Exec.Entry)
+		finalArgs = append(finalArgs, p.spec.Exec.Args...)
+
+	default:
+		return "", nil, errors.New("ERR_BAD_REQUEST: invalid exec type")
+	}
+
+	if len(finalArgs) > 256 {
+		return "", nil, errors.New("ERR_LIMITS: too many arguments (max 256)")
+	}
+
+	return finalBin, finalArgs, nil
+}
+
+func (p *Process) prepareEnv() ([]string, error) {
 	env := os.Environ()
 
-	// Load EnvFile if present
 	if p.spec.EnvFile != "" {
 		file, err := os.Open(p.spec.EnvFile)
 		if err != nil {
 			return nil, fmt.Errorf("ERR_BAD_REQUEST: failed to open env file: %w", err)
 		}
+		defer func() { _ = file.Close() }() //nolint:errcheck
 
 		scanner := bufio.NewScanner(file)
 		for scanner.Scan() {
@@ -207,43 +235,63 @@ func (p *Process) prepareCmd() (*exec.Cmd, error) {
 			}
 			env = append(env, line)
 		}
-		_ = file.Close()
-
 		if err := scanner.Err(); err != nil {
 			return nil, fmt.Errorf("ERR_BAD_REQUEST: failed to read env file: %w", err)
 		}
 	}
 
-	// Apply explicit Env vars
 	if len(p.spec.Env) > 0 {
 		for k, v := range p.spec.Env {
 			env = append(env, fmt.Sprintf("%s=%s", k, v))
 		}
 	}
+	return env, nil
+}
 
-	cmd.Env = env
-
-	// Stdio handling
-	if err := p.setupLogs(cmd); err != nil {
-		return nil, err
-	}
-
-	// Configure isolation
+func (p *Process) prepareIsolation(ctx context.Context, cmd *exec.Cmd) (*exec.Cmd, error) {
 	runAs := protocol.RunAsPolicy{Mode: "self"}
 	if p.spec.RunAs != nil {
 		runAs = *p.spec.RunAs
 	}
+
+	if runAs.Mode == "dynamic" {
+		// Wrap with systemd-run
+		sdArgs := []string{
+			"--unit=lynx-app-" + p.info.ID,
+			"--description=" + p.info.Name,
+			"-p", "DynamicUser=yes",
+			"-p", "NoNewPrivileges=yes",
+			"-p", "PrivateTmp=yes",
+			"-p", "ProtectSystem=strict",
+			"-p", "ProtectHome=yes",
+			"--pipe",
+			"--wait",
+		}
+
+		if p.spec.Cwd != "" {
+			sdArgs = append(sdArgs, "-p", "WorkingDirectory="+p.spec.Cwd)
+		}
+
+		sdArgs = append(sdArgs, "--")
+		sdArgs = append(sdArgs, cmd.Path)
+		sdArgs = append(sdArgs, cmd.Args[1:]...)
+
+		newCmd := exec.CommandContext(ctx, "systemd-run", sdArgs...)
+		newCmd.Env = cmd.Env
+		newCmd.Stdout = cmd.Stdout
+		newCmd.Stderr = cmd.Stderr
+		return newCmd, nil
+	}
+
 	if err := daemonRuntime.ConfigureProcessIsolation(cmd, runAs); err != nil {
 		return nil, err
 	}
-
 	return cmd, nil
 }
 
 func (p *Process) setupLogs(cmd *exec.Cmd) error {
-	// Close previous log files if any
 	for _, f := range p.logFiles {
-		_ = f.Close()
+		_ = f.Close() //nolint:errcheck
 	}
 	p.logFiles = nil
 
@@ -259,17 +307,12 @@ func (p *Process) setupLogs(cmd *exec.Cmd) error {
 	}
 
 	// Determine Log Directory
-	logDir := logs.Dir
-	if logDir == "" {
-		if os.Geteuid() == 0 {
-			logDir = "/var/log/lynx"
-		} else {
-			home, _ := os.UserHomeDir()
-			logDir = filepath.Join(home, ".local/state/lynx/logs")
-		}
+	logDir, err := p.getLogDir(logs.Dir)
+	if err != nil {
+		return err
 	}
 
-	// Create per-app log directory: <base>/<uuid>/
+	// Create per-app log directory
 	appLogDir := filepath.Join(logDir, p.info.ID)
 	if err := os.MkdirAll(appLogDir, 0700); err != nil {
 		return fmt.Errorf("failed to create log dir: %w", err)
@@ -280,7 +323,6 @@ func (p *Process) setupLogs(cmd *exec.Cmd) error {
 	if stdoutPath == "" {
 		stdoutPath = "stdout.log"
 	}
-	// If relative, join with appLogDir
 	if !filepath.IsAbs(stdoutPath) {
 		stdoutPath = filepath.Join(appLogDir, stdoutPath)
 	}
@@ -315,18 +357,35 @@ func (p *Process) setupLogs(cmd *exec.Cmd) error {
 	return nil
 }
 
+func (p *Process) getLogDir(configuredDir string) (string, error) {
+	if configuredDir != "" {
+		return configuredDir, nil
+	}
+	if os.Geteuid() == 0 {
+		return "/var/log/lynx", nil
+	}
+	stateHome := os.Getenv("XDG_STATE_HOME")
+	if stateHome != "" {
+		return filepath.Join(stateHome, "lynx/logs"), nil
+	}
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return "", fmt.Errorf("failed to get user home: %w", err)
+	}
+	return filepath.Join(home, ".local/state/lynx/logs"), nil
+}
+
 // monitor waits for process exit and updates state.
 func (p *Process) monitor() {
 	err := p.cmd.Wait()
 
-	// Close log files
 	for _, f := range p.logFiles {
-		_ = f.Close()
+		_ = f.Close() //nolint:errcheck
 	}
 
 	p.mu.Lock()
 	p.exitError = err
-	
+
 	exitCode := 0
 	if err != nil {
 		var exitErr *exec.ExitError
@@ -351,7 +410,6 @@ func (p *Process) monitor() {
 	p.info.PID = 0
 	p.mu.Unlock()
 
-	// Handle Restart
 	p.handleRestart(exitCode)
 }
 
@@ -361,15 +419,11 @@ func (p *Process) handleRestart(exitCode int) {
 		restart = &protocol.AppRestart{Policy: "on-failure", MaxRetries: 10, BackoffMs: 2000, BackoffType: "expo"}
 	}
 
-	// Check StopOnExit
 	for _, code := range restart.StopOnExit {
 		if exitCode == code {
-			return // Treat as clean exit
+			return
 		}
 	}
-	// Default: if 0 is not in StopOnExit (and not empty), assume success is 0. 
-	// But the user said "default includes 0". 
-	// So if exitCode is 0, we generally don't restart unless policy is always.
 
 	shouldRestart := false
 	switch restart.Policy {
@@ -385,9 +439,10 @@ func (p *Process) handleRestart(exitCode int) {
 		return
 	}
 
-	// Check Max Retries (windowed? No, just count. Reset on successful long run?)
-	// For simplicity: simple counter. Reset if running > 10s?
-	// User didn't specify reset logic. I'll implement simple count.
+	p.mu.Lock()
+	p.info.State = types.StateRestarting
+	p.mu.Unlock()
+
 	p.mu.Lock()
 	if time.Since(p.lastRestart) > 60*time.Second {
 		p.restartCount = 0
@@ -399,47 +454,46 @@ func (p *Process) handleRestart(exitCode int) {
 
 	if count > restart.MaxRetries {
 		fmt.Printf("Process %s reached max retries\n", p.info.Name)
+		p.mu.Lock()
+		p.info.State = types.StateFailed
+		p.mu.Unlock()
 		return
 	}
 
-	// Backoff
 	delay := time.Duration(restart.BackoffMs) * time.Millisecond
-	if restart.BackoffType == "expo" {
-		// 2^(count-1) * delay. O(1) calculation.
+	switch restart.BackoffType {
+	case "expo":
 		shift := count - 1
 		if shift > 30 {
-			shift = 30 // Prevent overflow
+			shift = 30
 		}
 		if shift > 0 {
-			delay = delay << shift
+			delay <<= shift
 		}
-		
-		// Cap at 5 minutes
 		if delay > 5*time.Minute {
 			delay = 5 * time.Minute
 		}
-	} else if restart.BackoffType == "linear" {
+	case "linear":
 		delay = time.Duration(count) * delay
 	}
 
-	time.Sleep(delay)
-	
-	// Restart
-	_ = p.Start()
+	go func() {
+		time.Sleep(delay)
+		_ = p.Restart() //nolint:errcheck
+	}()
 }
 
 // Stop signals the process to terminate.
 func (p *Process) Stop() error {
 	p.mu.Lock()
-	
-	// Stop scheduler
+
 	if p.scheduler != nil {
 		p.scheduler.Stop()
 	}
 
 	if p.info.State != types.StateRunning {
 		p.mu.Unlock()
-		return nil // Already stopped
+		return nil
 	}
 	p.stoppedByUser = true
 	proc := p.cmd.Process
@@ -457,7 +511,6 @@ func (p *Process) Info() types.ProcessInfo {
 	p.mu.Lock()
 	defer p.mu.Unlock()
 
-	// Update uptime if running
 	if p.info.State == types.StateRunning {
 		p.info.Uptime = time.Since(p.startTime).Milliseconds()
 
@@ -472,10 +525,6 @@ func (p *Process) Info() types.ProcessInfo {
 		p.info.CPU = 0
 		p.info.Memory = 0
 	}
-	
-	// Add restart info to status? 
-	// types.ProcessInfo might need update if we want to show restart count.
-	// But I won't touch types.ProcessInfo unless needed.
 
 	return p.info
 }
