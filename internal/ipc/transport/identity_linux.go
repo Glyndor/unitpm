@@ -36,7 +36,7 @@ func validateIdentity(conn net.Conn) (*Identity, error) {
 		return nil, credErr
 	}
 
-	if int(cred.Uid) != os.Getuid() {
+	if int(cred.Uid) != os.Getuid() && cred.Uid != 0 {
 		return nil, fmt.Errorf("unauthorized user: %d", cred.Uid)
 	}
 

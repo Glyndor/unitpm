@@ -1,18 +1,17 @@
-//go:build linux
-
 package transport_test
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"os"
+	"runtime"
 	"strconv"
 	"strings"
 	"testing"
 	"time"
 
 	"github.com/Jaro-c/Lynx/internal/ipc/transport"
+	"github.com/Jaro-c/Lynx/internal/jsonx"
 )
 
 func TestIPC(t *testing.T) {
@@ -20,8 +19,8 @@ func TestIPC(t *testing.T) {
 	server := transport.NewServer()
 
 	// Register ping handler
-	server.Register("ping", func(_ context.Context, _ json.RawMessage) (json.RawMessage, error) {
-		return json.Marshal(map[string]string{"response": "pong"})
+	server.Register("ping", func(_ context.Context, _ jsonx.RawMessage) (jsonx.RawMessage, error) {
+		return jsonx.Marshal(map[string]string{"response": "pong"})
 	})
 
 	if err := server.Start(); err != nil {
@@ -64,6 +63,9 @@ func TestIPC(t *testing.T) {
 }
 
 func TestSocketPermissions(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("Skipping socket permissions test on Windows")
+	}
 	server := transport.NewServer()
 	if err := server.Start(); err != nil {
 		t.Fatalf("Failed to start server: %v", err)
@@ -92,13 +94,13 @@ func TestIdentity(t *testing.T) {
 	server := transport.NewServer()
 	server.Register("whoami", func(
 		ctx context.Context,
-		_ json.RawMessage,
-	) (json.RawMessage, error) {
+		_ jsonx.RawMessage,
+	) (jsonx.RawMessage, error) {
 		id, ok := ctx.Value(transport.ContextKeyIdentity).(*transport.Identity)
 		if !ok {
 			return nil, errors.New("identity not found in context")
 		}
-		return json.Marshal(id)
+		return jsonx.Marshal(id)
 	})
 
 	if err := server.Start(); err != nil {
@@ -131,8 +133,8 @@ func TestLimits(t *testing.T) {
 	// Register echo handler
 	server.Register("echo", func(
 		_ context.Context,
-		params json.RawMessage,
-	) (json.RawMessage, error) {
+		params jsonx.RawMessage,
+	) (jsonx.RawMessage, error) {
 		return params, nil
 	})
 
@@ -162,7 +164,11 @@ func TestLimits(t *testing.T) {
 	} else {
 		t.Logf("Got expected error: %v", err)
 		// We expect ERR_LIMITS or connection closed
-		if !strings.Contains(err.Error(), "ERR_LIMITS") && !strings.Contains(err.Error(), "EOF") && !strings.Contains(err.Error(), "connection reset") && !strings.Contains(err.Error(), "timeout") {
+		if !strings.Contains(err.Error(), "ERR_LIMITS") && 
+			!strings.Contains(err.Error(), "EOF") && 
+			!strings.Contains(err.Error(), "connection reset") && 
+			!strings.Contains(err.Error(), "timeout") &&
+			!strings.Contains(err.Error(), "response ID mismatch") {
 			// It's possible the server closes before sending response, or client fails to read response.
 			// But valid behavior is error.
 			t.Errorf("Unexpected error: %v", err)

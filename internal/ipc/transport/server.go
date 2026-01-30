@@ -1,12 +1,9 @@
-//go:build linux
-
 // Package transport implements the Inter-Process Communication transport layer.
 package transport
 
 import (
 	"bufio"
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"net"
@@ -15,6 +12,7 @@ import (
 	"time"
 
 	"github.com/Jaro-c/Lynx/internal/ipc/protocol"
+	"github.com/Jaro-c/Lynx/internal/jsonx"
 )
 
 // Identity represents the authenticated identity of an IPC client.
@@ -30,7 +28,7 @@ type contextKey string
 const ContextKeyIdentity contextKey = "identity"
 
 // CommandHandler is a function that handles an IPC command.
-type CommandHandler func(ctx context.Context, params json.RawMessage) (json.RawMessage, error)
+type CommandHandler func(ctx context.Context, params jsonx.RawMessage) (jsonx.RawMessage, error)
 
 const (
 	statusError   = "error"
@@ -124,7 +122,7 @@ func (s *Server) handleConnection(conn net.Conn) {
 	buf := make([]byte, 4096)
 	scanner.Buffer(buf, MaxMsgSize)
 
-	encoder := json.NewEncoder(conn)
+	encoder := jsonx.NewEncoder(conn)
 
 	for {
 		if !s.handleRequest(ctx, conn, scanner, encoder) {
@@ -137,7 +135,7 @@ func (s *Server) handleRequest(
 	ctx context.Context,
 	conn net.Conn,
 	scanner *bufio.Scanner,
-	encoder *json.Encoder,
+	encoder jsonx.Encoder,
 ) bool {
 	// Set read deadline per request
 	if err := conn.SetReadDeadline(time.Now().Add(ReadTimeout)); err != nil {
@@ -157,7 +155,7 @@ func (s *Server) handleRequest(
 
 	// Decode into UniversalRequest to determine type
 	var univReq UniversalRequest
-	if err := json.Unmarshal(scanner.Bytes(), &univReq); err != nil {
+	if err := jsonx.Unmarshal(scanner.Bytes(), &univReq); err != nil {
 		s.sendError(encoder, "ERR_BAD_REQUEST", "Invalid JSON")
 		return false
 	}
@@ -188,7 +186,7 @@ func (s *Server) handleRequest(
 	return true
 }
 
-func (s *Server) sendError(encoder *json.Encoder, code, message string) {
+func (s *Server) sendError(encoder jsonx.Encoder, code, message string) {
 	resp := &protocol.Response{
 		Status: statusError,
 		Error: &protocol.Error{
@@ -246,7 +244,7 @@ func (s *Server) dispatchStart(ctx context.Context, req *UniversalRequest) *prot
 	} else {
 		resp.Ok = true
 		var data protocol.StartResponseData
-		if err := json.Unmarshal(res, &data); err != nil {
+		if err := jsonx.Unmarshal(res, &data); err != nil {
 			resp.Ok = false
 			resp.Error = &protocol.StartError{
 				Code:    "INTERNAL_ERROR",

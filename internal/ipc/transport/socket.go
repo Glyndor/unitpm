@@ -12,11 +12,23 @@ import (
 
 // GetSocketPath returns the OS-specific path for the IPC socket/pipe.
 func GetSocketPath() (string, error) {
+	// 1. Env Override
+	if env := os.Getenv("LYNX_SOCKET"); env != "" {
+		return env, nil
+	}
+
 	u, err := user.Current()
 	if err != nil {
 		return "", fmt.Errorf("failed to get current user: %w", err)
 	}
 
+	// 2. System Daemon (root or 'lynx' user)
+	// If we are 'lynx' user (system service) or 'root' (admin), default to /run/lynx/lynx.sock
+	if u.Username == "lynx" || u.Uid == "0" {
+		return "/run/lynx/lynx.sock", nil
+	}
+
+	// 3. Rootless / User Daemon
 	// Unix
 	baseDir := os.Getenv("XDG_RUNTIME_DIR")
 	if baseDir == "" {

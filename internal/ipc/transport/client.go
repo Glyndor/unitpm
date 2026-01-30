@@ -1,26 +1,23 @@
-//go:build linux
-
 // Package transport implements the Inter-Process Communication transport layer.
 package transport
 
 import (
 	"bufio"
-	"crypto/rand"
-	"encoding/hex"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"net"
 	"time"
 
 	"github.com/Jaro-c/Lynx/internal/ipc/protocol"
+	"github.com/Jaro-c/Lynx/internal/jsonx"
+	"github.com/google/uuid"
 )
 
 // Client handles communication with the daemon.
 type Client struct {
 	conn    net.Conn
 	scanner *bufio.Scanner
-	encoder *json.Encoder
+	encoder jsonx.Encoder
 }
 
 // NewClient establishes a connection to the daemon.
@@ -42,7 +39,7 @@ func NewClient() (*Client, error) {
 	return &Client{
 		conn:    conn,
 		scanner: scanner,
-		encoder: json.NewEncoder(conn),
+		encoder: jsonx.NewEncoder(conn),
 	}, nil
 }
 
@@ -64,9 +61,9 @@ func (c *Client) Call(command string, params any, result any) error {
 
 func (c *Client) sendRequest(reqID string, command string, params any) error {
 	// Marshal params
-	var paramBytes json.RawMessage
+	var paramBytes jsonx.RawMessage
 	if params != nil {
-		b, err := json.Marshal(params)
+		b, err := jsonx.Marshal(params)
 		if err != nil {
 			return fmt.Errorf("marshal params error: %w", err)
 		}
@@ -106,7 +103,7 @@ func (c *Client) readResponse(reqID string, result any) error {
 	}
 
 	var resp protocol.Response
-	if err := json.Unmarshal(c.scanner.Bytes(), &resp); err != nil {
+	if err := jsonx.Unmarshal(c.scanner.Bytes(), &resp); err != nil {
 		return fmt.Errorf("receive error (invalid json): %w", err)
 	}
 
@@ -119,7 +116,7 @@ func (c *Client) readResponse(reqID string, result any) error {
 	}
 
 	if result != nil && resp.Result != nil {
-		if err := json.Unmarshal(resp.Result, result); err != nil {
+		if err := jsonx.Unmarshal(resp.Result, result); err != nil {
 			return fmt.Errorf("result unmarshal error: %w", err)
 		}
 	}
@@ -142,9 +139,9 @@ func (c *Client) checkStatus(resp *protocol.Response) error {
 	if resp.Error.Code == "PROTOCOL_MISMATCH" {
 		// The Data field is likely a map[string]interface{} (from json decoding into any)
 		// We need to re-encode and decode it into the struct to be safe and clean.
-		if dataBytes, err := json.Marshal(resp.Error.Data); err == nil {
+		if dataBytes, err := jsonx.Marshal(resp.Error.Data); err == nil {
 			var mismatchData protocol.MismatchData
-			if err := json.Unmarshal(dataBytes, &mismatchData); err == nil {
+			if err := jsonx.Unmarshal(dataBytes, &mismatchData); err == nil {
 				errData = mismatchData
 			}
 		}
@@ -158,9 +155,5 @@ func (c *Client) checkStatus(resp *protocol.Response) error {
 }
 
 func generateID() string {
-	b := make([]byte, 8)
-	if _, err := rand.Read(b); err != nil {
-		panic(fmt.Sprintf("failed to generate random ID: %v", err))
-	}
-	return hex.EncodeToString(b)
+	return uuid.NewString()
 }

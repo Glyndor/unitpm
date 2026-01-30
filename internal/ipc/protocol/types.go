@@ -1,25 +1,55 @@
 package protocol
 
-import "encoding/json"
+import "github.com/Jaro-c/Lynx/internal/jsonx"
 
 // StartRequest represents the request for the start command.
 type StartRequest struct {
-	ProtocolVersion int       `json:"protocol_version"`
-	Type            string    `json:"type"` // must be "start"
-	RequestID       string    `json:"request_id"`
-	Spec            StartSpec `json:"spec"`
+	ProtocolVersion int     `json:"protocol_version"`
+	Type            string  `json:"type"` // must be "start"
+	RequestID       string  `json:"request_id"`
+	Spec            AppSpec `json:"spec"`
 }
 
-// StartSpec defines the process to start.
-type StartSpec struct {
-	Name  string            `json:"name,omitempty"`
-	Cmd   string            `json:"cmd"`
-	Args  []string          `json:"args"`
-	Cwd   string            `json:"cwd,omitempty"`
-	Env   map[string]string `json:"env,omitempty"`
-	Stdio string            `json:"stdio"` // "inherit" | "pipe" | "file"
-	RunAs RunAsPolicy       `json:"run_as"`
+// AppSpec defines the persistent application specification (v1).
+type AppSpec struct {
+	Version   int               `json:"version"` // = 1
+	Id        string            `json:"id"`      // UUID v4
+	Name      string            `json:"name,omitempty"`
+	CreatedAt string            `json:"createdAt"`
+	Cwd       string            `json:"cwd"`
+	Exec      AppExec           `json:"exec"`
+	Env       map[string]string `json:"env,omitempty"`
+	EnvFile   string            `json:"envFile,omitempty"`
+	Logs      *AppLogs          `json:"logs,omitempty"`
+	Restart   *AppRestart       `json:"restart,omitempty"`
+	Cron      string            `json:"cron,omitempty"`
+	RunAs     *RunAsPolicy      `json:"runAs,omitempty"` // Added for process isolation
 }
+
+type AppExec struct {
+	Type    string   `json:"type"` // "command" or "entry"
+	Command string   `json:"command,omitempty"`
+	Entry   string   `json:"entry,omitempty"`
+	Runtime string   `json:"runtime,omitempty"`
+	Args    []string `json:"args,omitempty"`
+	Shell   bool     `json:"shell,omitempty"` // Added for opt-in shell execution
+}
+
+type AppLogs struct {
+	Mode   string `json:"mode"` // "inherit" | "pipe" | "file"
+	Stdout string `json:"stdout,omitempty"`
+	Stderr string `json:"stderr,omitempty"`
+}
+
+type AppRestart struct {
+	Policy     string `json:"policy"` // "never" | "always" | "on-failure"
+	MaxRetries int    `json:"maxRetries,omitempty"`
+	BackoffMs  int    `json:"backoffMs,omitempty"`
+}
+
+// StartSpec is deprecated, replaced by AppSpec.
+// Keeping it if needed for backward compatibility or transition,
+// but for this task we switch to AppSpec.
 
 // RunAsPolicy defines the user execution policy.
 type RunAsPolicy struct {
@@ -53,17 +83,17 @@ type StartError struct {
 
 // Request represents the standard IPC request envelope.
 type Request struct {
-	Version   int             `json:"version"`
-	ID        string          `json:"id"`
-	Command   string          `json:"command"`
-	Params    json.RawMessage `json:"params,omitempty"`
-	Timestamp int64           `json:"timestamp"`
+	Version   int              `json:"version"`
+	ID        string           `json:"id"`
+	Command   string           `json:"command"`
+	Params    jsonx.RawMessage `json:"params,omitempty"`
+	Timestamp int64            `json:"timestamp"`
 }
 
 // Response represents the standard IPC response envelope.
 type Response struct {
-	ID     string          `json:"id"`
-	Status string          `json:"status"` // "success" or "error"
-	Result json.RawMessage `json:"result,omitempty"`
-	Error  *Error          `json:"error,omitempty"`
+	ID     string           `json:"id"`
+	Status string           `json:"status"` // "success" or "error"
+	Result jsonx.RawMessage `json:"result,omitempty"`
+	Error  *Error           `json:"error,omitempty"`
 }

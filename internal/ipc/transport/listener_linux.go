@@ -1,5 +1,3 @@
-//go:build linux
-
 // Package transport implements the Inter-Process Communication transport layer.
 package transport
 
@@ -31,7 +29,7 @@ func listen(path string) (net.Listener, error) {
 
 	// Double check permissions (though umask should handle it)
 	if err := os.Chmod(path, 0600); err != nil {
-		l.Close()
+		_ = l.Close()
 		return nil, err
 	}
 
