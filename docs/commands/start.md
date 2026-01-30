@@ -109,6 +109,88 @@ Error (invalid path):
 Error: ERR_BAD_REQUEST: invalid cwd: stat /invalid/path: no such file or directory (BAD_REQUEST)
 ```
 
+## Scaling and Load Balancing
+
+Lynx supports scaling via `--scale N` (or `--instances N`). This starts N independent instances of your application.
+
+**Important**: Lynx does **not** provide a built-in load balancer.
+- Each instance runs as a separate process with a unique ID and Name.
+- The `LYNX_INSTANCE` environment variable (0, 1, 2...) is injected into each instance.
+- If your application binds to a port, you must ensure each instance uses a different port (e.g. `PORT=3000 + LYNX_INSTANCE`) or use `SO_REUSEPORT` if supported.
+- For web applications, it is recommended to run a reverse proxy (Nginx, Caddy, HAProxy) in front of the Lynx instances.
+
+**Examples**:
+
+**1. Next.js with offset ports**:
+Next.js does not natively support `SO_REUSEPORT`. Use the `LYNX_INSTANCE` variable to offset the port.
+```bash
+# In your package.json: "start": "PORT=$((3000 + LYNX_INSTANCE)) next start"
+lynx start --name next-app --scale 3 --shell -- npm start
+```
+*Note: Using `--shell` allows variable expansion in the command.*
+
+**2. Generic Node.js Server**:
+```javascript
+// server.js
+const port = 3000 + parseInt(process.env.LYNX_INSTANCE || 0);
+server.listen(port);
+```
+```bash
+lynx start server.js --scale 4 --env-file .env
+```
+
+## Clarifications
+
+### Auto-Naming
+If `--name` is omitted, Lynx generates a deterministic name:
+- Format: `basename-shortID` (e.g., `server-a1b2c3d4`).
+- If scaling: `basename-index-shortID` (e.g., `server-1-a1b2c3d4`).
+
+### Max Restarts
+The `--max-restarts` limit applies only to **automatic** restarts triggered by crashes or failures.
+- Manual restarts (`lynx restart <id>`) **reset** the restart counter and backoff timer.
+- You can manually restart a process as many times as needed without hitting the limit.
+
+### Isolation Visibility
+- **System Mode** (`sudo lynx`): Applications are managed by the system-wide daemon. They are visible to and manageable by any user in the `lynxadm` group (or root).
+- **User Mode** (`lynx`): Applications are managed by a per-user daemon. They are private to your user account and cannot be seen by other users.
+
+## Environment Variables
+
+### Mode Behavior
+- **User Mode**: The process inherits the full environment of the user running `lynx start`.
+- **System Mode**: The process does **not** inherit the system environment (to prevent leaking sensitive variables like `AWS_KEYS`). Instead, a whitelist is applied:
+  - `PATH`, `LANG`, `TERM`, `TZ`, `TMPDIR`
+  - `USER`, `LOGNAME`, `SHELL`, `PWD`
+  - `XDG_*`, `LC_*`
+  - Any variables defined in `--env-file` or `AppSpec.Env`.
+
+## DynamicUser Env-File
+
+When using `--isolation dynamic` combined with `--env-file`, Lynx bridges the environment variables securely to the isolated process.
+
+**How it works:**
+1. Lynx reads the env file.
+2. Writes it to a secure, daemon-owned file (`/var/lib/lynx/creds/<id>/env`) with `0600` permissions.
+3. Uses `systemd-run --property=LoadCredential=...` to expose it to the process.
+4. An internal wrapper (`_exec-env`) reads the credential and exports variables before executing your application.
+
+**Example:**
+
+```bash
+# .env file
+PORT=8080
+API_KEY=secret_123
+```
+
+```bash
+# Start with isolation and env file
+lynx start server.js --isolation dynamic --env-file .env
+```
+
+**Note on Security:**
+This mechanism ensures secrets are never visible in `ps` output or persisted in the global AppSpec. However, once the process starts, the secrets exist in its memory.
+
 ## Security
 
 *   **Environment Variables**: Environment variables provided via `--env-file` are loaded into the process environment but are **NOT** persisted in the application specification file (`~/.config/lynx/apps/<id>.json`). This ensures secrets are not stored in plain text on disk.
@@ -127,6 +209,7 @@ When using `--isolation dynamic`, Lynx leverages `systemd-run` to create a trans
     - `ProtectSystem=strict`: The entire filesystem is mounted read-only.
     - `PrivateTmp=yes`: The process sees a private `/tmp` and `/var/tmp`.
     - `ProtectHome=yes`: `/home`, `/root`, and `/run/user` are inaccessible.
+    - **Note**: `HOME` environment variable is NOT inherited or injected in this mode to ensure compliance with `ProtectHome`.
 3.  **Credential Safety**: Environment variables are NOT passed via command line (which is visible in `ps`). Instead, they are written to a `0600` file in a secure directory and passed via systemd's `LoadCredential` logic, ensuring only the target process can read them.
 4.  **No Privilege Escalation**: `NoNewPrivileges=yes` prevents the process from gaining new privileges (e.g., via setuid binaries).
 

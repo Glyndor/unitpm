@@ -8,6 +8,7 @@ Lynx is a lightweight, secure alternative to PM2 or Supervisor, designed specifi
 
 *   **OS**: Linux (Debian/Ubuntu recommended). Windows/macOS not supported.
 *   **Go**: Version 1.25.6+ (as defined in `go.mod`).
+*   **Path**: The `lynx` binary must be in the system `PATH` for the daemon to function correctly (required for internal helpers).
 
 ## Quickstart
 
@@ -79,7 +80,7 @@ journalctl -u lynx.lynxd -f
 *   **Systemd-First**: Doesn't reinvent the wheel. The daemon integrates natively with Linux init systems for robust reliability.
 *   **Secure Defaults**: Strictly controls permissions. Spec files are 0600, no implicit `sudo`, and rigorous path validation prevents traversal attacks.
 *   **Declarative Specs**: Every process is defined by a JSON specification stored in `~/.config/lynx/apps`, making it GitOps-friendly.
-*   **Accurate Metrics**: Aggregates CPU and Memory usage for entire process trees using Cgroups V2 (where available).
+*   **Accurate Metrics**: Aggregates CPU and Memory usage for entire process trees by scanning `/proc` (Proctree) or Cgroups V2.
 
 ## Access Model
 
@@ -89,7 +90,8 @@ Lynx supports two modes of operation:
 - **Daemon**: Runs as a system service (`lynx.lynxd`), managed by `systemd`.
 - **User**: `lynx` (system user).
 - **Socket**: `/run/lynx/lynx.sock`.
-- **Permissions**: Restricted to `root` and members of the `lynxadm` group.
+- **Permissions**: Restricted to `root` and members of the `lynxadm` group (mode `0660`).
+- **Environment**: Does **not** inherit system environment variables (to prevent leaking secrets). Whitelists safe variables (`PATH`, `LANG`, `XDG_*`, `LC_*`).
 - **Use Case**: Production servers where a central daemon manages services.
 - **Setup**: Add your user to the `lynxadm` group:
   ```bash
@@ -102,6 +104,7 @@ Lynx supports two modes of operation:
 - **User**: The current logged-in user.
 - **Socket**: `$XDG_RUNTIME_DIR/lynx/lynx.sock`.
 - **Permissions**: Restricted to the owner (`0600`).
+- **Environment**: Inherits the full user environment.
 - **Use Case**: Development environments or per-user service management.
 
 ## Commands
