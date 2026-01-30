@@ -1,5 +1,3 @@
-//go:build linux
-
 // Package help provides a centralized help renderer for the CLI.
 package help
 
@@ -57,16 +55,20 @@ func RenderCommandHelp(w io.Writer, spec CommandSpec) {
 		usage += " [options]"
 	}
 
-	fmt.Fprintln(w)
-	fmt.Fprintf(w, "%s\n", term.CyanString("Usage:"))
-	fmt.Fprintf(w, "  %s\n", usage)
+	// 1. Usage
+	_, _ = fmt.Fprintln(w)
+	_, _ = fmt.Fprintf(w, "%s\n", term.CyanString("Usage:"))
+	_, _ = fmt.Fprintf(w, "  %s\n", usage)
 
-	fmt.Fprintln(w)
-	fmt.Fprintf(w, "%s\n", term.CyanString("Description:"))
-	fmt.Fprintf(w, "  %s\n", spec.Description)
-
-	fmt.Fprintln(w)
-	fmt.Fprintf(w, "%s\n", term.CyanString("Options:"))
+	// 2. Description
+	_, _ = fmt.Fprintln(w)
+	_, _ = fmt.Fprintf(w, "%s\n", term.CyanString("Description:"))
+	lines := strings.Split(spec.Description, "\n")
+	for _, line := range lines {
+		_, _ = fmt.Fprintf(w, "  %s\n", line)
+	}
+	_, _ = fmt.Fprintln(w)
+	_, _ = fmt.Fprintf(w, "%s\n", term.CyanString("Options:"))
 
 	// Calculate padding
 	maxLen := 0
@@ -81,20 +83,20 @@ func RenderCommandHelp(w io.Writer, spec CommandSpec) {
 	for _, opt := range options {
 		flags := fmt.Sprintf("%s, %s", opt.Short, opt.Long)
 		padding := strings.Repeat(" ", maxLen-len(flags)+4)
-		fmt.Fprintf(w, "  %s%s%s\n", term.BoldString("%s", flags), padding, opt.Description)
+		_, _ = fmt.Fprintf(w, "  %s%s%s\n", term.BoldString("%s", flags), padding, opt.Description)
 	}
-	fmt.Fprintln(w)
+	_, _ = fmt.Fprintln(w)
 }
 
 // RenderRootHelp prints the help output for the root command.
 func RenderRootHelp(w io.Writer, specs []CommandSpec, showCommands bool) {
-	fmt.Fprintln(w)
-	fmt.Fprintf(w, "%s\n", term.CyanString("Usage:"))
-	fmt.Fprintf(w, "  lynx <command> [flags]\n")
+	_, _ = fmt.Fprintln(w)
+	_, _ = fmt.Fprintf(w, "%s\n", term.CyanString("Usage:"))
+	_, _ = fmt.Fprintf(w, "  lynx <command> [flags]\n")
 
 	if showCommands {
-		fmt.Fprintln(w)
-		fmt.Fprintf(w, "%s\n", term.CyanString("Commands:"))
+		_, _ = fmt.Fprintln(w)
+		_, _ = fmt.Fprintf(w, "%s\n", term.CyanString("Commands:"))
 
 		// Calculate padding
 		maxLen := 0
@@ -112,7 +114,7 @@ func RenderRootHelp(w io.Writer, specs []CommandSpec, showCommands bool) {
 
 		for i, spec := range specs {
 			padding := strings.Repeat(" ", maxLen-len(displayNames[i])+3)
-			fmt.Fprintf(
+			_, _ = fmt.Fprintf(
 				w,
 				"  %s%s%s\n",
 				term.BoldString("%s", displayNames[i]),
@@ -122,10 +124,10 @@ func RenderRootHelp(w io.Writer, specs []CommandSpec, showCommands bool) {
 		}
 	}
 
-	fmt.Fprintln(w)
-	fmt.Fprintf(w, "%s\n", term.CyanString("Get Help:"))
-	fmt.Fprintf(w, "  lynx --help\n")
-	fmt.Fprintf(w, "  lynx <command> --help\n")
+	_, _ = fmt.Fprintln(w)
+	_, _ = fmt.Fprintf(w, "%s\n", term.CyanString("Get Help:"))
+	_, _ = fmt.Fprintf(w, "  lynx --help\n")
+	_, _ = fmt.Fprintf(w, "  lynx <command> --help\n")
 }
 
 // IsHelp checks if the arguments contain a help flag (-h, --help, or -help).

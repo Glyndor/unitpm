@@ -1,5 +1,3 @@
-//go:build linux
-
 // Package version implements the version command.
 package version
 
@@ -44,7 +42,7 @@ func Run(w io.Writer, args []string) error {
 	local := version.Get()
 
 	// 1. Print local CLI version
-	fmt.Fprintf(w, "%s\n", term.CyanString("%s", term.BoldString("Lynx CLI")))
+	_, _ = fmt.Fprintf(w, "%s\n", term.CyanString("%s", term.BoldString("Lynx CLI")))
 	printVersionInfo(w, local)
 
 	// 2. Attempt to connect to daemon
@@ -53,9 +51,9 @@ func Run(w io.Writer, args []string) error {
 	if err != nil {
 		// Daemon not running or unreachable.
 		// Print only Protocol section and exit 0.
-		fmt.Fprintln(w)
-		fmt.Fprintf(w, "%s\n", term.CyanString("Protocol"))
-		fmt.Fprintf(
+		_, _ = fmt.Fprintln(w)
+		_, _ = fmt.Fprintf(w, "%s\n", term.CyanString("Protocol"))
+		_, _ = fmt.Fprintf(
 			w,
 			"  %s : %s\n",
 			term.DimString("CLI"),
@@ -63,7 +61,7 @@ func Run(w io.Writer, args []string) error {
 		)
 		return nil
 	}
-	defer client.Close()
+	defer func() { _ = client.Close() }()
 
 	// 3. Fetch daemon version
 	var daemonInfo version.Info
@@ -74,9 +72,9 @@ func Run(w io.Writer, args []string) error {
 		}
 
 		// Other errors (e.g. timeout, or daemon internal error)
-		fmt.Fprintln(w)
-		fmt.Fprintf(w, "%s\n", term.CyanString("Protocol"))
-		fmt.Fprintf(
+		_, _ = fmt.Fprintln(w)
+		_, _ = fmt.Fprintf(w, "%s\n", term.CyanString("Protocol"))
+		_, _ = fmt.Fprintf(
 			w,
 			"  %s : %s\n",
 			term.DimString("CLI"),
@@ -86,20 +84,20 @@ func Run(w io.Writer, args []string) error {
 	}
 
 	// 4. Print daemon version
-	fmt.Fprintln(w)
-	fmt.Fprintf(w, "%s\n", term.CyanString("%s", term.BoldString("Lynx Daemon")))
+	_, _ = fmt.Fprintln(w)
+	_, _ = fmt.Fprintf(w, "%s\n", term.CyanString("%s", term.BoldString("Lynx Daemon")))
 	printVersionInfo(w, daemonInfo)
 
 	// 5. Print Protocol
-	fmt.Fprintln(w)
-	fmt.Fprintf(w, "%s\n", term.CyanString("Protocol"))
-	fmt.Fprintf(
+	_, _ = fmt.Fprintln(w)
+	_, _ = fmt.Fprintf(w, "%s\n", term.CyanString("Protocol"))
+	_, _ = fmt.Fprintf(
 		w,
 		"  %s : %s\n",
 		term.DimString("CLI"),
 		term.BoldString("v%d", local.ProtocolVersion),
 	)
-	fmt.Fprintf(
+	_, _ = fmt.Fprintf(
 		w,
 		"  %s : %s\n",
 		term.DimString("Daemon"),
@@ -122,23 +120,23 @@ func handleProtocolMismatch(w io.Writer, local version.Info, err error) bool {
 	}
 
 	// Print Protocol section with error details
-	fmt.Fprintln(w)
-	fmt.Fprintf(w, "%s\n", term.CyanString("Protocol"))
-	fmt.Fprintf(
+	_, _ = fmt.Fprintln(w)
+	_, _ = fmt.Fprintf(w, "%s\n", term.CyanString("Protocol"))
+	_, _ = fmt.Fprintf(
 		w,
 		"  %s : %s\n",
 		term.DimString("CLI"),
 		term.BoldString("v%d", local.ProtocolVersion),
 	)
 	if supported > 0 {
-		fmt.Fprintf(
+		_, _ = fmt.Fprintf(
 			w,
 			"  %s : %s\n",
 			term.DimString("Daemon"),
 			term.BoldString("v%d", supported),
 		)
 	} else {
-		fmt.Fprintf(
+		_, _ = fmt.Fprintf(
 			w,
 			"  %s : %s\n",
 			term.DimString("Daemon"),
@@ -146,17 +144,17 @@ func handleProtocolMismatch(w io.Writer, local version.Info, err error) bool {
 		)
 	}
 
-	fmt.Fprintln(w)
-	fmt.Fprintf(w, "%s\n", term.RedString("Error: Protocol mismatch"))
+	_, _ = fmt.Fprintln(w)
+	_, _ = fmt.Fprintf(w, "%s\n", term.RedString("Error: Protocol mismatch"))
 	if supported > 0 {
-		fmt.Fprintf(
+		_, _ = fmt.Fprintf(
 			w,
 			"The CLI (v%d) and Daemon (v%d) have incompatible protocols.\n",
 			local.ProtocolVersion,
 			supported,
 		)
 	} else {
-		fmt.Fprintf(
+		_, _ = fmt.Fprintf(
 			w,
 			"The CLI (v%d) and Daemon have incompatible protocols.\n",
 			local.ProtocolVersion,
@@ -168,9 +166,9 @@ func handleProtocolMismatch(w io.Writer, local version.Info, err error) bool {
 }
 
 func printVersionInfo(w io.Writer, info version.Info) {
-	fmt.Fprintf(w, "  %s : %s\n", term.DimString("Version"), term.BoldString("%s", info.Version))
-	fmt.Fprintf(w, "  %s : %s\n", term.DimString("Commit"), term.BoldString("%s", info.Commit))
-	fmt.Fprintf(w, "  %s : %s\n", term.DimString("Built"), term.BoldString("%s", info.BuildDate))
+	_, _ = fmt.Fprintf(w, "  %s : %s\n", term.DimString("Version"), term.BoldString("%s", info.Version))
+	_, _ = fmt.Fprintf(w, "  %s : %s\n", term.DimString("Commit"), term.BoldString("%s", info.Commit))
+	_, _ = fmt.Fprintf(w, "  %s : %s\n", term.DimString("Built"), term.BoldString("%s", info.BuildDate))
 }
 
 // GetSpec returns the command specification.

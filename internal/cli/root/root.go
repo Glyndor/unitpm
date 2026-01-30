@@ -1,5 +1,3 @@
-//go:build linux
-
 // Package root implements the root command.
 package root
 
@@ -87,7 +85,7 @@ func runCommand(name string, args []string) error {
 		if err != nil {
 			return fmt.Errorf("failed to connect to daemon: %w", err)
 		}
-		defer client.Close()
+		defer func() { _ = client.Close() }()
 
 		if name == cmdList {
 			return list.Run(client, args)
@@ -132,7 +130,7 @@ func isHelpRequest(args []string) bool {
 
 func printError(w io.Writer, format string, a ...any) {
 	msg := fmt.Sprintf(format, a...)
-	fmt.Fprintf(w, "%s\n", term.RedString("[Lynx][ERROR] %s", msg))
+	_, _ = fmt.Fprintf(w, "%s\n", term.RedString("[Lynx][ERROR] %s", msg))
 }
 
 func registerCommands() {

@@ -137,3 +137,13 @@ func BoldString(format string, a ...any) string {
 func DimString(format string, a ...any) string {
 	return std.Dim(format, a...)
 }
+
+// Printf formats according to a format specifier and writes to standard output.
+func Printf(format string, a ...any) (n int, err error) {
+	return fmt.Printf(format, a...)
+}
+
+// Println formats using the default formats for its operands and writes to standard output.
+func Println(a ...any) (n int, err error) {
+	return fmt.Println(a...)
+}

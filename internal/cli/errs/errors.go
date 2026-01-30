@@ -1,5 +1,3 @@
-//go:build linux
-
 // Package errs defines CLI error types.
 package errs
 
@@ -12,4 +10,9 @@ type UsageError struct {
 
 func (e *UsageError) Error() string {
 	return e.Message
+}
+
+// NewUsageError creates a new UsageError.
+func NewUsageError(msg string) error {
+	return &UsageError{Message: msg}
 }

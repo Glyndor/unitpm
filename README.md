@@ -1,6 +1,6 @@
 # Lynx
 
-Lynx is a process manager written in Go. It allows you to manage and supervise processes on Linux (specifically Debian/Ubuntu with systemd) through a lightweight daemon and a command-line interface.
+Lynx is a secure process manager for Debian/Ubuntu systems, designed as a systemd-friendly alternative to PM2 or Supervisor. It allows you to manage and supervise processes through a lightweight daemon and a command-line interface.
 
 ## Supported Platforms
 
@@ -12,94 +12,77 @@ Lynx is a process manager written in Go. It allows you to manage and supervise p
 *   **lynxd**: The background daemon that supervises processes. It must be running for the CLI to work.
 *   **lynx**: The command-line client used to interact with the daemon (start, stop, and list processes).
 
+## Key Features
+
+*   **Secure by Design:** Strictly controls process isolation and permissions. No `sudo` required for app management.
+*   **App Spec v1:** JSON-based application specification storage using XDG standards.
+*   **Stable Identifiers:** Processes are identified by stable UUID v4 identifiers.
+*   **Systemd Integration:** Daemon runs as a proper systemd service.
+
 ## Quick Start
 
 1.  **Start the daemon**
-    Open a terminal and run the daemon. It will listen for IPC connections.
+    If installed via package, the service should be running:
+    ```bash
+    systemctl status lynxd
+    ```
+
+    Or run manually for dev:
     ```bash
     ./lynxd
     ```
 
 2.  **Manage processes**
-    In a separate terminal, use the `lynx` command to interact with the daemon.
     ```bash
+    # Start a simple command
+    lynx start --name "my-worker" --cwd ./worker -- node index.js
+
     # Check status
-    ./lynx list
+    lynx list
     ```
 
-## CLI Reference
+## Commands
 
-> **Note**: The CLI reference is copied from `--help` output to stay accurate.
+For detailed documentation on each command, please refer to the links below:
 
-### Main Help
+*   [start](docs/commands/start.md) - Start a new process managed by Lynx.
+*   [list](docs/commands/list.md) - List all processes managed by Lynx.
+*   [startup](docs/commands/startup.md) - Generate and install the system startup script.
+*   [version](docs/commands/version.md) - Show Lynx version information.
 
-```text
-$ lynx --help
-(Placeholder: Output of lynx --help)
-```
+## Storage
 
-### Start a Process
+Lynx stores application specifications in your user configuration directory (XDG_CONFIG_HOME):
+*   **Linux:** `~/.config/lynx/apps/`
 
-Starts a new managed process.
+Files are stored securely with restricted permissions (0600).
 
-```text
-$ lynx start --help
-(Placeholder: Output of lynx start --help)
-```
+## Packaging (Debian/Ubuntu)
 
-### Stop a Process
+Lynx is designed to be packaged as a `.deb` file.
 
-Stops a running process by its ID.
+### Build .deb Package
 
-```text
-$ lynx stop --help
-(Placeholder: Output of lynx stop --help)
-```
+1.  **Install prerequisites:**
+    ```bash
+    sudo apt install build-essential debhelper golang-go
+    ```
 
-### List Processes
+2.  **Build the package:**
+    Run the following command in the project root:
+    ```bash
+    dpkg-buildpackage -us -uc -b
+    ```
 
-Displays a table of all managed processes and their current state.
+3.  **Install:**
+    ```bash
+    sudo dpkg -i ../lynx_*.deb
+    ```
 
-```text
-$ lynx list --help
-(Placeholder: Output of lynx list --help)
-```
+### Systemd Usage
 
-## Examples
+The package installs a systemd unit `lynx.lynxd.service`.
 
-### Start a new process
-```bash
-lynx start --name "my-app" --command "node server.js"
-```
-
-### List all processes
-```bash
-lynx list
-```
-*Output:*
-```text
-ID  NAME     PID    STATUS   UPTIME
-0   my-app   1234   running  5s
-```
-
-### Stop a process
-```bash
-lynx stop --id 0
-```
-
-## Development
-
-### Build
-
-To build the daemon and client binaries:
-
-```bash
-go build ./cmd/lynxd
-go build ./cmd/lynx
-```
-
-### Lint
-
-```bash
-golangci-lint run
-```
+*   **Start/Restart:** `sudo systemctl restart lynxd`
+*   **Status:** `sudo systemctl status lynxd`
+*   **Logs:** `journalctl -u lynxd -f`

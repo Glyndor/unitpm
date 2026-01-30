@@ -1,0 +1,19 @@
+# Changelog
+
+All notable changes to this project will be documented in this file.
+
+## [0.1.0] - 2025-01-29
+
+### Features
+- **ipc**: Switch JSON backend to `bytedance/sonic` via `internal/jsonx` wrapper for better performance.
+- **spec**: Use `google/uuid` for robust AppSpec IDs.
+- **daemon**: Allow root (uid 0) to manage system daemon via socket identity check.
+
+### Build
+- **debian**: Improved packaging with hardened systemd unit and correct postinst permissions.
+- **debian**: Set up `postinst` to create `lynx` user and secure directories.
+
+### Documentation
+- Added command documentation in `docs/commands/`.
+- Updated `AGENTS.md` with project workflow rules.
+- Updated `README.md` with Commands and Packaging sections.

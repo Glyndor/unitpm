@@ -1,5 +1,3 @@
-//go:build linux
-
 // Package list implements the list command.
 package list
 
@@ -121,8 +119,15 @@ func renderTable(processes []types.ProcessInfo) {
 			watchStr = term.DimString("disabled")
 		}
 
+		var idStr string
+		if len(p.ID) > 8 {
+			idStr = p.ID[:8]
+		} else {
+			idStr = p.ID
+		}
+
 		row := []string{
-			strconv.Itoa(p.ID),
+			idStr,
 			term.BoldString("%s", p.Name),
 			p.Namespace,
 			p.Version,
