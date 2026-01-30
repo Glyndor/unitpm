@@ -61,7 +61,7 @@ func (m *Manager) StartWithSpec(spec protocol.AppSpec) (types.ProcessInfo, error
 	return proc.Info(), nil
 }
 
-// Stop signals a process to stop.
+// Stop signals a process to stop and removes it from the manager.
 func (m *Manager) Stop(id string) error {
 	m.mu.RLock()
 	proc, exists := m.processes[id]
@@ -71,7 +71,15 @@ func (m *Manager) Stop(id string) error {
 		return fmt.Errorf("process not found: %s", id)
 	}
 
-	return proc.Stop()
+	if err := proc.Stop(); err != nil {
+		return err
+	}
+
+	m.mu.Lock()
+	delete(m.processes, id)
+	m.mu.Unlock()
+
+	return nil
 }
 
 // List returns a snapshot of all managed processes.
