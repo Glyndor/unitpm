@@ -1,5 +1,3 @@
-//go:build linux
-
 // Package startup implements the startup command.
 package startup
 
