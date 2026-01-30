@@ -269,21 +269,23 @@ func (p *Process) setupLogs(cmd *exec.Cmd) error {
 		}
 	}
 
-	if err := os.MkdirAll(logDir, 0755); err != nil {
+	// Create per-app log directory: <base>/<uuid>/
+	appLogDir := filepath.Join(logDir, p.info.ID)
+	if err := os.MkdirAll(appLogDir, 0700); err != nil {
 		return fmt.Errorf("failed to create log dir: %w", err)
 	}
 
 	// Open Stdout
 	stdoutPath := logs.Stdout
 	if stdoutPath == "" {
-		stdoutPath = fmt.Sprintf("%s-out.log", p.info.Name)
+		stdoutPath = "stdout.log"
 	}
-	// If relative, join with logDir
+	// If relative, join with appLogDir
 	if !filepath.IsAbs(stdoutPath) {
-		stdoutPath = filepath.Join(logDir, stdoutPath)
+		stdoutPath = filepath.Join(appLogDir, stdoutPath)
 	}
 
-	fOut, err := os.OpenFile(stdoutPath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	fOut, err := os.OpenFile(stdoutPath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0600)
 	if err != nil {
 		return fmt.Errorf("failed to open stdout log: %w", err)
 	}
@@ -293,16 +295,16 @@ func (p *Process) setupLogs(cmd *exec.Cmd) error {
 	// Open Stderr
 	stderrPath := logs.Stderr
 	if stderrPath == "" {
-		stderrPath = fmt.Sprintf("%s-err.log", p.info.Name)
+		stderrPath = "stderr.log"
 	}
 	if !filepath.IsAbs(stderrPath) {
-		stderrPath = filepath.Join(logDir, stderrPath)
+		stderrPath = filepath.Join(appLogDir, stderrPath)
 	}
 
 	if stderrPath == stdoutPath {
 		cmd.Stderr = fOut
 	} else {
-		fErr, err := os.OpenFile(stderrPath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+		fErr, err := os.OpenFile(stderrPath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0600)
 		if err != nil {
 			return fmt.Errorf("failed to open stderr log: %w", err)
 		}
@@ -403,13 +405,18 @@ func (p *Process) handleRestart(exitCode int) {
 	// Backoff
 	delay := time.Duration(restart.BackoffMs) * time.Millisecond
 	if restart.BackoffType == "expo" {
-		// 2^count * delay
-		for i := 1; i < count; i++ {
-			delay *= 2
-			if delay > 5*time.Minute {
-				delay = 5 * time.Minute
-				break
-			}
+		// 2^(count-1) * delay. O(1) calculation.
+		shift := count - 1
+		if shift > 30 {
+			shift = 30 // Prevent overflow
+		}
+		if shift > 0 {
+			delay = delay << shift
+		}
+		
+		// Cap at 5 minutes
+		if delay > 5*time.Minute {
+			delay = 5 * time.Minute
 		}
 	} else if restart.BackoffType == "linear" {
 		delay = time.Duration(count) * delay

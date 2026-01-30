@@ -23,9 +23,9 @@ Start a new process managed by Lynx. This command creates a new application spec
 | `--restart-delay` | int | 2000 | Delay between restarts in milliseconds. | `--restart-delay 5000` |
 | `--backoff` | string | expo | Backoff strategy (`none`, `linear`, `expo`). | `--backoff linear` |
 | `--stop-on-exit` | list | 0 | Comma-separated exit codes that stop the process. | `--stop-on-exit 0,143` |
-| `--log-dir` | string | auto | Directory for log files (default: system or user local). | `--log-dir ./logs` |
-| `--stdout` | string | auto | Stdout log filename (relative to log-dir). | `--stdout access.log` |
-| `--stderr` | string | auto | Stderr log filename (relative to log-dir). | `--stderr error.log` |
+| `--log-dir` | string | auto | Directory for log files (default: system or user local). | `--log-dir /var/log/my-app` |
+| `--stdout` | string | auto | Stdout log filename (relative to log-dir). | `--stdout stdout.log` |
+| `--stderr` | string | auto | Stderr log filename (relative to log-dir). | `--stderr stderr.log` |
 | `--log-format` | string | plain | Log format (`plain`, `json`). | `--log-format json` |
 | `--log-timestamp` | string | rfc3339 | Log timestamp (`rfc3339`, `unix`, `none`). | `--log-timestamp unix` |
 | `--runtime` | string | - | Runtime for entry file (e.g., node, python). | `--runtime python3` |
