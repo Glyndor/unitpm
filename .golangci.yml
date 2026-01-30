@@ -7,13 +7,14 @@ run:
   # Run linters on test files as well
   tests: true
 
+issues:
   # Skip common noise directories
-  skip-dirs:
+  exclude-dirs:
     - vendor
     - .git
 
   # Ignore generated files by pattern
-  skip-files:
+  exclude-files:
     - ".*_gen.go"
 
 linters:
@@ -70,7 +71,6 @@ linters:
     - fatcontext
     - recvcheck
     - copyloopvar
-    - embeddedstructfieldcheck
 
     # ---------------------------------------------------------------------
     # Imports / dependencies
@@ -221,8 +221,3 @@ formatters:
   enable:
     - goimports
     - golines
-
-issues:
-  # Do not artificially limit reported issues
-  max-issues-per-linter: 0
-  max-same-issues: 0
