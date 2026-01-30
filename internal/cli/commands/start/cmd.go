@@ -35,11 +35,11 @@ func Run(client *transport.Client, args []string) error {
 	if err != nil {
 		return fmt.Errorf("failed to generate ID: %w", err)
 	}
-	appSpec.Id = id
+	appSpec.ID = id
 	appSpec.CreatedAt = time.Now().Format(time.RFC3339)
 
 	// Save Spec to disk
-	savedPath, err := spec.SaveSpec(appSpec.Id, appSpec)
+	savedPath, err := spec.SaveSpec(appSpec.ID, appSpec)
 	if err != nil {
 		return fmt.Errorf("failed to save spec: %w", err)
 	}
@@ -159,6 +159,8 @@ func (p *specParser) handleFlag(arg string) error {
 		return p.readStringValue(&p.cron)
 	case "--runtime":
 		return p.readStringValue(&p.runtime)
+	case "--isolation":
+		return p.readStringValue(&p.runAs)
 	case "--shell":
 		p.shell = true
 		return nil
@@ -217,7 +219,7 @@ func (p *specParser) readIntList(target *[]int) error {
 		return errors.New("missing value for flag")
 	}
 	parts := strings.Split(p.args[p.pos], ",")
-	var list []int
+	list := make([]int, 0, len(parts))
 	for _, s := range parts {
 		s = strings.TrimSpace(s)
 		if s == "" {
@@ -279,7 +281,12 @@ func (p *specParser) finalize() (protocol.AppSpec, error) {
 		EnvFile: p.envFile,
 	}
 
-	// Analyze command parts for Entry vs Command
+	p.resolveExec(&spec)
+
+	return spec, nil
+}
+
+func (p *specParser) resolveExec(spec *protocol.AppSpec) {
 	if len(p.cmdParts) == 1 {
 		// Single token: might be "bun dev" (quoted) or "main.js"
 		token := p.cmdParts[0]
@@ -292,43 +299,45 @@ func (p *specParser) finalize() (protocol.AppSpec, error) {
 				Runtime: p.runtime,
 				Shell:   p.shell,
 			}
-		} else {
-			// Try to tokenize to see if it's a command string
-			parts, err := Tokenize(token)
-			if err == nil && len(parts) > 1 {
-				// It was a quoted string with multiple parts -> Command
-				spec.Exec = protocol.AppExec{
-					Type:    "command",
-					Command: parts[0],
-					Args:    parts[1:],
-					Shell:   p.shell,
-				}
-			} else {
-				// Single part. Check extension for inference.
-				ext := filepath.Ext(token)
-				switch ext {
-				case ".js", ".mjs", ".cjs":
-					spec.Exec = protocol.AppExec{
-						Type:    "entry",
-						Entry:   token,
-						Runtime: "node",
-						Shell:   p.shell,
-					}
-				case ".go":
-					spec.Exec = protocol.AppExec{
-						Type:    "entry",
-						Entry:   token,
-						Runtime: "go run",
-						Shell:   p.shell,
-					}
-				default:
-					// Treat as simple command
-					spec.Exec = protocol.AppExec{
-						Type:    "command",
-						Command: token,
-						Shell:   p.shell,
-					}
-				}
+			return
+		}
+
+		// Try to tokenize to see if it's a command string
+		parts, err := Tokenize(token)
+		if err == nil && len(parts) > 1 {
+			// It was a quoted string with multiple parts -> Command
+			spec.Exec = protocol.AppExec{
+				Type:    "command",
+				Command: parts[0],
+				Args:    parts[1:],
+				Shell:   p.shell,
+			}
+			return
+		}
+
+		// Single part. Check extension for inference.
+		ext := filepath.Ext(token)
+		switch ext {
+		case ".js", ".mjs", ".cjs":
+			spec.Exec = protocol.AppExec{
+				Type:    "entry",
+				Entry:   token,
+				Runtime: "node",
+				Shell:   p.shell,
+			}
+		case ".go":
+			spec.Exec = protocol.AppExec{
+				Type:    "entry",
+				Entry:   token,
+				Runtime: "go run",
+				Shell:   p.shell,
+			}
+		default:
+			// Treat as simple command
+			spec.Exec = protocol.AppExec{
+				Type:    "command",
+				Command: token,
+				Shell:   p.shell,
 			}
 		}
 	} else {
@@ -340,10 +349,9 @@ func (p *specParser) finalize() (protocol.AppSpec, error) {
 			Shell:   p.shell,
 		}
 	}
-
-	return spec, nil
 }
 
+// PrintHelp prints the help message for the start command.
 func PrintHelp() {
 	help.RenderCommandHelp(os.Stdout, GetSpec())
 }
@@ -357,10 +365,6 @@ func printSuccessResponse(data *protocol.StartResponseData, name string) {
 	}
 	fmt.Printf("  PID: %d\n", data.PID)
 	fmt.Printf("  Status: %s\n", data.Status)
-}
-
-func printErrorResponse(err *protocol.StartError) {
-	fmt.Printf("Error: %s (%s)\n", err.Message, err.Code)
 }
 
 // GetSpec returns the command specification.
