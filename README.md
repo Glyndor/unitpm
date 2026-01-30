@@ -88,3 +88,10 @@ journalctl -u lynx.lynxd -f
 ## Packaging
 
 Lynx is designed to be installed as a native Debian package. See the **Quickstart** section above for build instructions.
+
+## Development
+
+If you are developing on Windows, we recommend using **VS Code Remote-WSL**.
+Since Lynx is Linux-only, Windows editors may show false positive errors (e.g., "build constraints exclude all Go files").
+To fix this in your editor settings, set the environment variable:
+`GOOS=linux`
