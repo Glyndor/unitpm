@@ -116,3 +116,19 @@ Error: ERR_BAD_REQUEST: invalid cwd: stat /invalid/path: no such file or directo
     *   **Self Mode** (`--isolation self`): Processes run as the same user as the daemon.
     *   **DynamicUser** (`--isolation dynamic`): Processes run as a transient system user with restricted filesystem access (`ProtectSystem=strict`, `ProtectHome=yes`) and no new privileges. Recommended for production.
 *   **Shell Execution**: Shell execution is disabled by default. Use `--shell` only if necessary, as it introduces shell injection risks if inputs are not sanitized.
+
+## Threat Model (DynamicUser)
+
+When using `--isolation dynamic`, Lynx leverages `systemd-run` to create a transient, sandboxed execution environment.
+
+### Security Guarantees
+1.  **Ephemeral Identity**: A new, random UID/GID is allocated for the process lifetime and discarded afterwards. No persistent user is created on the system.
+2.  **Filesystem Isolation**:
+    - `ProtectSystem=strict`: The entire filesystem is mounted read-only.
+    - `PrivateTmp=yes`: The process sees a private `/tmp` and `/var/tmp`.
+    - `ProtectHome=yes`: `/home`, `/root`, and `/run/user` are inaccessible.
+3.  **Credential Safety**: Environment variables are NOT passed via command line (which is visible in `ps`). Instead, they are written to a `0600` file in a secure directory and passed via systemd's `LoadCredential` logic, ensuring only the target process can read them.
+4.  **No Privilege Escalation**: `NoNewPrivileges=yes` prevents the process from gaining new privileges (e.g., via setuid binaries).
+
+### Usage Recommendation
+Use `--isolation dynamic` for network-facing services (e.g., web servers, APIs) to minimize the blast radius if the service is compromised.

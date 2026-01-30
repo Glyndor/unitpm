@@ -255,6 +255,20 @@ func (p *Process) prepareIsolation(ctx context.Context, cmd *exec.Cmd) (*exec.Cm
 	}
 
 	if runAs.Mode == "dynamic" {
+		// Secure Environment via Credentials
+		credsDir := filepath.Join("/var/lib/lynx/creds", p.info.ID)
+		if err := os.MkdirAll(credsDir, 0700); err != nil {
+			return nil, fmt.Errorf("failed to create creds dir: %w", err)
+		}
+		
+		envPath := filepath.Join(credsDir, "env")
+		// Write envs to file
+		// We use cmd.Env which contains merged envs
+		envContent := strings.Join(cmd.Env, "\n")
+		if err := os.WriteFile(envPath, []byte(envContent), 0600); err != nil {
+			return nil, fmt.Errorf("failed to write env creds: %w", err)
+		}
+
 		// Wrap with systemd-run
 		sdArgs := []string{
 			"--unit=lynx-app-" + p.info.ID,
@@ -264,6 +278,7 @@ func (p *Process) prepareIsolation(ctx context.Context, cmd *exec.Cmd) (*exec.Cm
 			"-p", "PrivateTmp=yes",
 			"-p", "ProtectSystem=strict",
 			"-p", "ProtectHome=yes",
+			"-p", "LoadCredential=env:" + envPath, // Expose env as credential
 			"--pipe",
 			"--wait",
 		}
@@ -277,7 +292,8 @@ func (p *Process) prepareIsolation(ctx context.Context, cmd *exec.Cmd) (*exec.Cm
 		sdArgs = append(sdArgs, cmd.Args[1:]...)
 
 		newCmd := exec.CommandContext(ctx, "systemd-run", sdArgs...)
-		newCmd.Env = cmd.Env
+		// Do NOT pass host env to systemd-run to avoid leaking secrets in process tree
+		// newCmd.Env = cmd.Env 
 		newCmd.Stdout = cmd.Stdout
 		newCmd.Stderr = cmd.Stderr
 		return newCmd, nil
@@ -527,4 +543,9 @@ func (p *Process) Info() types.ProcessInfo {
 	}
 
 	return p.info
+}
+
+// Spec returns the process spec.
+func (p *Process) Spec() protocol.AppSpec {
+	return p.spec
 }
