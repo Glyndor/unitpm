@@ -1,7 +1,6 @@
 package manager
 
 import (
-	"os"
 	"strings"
 	"testing"
 
@@ -43,7 +42,7 @@ func TestPrepareEnv(t *testing.T) {
 
 	// Case 2: Normal Mode (Should have HOME)
 	normalSpec := spec
-	proc2, _ := NewProcess("test-id-2", normalSpec)
+	proc2, _ := NewProcess("123e4567-e89b-12d3-a456-426614174001", normalSpec)
 	env2, err := proc2.prepareEnv()
 	if err != nil {
 		t.Fatalf("prepareEnv failed: %v", err)

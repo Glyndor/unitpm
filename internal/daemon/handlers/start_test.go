@@ -37,7 +37,7 @@ func TestStartHandler_Validation(t *testing.T) {
 		{
 			name: "valid self",
 			spec: protocol.AppSpec{
-				Id: "uuid-1",
+				ID: "123e4567-e89b-12d3-a456-426614174001",
 				Exec: protocol.AppExec{
 					Type:    "command",
 					Command: "echo",
@@ -50,7 +50,7 @@ func TestStartHandler_Validation(t *testing.T) {
 		{
 			name: "missing exec type",
 			spec: protocol.AppSpec{
-				Id: "uuid-2",
+				ID: "123e4567-e89b-12d3-a456-426614174002",
 				Exec: protocol.AppExec{
 					Type: "",
 				},
@@ -62,7 +62,7 @@ func TestStartHandler_Validation(t *testing.T) {
 		{
 			name: "missing command",
 			spec: protocol.AppSpec{
-				Id: "uuid-3",
+				ID: "123e4567-e89b-12d3-a456-426614174003",
 				Exec: protocol.AppExec{
 					Type: "command",
 				},
@@ -74,7 +74,7 @@ func TestStartHandler_Validation(t *testing.T) {
 		{
 			name: "too many args",
 			spec: protocol.AppSpec{
-				Id: "uuid-4",
+				ID: "123e4567-e89b-12d3-a456-426614174004",
 				Exec: protocol.AppExec{
 					Type:    "command",
 					Command: "echo",
@@ -88,7 +88,7 @@ func TestStartHandler_Validation(t *testing.T) {
 		{
 			name: "cmd too long",
 			spec: protocol.AppSpec{
-				Id: "uuid-5",
+				ID: "123e4567-e89b-12d3-a456-426614174005",
 				Exec: protocol.AppExec{
 					Type:    "command",
 					Command: strings.Repeat("a", 4097),
@@ -101,7 +101,7 @@ func TestStartHandler_Validation(t *testing.T) {
 		{
 			name: "env too many",
 			spec: protocol.AppSpec{
-				Id: "uuid-6",
+				ID: "123e4567-e89b-12d3-a456-426614174006",
 				Exec: protocol.AppExec{
 					Type:    "command",
 					Command: "echo",
@@ -115,7 +115,7 @@ func TestStartHandler_Validation(t *testing.T) {
 		{
 			name: "invalid name",
 			spec: protocol.AppSpec{
-				Id:   "uuid-7",
+				ID:   "123e4567-e89b-12d3-a456-426614174007",
 				Name: "Invalid Name!",
 				Exec: protocol.AppExec{
 					Type:    "command",
@@ -129,7 +129,7 @@ func TestStartHandler_Validation(t *testing.T) {
 		{
 			name: "invalid cwd",
 			spec: protocol.AppSpec{
-				Id:  "uuid-8",
+				ID:  "123e4567-e89b-12d3-a456-426614174008",
 				Cwd: "/path/to/nonexistent/directory",
 				Exec: protocol.AppExec{
 					Type:    "command",
@@ -143,7 +143,7 @@ func TestStartHandler_Validation(t *testing.T) {
 		{
 			name: "app_user unsupported",
 			spec: protocol.AppSpec{
-				Id: "uuid-9",
+				ID: "123e4567-e89b-12d3-a456-426614174009",
 				Exec: protocol.AppExec{
 					Type:    "command",
 					Command: "echo",
@@ -161,7 +161,7 @@ func TestStartHandler_Validation(t *testing.T) {
 			req := protocol.StartRequest{
 				ProtocolVersion: 1,
 				Type:            "start",
-				RequestID:       tt.spec.Id,
+				RequestID:       tt.spec.ID,
 				Spec:            tt.spec,
 			}
 			reqBytes, err := jsonx.Marshal(req)
@@ -199,7 +199,7 @@ func TestStartHandler_Execution(t *testing.T) {
 	)
 
 	spec := protocol.AppSpec{
-		Id: "uuid-exec",
+		ID: "123e4567-e89b-12d3-a456-426614174099",
 		Exec: protocol.AppExec{
 			Type:    "command",
 			Command: "go", // using 'go' as a command that exists
@@ -211,7 +211,7 @@ func TestStartHandler_Execution(t *testing.T) {
 	req := protocol.StartRequest{
 		ProtocolVersion: 1,
 		Type:            "start",
-		RequestID:       spec.Id,
+		RequestID:       spec.ID,
 		Spec:            spec,
 	}
 	reqBytes, err := jsonx.Marshal(req)
@@ -229,8 +229,8 @@ func TestStartHandler_Execution(t *testing.T) {
 		t.Fatalf("Failed to unmarshal response: %v", err)
 	}
 
-	if respData.ProcID != spec.Id {
-		t.Errorf("ProcID = %s, want %s", respData.ProcID, spec.Id)
+	if respData.ProcID != spec.ID {
+		t.Errorf("ProcID = %s, want %s", respData.ProcID, spec.ID)
 	}
 	if respData.PID <= 0 {
 		t.Errorf("PID = %d, want > 0", respData.PID)

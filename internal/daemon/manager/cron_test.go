@@ -33,7 +33,7 @@ func TestNewProcess_CronScheduler(t *testing.T) { //nolint:testpackage
 
 	// 4. Verify scheduler is NOT initialized if Cron is empty
 	spec.Cron = ""
-	p2, err := NewProcess("test-id-456", spec)
+	p2, err := NewProcess("123e4567-e89b-12d3-a456-426614174001", spec)
 	if err != nil {
 		t.Fatalf("NewProcess failed: %v", err)
 	}

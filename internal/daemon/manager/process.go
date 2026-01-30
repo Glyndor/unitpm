@@ -11,7 +11,6 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"regexp"
 	"strings"
 	"sync"
 	"time"
@@ -20,10 +19,9 @@ import (
 	"github.com/Jaro-c/Lynx/internal/ipc/protocol"
 	"github.com/Jaro-c/Lynx/internal/metrics"
 	"github.com/Jaro-c/Lynx/internal/types"
+	"github.com/google/uuid"
 	"github.com/robfig/cron/v3"
 )
-
-var validIDRegex = regexp.MustCompile(`^[a-zA-Z0-9_\-]+$`)
 
 // Process wraps an OS process with state tracking.
 type Process struct {
@@ -44,8 +42,8 @@ type Process struct {
 // NewProcess creates a new process instance.
 // It does not start the process.
 func NewProcess(id string, spec protocol.AppSpec) (*Process, error) {
-	if !validIDRegex.MatchString(id) {
-		return nil, fmt.Errorf("invalid process ID: must be alphanumeric/dashes")
+	if _, err := uuid.Parse(id); err != nil {
+		return nil, fmt.Errorf("invalid process ID: must be a valid UUID v4")
 	}
 
 	name := spec.Name
