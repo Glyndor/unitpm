@@ -1,3 +1,4 @@
+// Package spec implements application specification management.
 package spec
 
 import (

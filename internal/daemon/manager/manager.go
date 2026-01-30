@@ -4,9 +4,8 @@
 package manager
 
 import (
+	"errors"
 	"fmt"
-	"os"
-	"strings"
 	"sync"
 
 	"github.com/Jaro-c/Lynx/internal/ipc/protocol"
@@ -29,16 +28,11 @@ func NewManager() *Manager {
 // Start creates and starts a new process.
 //
 // Deprecated: Use StartWithSpec instead.
-func (m *Manager) Start(name, command string) (string, error) {
-	parts := strings.Fields(command)
-	if len(parts) == 0 {
-		return "", os.ErrInvalid
-	}
-
+func (m *Manager) Start(_, _ string) (string, error) {
 	// This legacy method doesn't support IDs, so we'd have to gen one or error out.
 	// For now, let's just error or not support it fully as it's deprecated.
 	// Or mock a spec.
-	return "", fmt.Errorf("deprecated: use StartWithSpec")
+	return "", errors.New("deprecated: use StartWithSpec")
 }
 
 // StartWithSpec creates and starts a new process based on the spec.
@@ -46,11 +40,11 @@ func (m *Manager) StartWithSpec(spec protocol.AppSpec) (types.ProcessInfo, error
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
-	if _, exists := m.processes[spec.Id]; exists {
-		return types.ProcessInfo{}, fmt.Errorf("process with ID %s already exists", spec.Id)
+	if _, exists := m.processes[spec.ID]; exists {
+		return types.ProcessInfo{}, fmt.Errorf("process with ID %s already exists", spec.ID)
 	}
 
-	proc, err := NewProcess(spec.Id, spec)
+	proc, err := NewProcess(spec.ID, spec)
 	if err != nil {
 		return types.ProcessInfo{}, err
 	}
@@ -59,7 +53,7 @@ func (m *Manager) StartWithSpec(spec protocol.AppSpec) (types.ProcessInfo, error
 		return types.ProcessInfo{}, err
 	}
 
-	m.processes[spec.Id] = proc
+	m.processes[spec.ID] = proc
 	return proc.Info(), nil
 }
 

@@ -139,11 +139,11 @@ func DimString(format string, a ...any) string {
 }
 
 // Printf formats according to a format specifier and writes to standard output.
-func Printf(format string, a ...any) (n int, err error) {
+func Printf(format string, a ...any) (int, error) {
 	return fmt.Printf(format, a...)
 }
 
 // Println formats using the default formats for its operands and writes to standard output.
-func Println(a ...any) (n int, err error) {
+func Println(a ...any) (int, error) {
 	return fmt.Println(a...)
 }

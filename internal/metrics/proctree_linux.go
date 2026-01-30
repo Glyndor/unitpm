@@ -3,6 +3,7 @@
 package metrics
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"strconv"
@@ -25,6 +26,7 @@ type ProcTreeCollector struct {
 	lastSampleTime time.Time
 }
 
+// NewProcTreeCollector creates a new process tree collector.
 func NewProcTreeCollector(pid int) (*ProcTreeCollector, error) {
 	// Verify process exists
 	if _, err := os.Stat(fmt.Sprintf("/proc/%d", pid)); err != nil {
@@ -33,6 +35,7 @@ func NewProcTreeCollector(pid int) (*ProcTreeCollector, error) {
 	return &ProcTreeCollector{rootPid: pid}, nil
 }
 
+// Collect collects metrics from the process tree.
 func (c *ProcTreeCollector) Collect() (Metrics, error) {
 	now := time.Now()
 	m := Metrics{
@@ -84,7 +87,7 @@ func (c *ProcTreeCollector) Collect() (Metrics, error) {
 func (c *ProcTreeCollector) findDescendants(root int) ([]int, error) {
 	// Map PPID -> []PID
 	tree := make(map[int][]int)
-	
+
 	entries, err := os.ReadDir("/proc")
 	if err != nil {
 		return nil, err
@@ -128,18 +131,18 @@ func (c *ProcTreeCollector) getPpid(pid int) (int, error) {
 	if err != nil {
 		return 0, err
 	}
-	
+
 	// Format: pid (comm) state ppid ...
 	// Comm can contain spaces and parenthesis. Find last ')'
 	s := string(data)
 	lastParen := strings.LastIndex(s, ")")
 	if lastParen == -1 || lastParen+2 >= len(s) {
-		return 0, fmt.Errorf("invalid stat format")
+		return 0, errors.New("invalid stat format")
 	}
 
 	parts := strings.Fields(s[lastParen+2:])
 	if len(parts) < 1 {
-		return 0, fmt.Errorf("invalid stat format")
+		return 0, errors.New("invalid stat format")
 	}
 
 	return strconv.Atoi(parts[0])
@@ -155,7 +158,7 @@ func (c *ProcTreeCollector) readProcStat(pid int) (int64, int64, error) {
 	s := string(data)
 	lastParen := strings.LastIndex(s, ")")
 	if lastParen == -1 {
-		return 0, 0, fmt.Errorf("invalid stat format")
+		return 0, 0, errors.New("invalid stat format")
 	}
 
 	// Fields after comm (starting at index 0 relative to sub-slice)
@@ -164,15 +167,24 @@ func (c *ProcTreeCollector) readProcStat(pid int) (int64, int64, error) {
 	// utime: 11 (14th field total)
 	// stime: 12 (15th field total)
 	// rss: 21 (24th field total)
-	
+
 	parts := strings.Fields(s[lastParen+2:])
 	if len(parts) < 22 {
-		return 0, 0, fmt.Errorf("stat too short")
+		return 0, 0, errors.New("stat too short")
 	}
 
-	utime, _ := strconv.ParseInt(parts[11], 10, 64)
-	stime, _ := strconv.ParseInt(parts[12], 10, 64)
-	rss, _ := strconv.ParseInt(parts[21], 10, 64)
+	utime, err := strconv.ParseInt(parts[11], 10, 64)
+	if err != nil {
+		return 0, 0, err
+	}
+	stime, err := strconv.ParseInt(parts[12], 10, 64)
+	if err != nil {
+		return 0, 0, err
+	}
+	rss, err := strconv.ParseInt(parts[21], 10, 64)
+	if err != nil {
+		return 0, 0, err
+	}
 
 	return utime + stime, rss, nil
 }

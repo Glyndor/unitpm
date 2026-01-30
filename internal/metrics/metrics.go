@@ -1,18 +1,18 @@
+// Package metrics provides process resource usage metrics collection.
 package metrics
 
 import (
 	"time"
 )
 
-// Metrics holds the aggregated resource usage.
+// Metrics holds the resource usage statistics.
 type Metrics struct {
-	CPUPercent  float64   // CPU usage in percentage (0.0 - 100.0+)
-	MemoryBytes int64     // Memory usage in bytes (RSS or cgroup usage)
-	Timestamp   time.Time // Time when the metrics were collected
+	Timestamp   time.Time
+	MemoryBytes int64
+	CPUPercent  float64
 }
 
-// Collector is the interface for gathering process metrics.
+// Collector defines the interface for collecting metrics.
 type Collector interface {
-	// Collect gathers current metrics for the monitored process.
 	Collect() (Metrics, error)
 }

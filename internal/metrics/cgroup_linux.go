@@ -50,6 +50,7 @@ func NewCgroupCollector(pid int) (*CgroupCollector, error) {
 	}, nil
 }
 
+// Collect collects metrics from the cgroup.
 func (c *CgroupCollector) Collect() (Metrics, error) {
 	now := time.Now()
 	m := Metrics{

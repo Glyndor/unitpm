@@ -2,7 +2,6 @@
 
 package metrics
 
-
 // NewCollector creates the best available metrics collector for the given PID.
 // It prefers Cgroup V2, but falls back to Process Tree aggregation.
 func NewCollector(pid int) (Collector, error) {

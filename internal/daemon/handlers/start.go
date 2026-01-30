@@ -21,7 +21,7 @@ func StartHandler(mgr *manager.Manager, privileged bool) transport.CommandHandle
 		}
 
 		spec := req.Spec
-		if spec.Id == "" {
+		if spec.ID == "" {
 			// If for some reason ID is missing (legacy?), we might need to gen one,
 			// but for v1 we expect it.
 			return nil, errors.New("ERR_BAD_REQUEST: spec ID is required")

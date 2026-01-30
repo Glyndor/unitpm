@@ -17,6 +17,24 @@ import (
 	"github.com/Jaro-c/Lynx/internal/jsonx"
 )
 
+// UniversalRequest is a union of all possible request types (standard IPC and Start).
+// It allows decoding the request type before dispatching.
+type UniversalRequest struct {
+	// Common
+	Type string `json:"type"` // "start" or empty/other for standard requests
+
+	// Standard Request
+	Version int              `json:"version"`
+	ID      string           `json:"id"`
+	Command string           `json:"command"`
+	Params  jsonx.RawMessage `json:"params,omitempty"`
+
+	// Start Request
+	ProtocolVersion int              `json:"protocol_version"`
+	RequestID       string           `json:"request_id"`
+	Spec            jsonx.RawMessage `json:"spec"`
+}
+
 // Identity represents the authenticated identity of an IPC client.
 type Identity struct {
 	UID string // User ID

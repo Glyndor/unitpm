@@ -1,6 +1,6 @@
 //go:build linux
 
-package spec
+package spec_test
 
 import (
 	"os"
@@ -8,10 +8,11 @@ import (
 	"testing"
 
 	"github.com/Jaro-c/Lynx/internal/ipc/protocol"
+	"github.com/Jaro-c/Lynx/internal/spec"
 )
 
 func TestGenerateUUIDv4(t *testing.T) {
-	id, err := GenerateUUIDv4()
+	id, err := spec.GenerateUUIDv4()
 	if err != nil {
 		t.Fatalf("GenerateUUIDv4() error = %v", err)
 	}
@@ -36,9 +37,9 @@ func TestSaveSpec(t *testing.T) {
 	// Fallback test
 	_ = os.Setenv("HOME", tempDir)
 
-	spec := protocol.AppSpec{
+	specData := protocol.AppSpec{
 		Version: 1,
-		Id:      "test-id",
+		ID:      "test-id",
 		Name:    "test-app",
 		Exec: protocol.AppExec{
 			Type:    "command",
@@ -46,7 +47,7 @@ func TestSaveSpec(t *testing.T) {
 		},
 	}
 
-	path, err := SaveSpec("test-id", spec)
+	path, err := spec.SaveSpec("test-id", specData)
 	if err != nil {
 		t.Fatalf("SaveSpec() error = %v", err)
 	}
