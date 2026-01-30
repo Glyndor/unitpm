@@ -1,3 +1,5 @@
+//go:build linux
+
 // Package list implements the list command.
 package list
 
@@ -6,6 +8,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -48,6 +51,18 @@ func Run(client *transport.Client, args []string) error {
 	if err := client.Call("list", nil, &processes); err != nil {
 		return fmt.Errorf("list failed: %w", err)
 	}
+
+	// Sort processes: Namespace -> Name -> ID
+	sort.Slice(processes, func(i, j int) bool {
+		if processes[i].Namespace != processes[j].Namespace {
+			return processes[i].Namespace < processes[j].Namespace
+		}
+		if processes[i].Name != processes[j].Name {
+			return processes[i].Name < processes[j].Name
+		}
+		return processes[i].ID < processes[j].ID
+	})
+
 	renderTable(processes, showLong)
 	return nil
 }
