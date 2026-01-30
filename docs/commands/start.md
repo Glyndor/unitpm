@@ -40,3 +40,14 @@ Start using a shell:
 ```bash
 lynx start --shell "echo hello > out.txt"
 ```
+
+## Example output
+
+Success:
+```
+Spec saved to /home/user/.config/lynx/apps/my-app.json
+Started my-app
+  ID: e73a9f1b
+  PID: 12345
+  Status: online
+```

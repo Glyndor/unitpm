@@ -20,3 +20,21 @@ Generate and install systemd unit (requires sudo/root if installing to /etc):
 ```bash
 lynx startup
 ```
+
+## Example output
+
+Success:
+```
+Lynx system daemon started. Autostart enabled.
+```
+
+Failure (not root):
+```
+Admin privileges required. Run:
+  sudo lynx startup
+```
+
+Failure (no systemd):
+```
+ERR_UNSUPPORTED: Lynx requires Linux with systemd
+```

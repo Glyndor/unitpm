@@ -21,21 +21,19 @@ Show version:
 lynx version
 ```
 
-Output example:
+Example output:
 ```
 Lynx CLI
-  Version : 0.1.0
+  Version : v0.1.0
   Commit  : a1b2c3d
-  Date    : 2025-01-01
-  Protocol: v1
+  Built   : 2025-01-01T12:00:00Z
 
 Lynx Daemon
-  Version : 0.1.0
+  Version : v0.1.0
   Commit  : a1b2c3d
-  Date    : 2025-01-01
-  Protocol: v1
+  Built   : 2025-01-01T12:00:00Z
 
 Protocol
-  CLI : v1
-  Daemon : v1
+  CLI     : v1
+  Daemon  : v1
 ```
