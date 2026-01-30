@@ -20,11 +20,16 @@ The `cpu` and `mem` columns display aggregated resource usage:
 
 Lynx automatically aggregates metrics for the entire process tree (including child processes). It prefers using Cgroup V2 when available, falling back to process tree scanning if necessary.
 
-## Examples
+## Common Examples
 
 List all processes:
 ```bash
 lynx list
+```
+
+List with full IDs:
+```bash
+lynx list --long
 ```
 
 Example output:

@@ -23,6 +23,7 @@ const (
 	cmdStart   = "start"
 	cmdStartup = "startup"
 	cmdVersion = "version"
+	cmdHelp    = "help"
 	flagHelp   = "--help"
 )
 
@@ -62,6 +63,9 @@ func Execute(args []string) int {
 }
 
 func resolveCommand(name string) string {
+	if name == "help" {
+		return cmdHelp
+	}
 	if name == "--version" {
 		return cmdVersion
 	}

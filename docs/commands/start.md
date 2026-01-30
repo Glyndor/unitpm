@@ -41,6 +41,11 @@ Start using a shell:
 lynx start --shell "echo hello > out.txt"
 ```
 
+Start with a cron schedule:
+```bash
+lynx start --cron "@hourly" ./backup.sh
+```
+
 ## Example output
 
 Success:
