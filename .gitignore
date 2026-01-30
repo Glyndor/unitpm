@@ -47,3 +47,23 @@ Thumbs.db
 *.crt
 *.pid
 *.sock
+
+# =====================
+# Debian Packaging
+# =====================
+debian/lynx/
+debian/.debhelper/
+debian/files
+debian/*.substvars
+debian/*.debhelper.log
+*.deb
+*.ddeb
+*.changes
+*.buildinfo
+obj-*/
+
+# =====================
+# Lynx Binaries (Linux)
+# =====================
+/lynx
+/lynxd
