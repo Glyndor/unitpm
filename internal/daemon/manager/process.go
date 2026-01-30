@@ -17,6 +17,7 @@ import (
 
 	daemonRuntime "github.com/Jaro-c/Lynx/internal/daemon/runtime"
 	"github.com/Jaro-c/Lynx/internal/ipc/protocol"
+	"github.com/Jaro-c/Lynx/internal/metrics"
 	"github.com/Jaro-c/Lynx/internal/types"
 )
 
@@ -29,6 +30,7 @@ type Process struct {
 	exitError     error
 	startTime     time.Time
 	logFiles      []*os.File
+	metrics       metrics.Collector
 }
 
 // NewProcess creates a new process instance.
@@ -201,6 +203,11 @@ func (p *Process) Start() error {
 	p.exitError = nil
 	p.stoppedByUser = false
 
+	// Init metrics
+	if col, err := metrics.NewCollector(p.info.PID); err == nil {
+		p.metrics = col
+	}
+
 	go p.monitor()
 
 	return nil
@@ -259,8 +266,17 @@ func (p *Process) Info() types.ProcessInfo {
 	// Update uptime if running
 	if p.info.State == types.StateRunning {
 		p.info.Uptime = time.Since(p.startTime).Milliseconds()
+
+		if p.metrics != nil {
+			if m, err := p.metrics.Collect(); err == nil {
+				p.info.CPU = m.CPUPercent
+				p.info.Memory = m.MemoryBytes
+			}
+		}
 	} else {
 		p.info.Uptime = 0
+		p.info.CPU = 0
+		p.info.Memory = 0
 	}
 
 	return p.info

@@ -12,6 +12,14 @@ lynx list
 
 No flags.
 
+## Metrics
+
+The `cpu` and `mem` columns display aggregated resource usage:
+- **Memory**: Resident Set Size (RSS) in bytes.
+- **CPU**: Percentage of CPU usage.
+
+Lynx automatically aggregates metrics for the entire process tree (including child processes). It prefers using Cgroup V2 when available, falling back to process tree scanning if necessary.
+
 ## Examples
 
 List all processes:
