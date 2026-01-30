@@ -1,3 +1,10 @@
+lynx (0.1.1-1) unstable; urgency=medium
+
+  * Fix metrics and Linux-only consistency
+  * Improve CLI ID display and documentation
+
+ -- Lynx Maintainers <maintainers@example.com>  Thu, 29 Jan 2026 12:00:00 +0000
+
 lynx (0.1.0-1) unstable; urgency=medium
 
   * Switch JSON backend to bytedance/sonic

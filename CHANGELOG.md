@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.1.1] - 2026-01-29
+
+### Features
+- **metrics**: Removed non-Linux shims and fixed build tags.
+- **cli**: Show full IDs on start and added `--long` flag to list command.
+- **docs**: Added examples and help command.
+
 ## [0.1.0] - 2025-01-29
 
 ### Features
