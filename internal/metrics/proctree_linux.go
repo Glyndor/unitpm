@@ -43,10 +43,12 @@ func (c *ProcTreeCollector) Collect() (Metrics, error) {
 	}
 
 	// 1. Build Process Tree
+	// Default to full tree scan for accuracy.
+	// TODO: Optimization: Implement snapshot caching (once per tick) to reduce /proc scan overhead.
 	pids, err := c.findDescendants(c.rootPid)
 	if err != nil {
-		// If root process is gone, return error
-		return m, err
+		// Fallback to just root PID if scan fails (e.g. permission error or race)
+		pids = []int{c.rootPid}
 	}
 
 	var totalTicks int64
