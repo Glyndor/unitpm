@@ -29,6 +29,9 @@ func Run(client *transport.Client, args []string) error {
 		return nil
 	}
 
+	var showLong bool
+	fs.BoolVar(&showLong, "long", false, "Show full process IDs")
+
 	if err := fs.Parse(args); err != nil {
 		if strings.HasPrefix(err.Error(), "flag provided but not defined: -") {
 			flagName := strings.TrimPrefix(err.Error(), "flag provided but not defined: -")
@@ -45,11 +48,11 @@ func Run(client *transport.Client, args []string) error {
 	if err := client.Call("list", nil, &processes); err != nil {
 		return fmt.Errorf("list failed: %w", err)
 	}
-	renderTable(processes)
+	renderTable(processes, showLong)
 	return nil
 }
 
-func renderTable(processes []types.ProcessInfo) {
+func renderTable(processes []types.ProcessInfo, showLong bool) {
 	// id | name | namespace | version | mode | pid | uptime | ↺ | status | cpu | mem | user | watch
 	headers := []string{
 		term.CyanString("%s", term.BoldString("id")),
@@ -156,6 +159,7 @@ func GetSpec() help.CommandSpec {
 		Description: "List all managed processes.",
 		Options: []help.Option{
 			{Short: "-h", Long: "--help", Description: "Show this help message."},
+			{Short: "", Long: "--long", Description: "Show full process IDs."},
 		},
 	}
 }

@@ -261,7 +261,11 @@ func PrintHelp() {
 
 func printSuccessResponse(data *protocol.StartResponseData, name string) {
 	fmt.Printf("Started %s\n", name)
-	fmt.Printf("  ID: %s\n", data.ProcID)
+	if len(data.ProcID) > 8 {
+		fmt.Printf("  ID: %s (short: %s)\n", data.ProcID, data.ProcID[:8])
+	} else {
+		fmt.Printf("  ID: %s\n", data.ProcID)
+	}
 	fmt.Printf("  PID: %d\n", data.PID)
 	fmt.Printf("  Status: %s\n", data.Status)
 }
