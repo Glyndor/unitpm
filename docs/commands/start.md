@@ -1,12 +1,14 @@
 # start
 
-Start a new process managed by Lynx.
-
 ## Synopsis
 
 ```bash
 lynx start <command|file> [flags] [-- <args...>]
 ```
+
+## Usage
+
+Start a new process managed by Lynx. This command creates a new application specification and starts the process via the daemon.
 
 ## Flags
 
@@ -72,3 +74,11 @@ Error (invalid path):
 ```
 Error: ERR_BAD_REQUEST: invalid cwd: stat /invalid/path: no such file or directory (BAD_REQUEST)
 ```
+
+## Security
+
+*   **Environment Variables**: Environment variables provided via `--env-file` are loaded into the process environment but are **NOT** persisted in the application specification file (`~/.config/lynx/apps/<id>.json`). This ensures secrets are not stored in plain text on disk.
+*   **Isolation**:
+    *   **User Mode**: Processes run as the current user. They cannot create new OS users.
+    *   **System Mode**: Processes run as the `lynx` user (or configured user). `DynamicUser` support is planned for future releases.
+*   **Shell Execution**: Shell execution is disabled by default. Use `--shell` only if necessary, as it introduces shell injection risks if inputs are not sanitized.

@@ -275,7 +275,8 @@ func (p *specParser) finalize() (protocol.AppSpec, error) {
 		RunAs: &protocol.RunAsPolicy{
 			Mode: p.runAs,
 		},
-		Env: make(map[string]string),
+		Env:     make(map[string]string),
+		EnvFile: p.envFile,
 	}
 
 	// Analyze command parts for Entry vs Command

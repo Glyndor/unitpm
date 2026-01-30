@@ -1,12 +1,14 @@
 # version
 
-Show Lynx version information.
-
 ## Synopsis
 
 ```bash
 lynx version [flags]
 ```
+
+## Usage
+
+Show Lynx version information for the CLI, Daemon, and IPC Protocol.
 
 ## Flags
 
