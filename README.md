@@ -4,47 +4,76 @@
 
 Lynx is a lightweight, secure alternative to PM2 or Supervisor, designed specifically for Debian/Ubuntu systems. It leverages `systemd` for robust process supervision while providing a developer-friendly CLI for easy management.
 
+## Prerequisites
+
+*   **OS**: Linux (Debian/Ubuntu recommended). Windows/macOS not supported.
+*   **Go**: Version 1.25.6+ (as defined in `go.mod`).
+
 ## Quickstart
 
-### 1. Build from Source
+### 1. Install Go (Debian/Ubuntu)
+If you don't have Go installed, use the official tarball (replace version with latest stable if needed):
+
 ```bash
-# Requires Go 1.22+
-go build ./cmd/lynx ./cmd/lynxd
+# Download Go (example version)
+wget https://go.dev/dl/go1.23.4.linux-amd64.tar.gz
+
+# Install to /usr/local
+sudo rm -rf /usr/local/go && sudo tar -C /usr/local -xzf go1.23.4.linux-amd64.tar.gz
+
+# Add to PATH
+export PATH=$PATH:/usr/local/go/bin
+
+# Verify
+go version
 ```
 
-### 2. Install via .deb (Recommended)
+### 2. Build from Source
 ```bash
-# Build the package
+# Clone repository
+git clone https://github.com/Jaro-c/Lynx.git
+cd Lynx
+
+# Build binaries
+go build -v ./cmd/lynx ./cmd/lynxd
+```
+
+### 3. Build & Install Debian Package (Recommended)
+This creates a native `.deb` package and integrates with systemd.
+
+```bash
+# 1. Install build dependencies
+sudo apt-get update
+sudo apt-get install -y build-essential debhelper
+
+# 2. Build the package
 dpkg-buildpackage -us -uc -b
 
-# Install
+# 3. Install the generated package
 sudo dpkg -i ../lynx_*.deb
-```
 
-### 3. Start the Daemon
-```bash
-# Start the system service
+# 4. Enable and start the daemon
 sudo systemctl enable --now lynx.lynxd
-
-# Check status
-systemctl status lynx.lynxd
 ```
 
-### 4. Run Your First App
+### 4. Usage
 ```bash
-# Start a node app with restart policy
-lynx start main.js --name my-api --restart always
+# Start an application
+lynx start app.js --name my-api --restart always
 
 # List running processes
 lynx list
+
+# Check daemon logs
+journalctl -u lynx.lynxd -f
 ```
 
 ## Why Lynx?
 
-*   **Systemd-First**: Doesn't reinvent the wheel. The daemon integrates natively with Linux init systems for rock-solid reliability.
+*   **Systemd-First**: Doesn't reinvent the wheel. The daemon integrates natively with Linux init systems for robust reliability.
 *   **Secure Defaults**: Strictly controls permissions. Spec files are 0600, no implicit `sudo`, and rigorous path validation prevents traversal attacks.
 *   **Declarative Specs**: Every process is defined by a JSON specification stored in `~/.config/lynx/apps`, making it GitOps-friendly.
-*   **Accurate Metrics**: Aggregates CPU and Memory usage for entire process trees using Cgroups V2 (where available), ensuring no child process goes unnoticed.
+*   **Accurate Metrics**: Aggregates CPU and Memory usage for entire process trees using Cgroups V2 (where available).
 
 ## Commands
 
@@ -58,23 +87,4 @@ lynx list
 
 ## Packaging
 
-Lynx is designed to be installed as a native Debian package.
-
-**Build Requirements:**
-```bash
-sudo apt install build-essential debhelper golang-go
-```
-
-**Build & Install:**
-```bash
-# 1. Build package
-dpkg-buildpackage -us -uc -b
-
-# 2. Install
-sudo dpkg -i ../lynx_*.deb
-```
-
-**Service Management:**
-The package installs a systemd unit named `lynx.lynxd.service`.
-*   **Logs**: `journalctl -u lynx.lynxd -f`
-*   **Restart**: `sudo systemctl restart lynx.lynxd`
+Lynx is designed to be installed as a native Debian package. See the **Quickstart** section above for build instructions.
