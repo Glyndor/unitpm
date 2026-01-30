@@ -15,11 +15,11 @@ Lynx is a lightweight, secure alternative to PM2 or Supervisor, designed specifi
 If you don't have Go installed, use the official tarball (replace version with latest stable if needed):
 
 ```bash
-# Download Go (example version)
-wget https://go.dev/dl/go1.23.4.linux-amd64.tar.gz
+# Download Go
+wget https://go.dev/dl/go1.25.6.linux-amd64.tar.gz
 
 # Install to /usr/local
-sudo rm -rf /usr/local/go && sudo tar -C /usr/local -xzf go1.23.4.linux-amd64.tar.gz
+sudo rm -rf /usr/local/go && sudo tar -C /usr/local -xzf go1.25.6.linux-amd64.tar.gz
 
 # Add to PATH
 export PATH=$PATH:/usr/local/go/bin
@@ -61,6 +61,9 @@ sudo systemctl enable --now lynx.lynxd
 # Start an application
 lynx start app.js --name my-api --restart always
 
+# Start with DynamicUser isolation (Secure)
+lynx start app.js --isolation dynamic
+
 # List running processes
 lynx list
 
@@ -85,13 +88,14 @@ journalctl -u lynx.lynxd -f
 | `version` | Display CLI, Daemon, and Protocol version information. | [Docs](docs/commands/version.md) |
 | `help` | Show help for any command. | [Docs](docs/commands/help.md) |
 
+## Development
+
+**Note for Windows Developers**:
+Since Lynx is Linux-only, we recommend using **VS Code Remote-WSL**.
+If you are editing on Windows, you may see false positive errors (e.g., "build constraints exclude all Go files").
+To fix this in your editor settings, set the environment variable:
+`GOOS=linux`
+
 ## Packaging
 
 Lynx is designed to be installed as a native Debian package. See the **Quickstart** section above for build instructions.
-
-## Development
-
-If you are developing on Windows, we recommend using **VS Code Remote-WSL**.
-Since Lynx is Linux-only, Windows editors may show false positive errors (e.g., "build constraints exclude all Go files").
-To fix this in your editor settings, set the environment variable:
-`GOOS=linux`

@@ -30,7 +30,51 @@ Start a new process managed by Lynx. This command creates a new application spec
 | `--log-timestamp` | string | rfc3339 | Log timestamp (`rfc3339`, `unix`, `none`). | `--log-timestamp unix` |
 | `--runtime` | string | - | Runtime for entry file (e.g., node, python). | `--runtime python3` |
 | `--env-file` | string | - | Path to a file containing environment variables. | `--env-file .env` |
+| `--isolation` | string | self | Isolation mode (`self`, `dynamic`). | `--isolation dynamic` |
 | `-h`, `--help` | - | - | Show help message. | — |
+
+## Mode Explanations
+
+### Restart Policies
+| Policy | Description |
+|--------|-------------|
+| `never` | Never restart the process, regardless of exit code. |
+| `on-failure` | Restart only if the process exits with a non-zero code (or code not in `--stop-on-exit`). |
+| `always` | Always restart the process, even if it exits successfully (code 0). |
+
+### Backoff Strategies
+| Strategy | Description |
+|----------|-------------|
+| `none` | No delay between restarts (immediate). |
+| `linear` | Delay increases linearly: `delay * restart_count`. |
+| `expo` | Delay increases exponentially: `delay * 2^(restart_count-1)`. Capped at 5 minutes. |
+
+### Logging
+| Option | Values | Description |
+|--------|--------|-------------|
+| `format` | `plain` | Raw output as received from the process. |
+| | `json` | Wrap output in JSON structure with metadata. |
+| `timestamp` | `rfc3339` | ISO 8601 format (e.g., `2024-01-01T12:00:00Z`). |
+| | `unix` | Unix timestamp (seconds). |
+| | `none` | No timestamp added. |
+
+### Isolation
+| Mode | Description |
+|------|-------------|
+| `self` | Run as the current user (same as `lynxd`). Default. |
+| `dynamic` | Run as a transient, isolated user via `systemd-run`. Uses `DynamicUser=yes` with hardening (`NoNewPrivileges`, `PrivateTmp`, `ProtectSystem=strict`, `ProtectHome=yes`). |
+
+## Framework Examples
+
+| Framework | Command |
+|-----------|---------|
+| **Next.js (dev)** | `lynx start --name next-dev -- npm run dev` |
+| **Next.js (prod)** | `lynx start --name next-prod -- npm start` |
+| **Next.js (pnpm)** | `lynx start --name next-pnpm -- pnpm dev` |
+| **Next.js (bun)** | `lynx start --name next-bun -- bun dev` |
+| **Astro (dev)** | `lynx start --name astro -- npm run dev` |
+| **Node (script)** | `lynx start server.js` |
+| **Node (cmd)** | `lynx start -- node server.js` |
 
 ## Examples
 
@@ -39,19 +83,9 @@ Start a Node.js script:
 lynx start main.js
 ```
 
-Start a Python script with explicit runtime:
+Start with DynamicUser isolation (secure):
 ```bash
-lynx start app.py --runtime python3
-```
-
-Start a command with arguments:
-```bash
-lynx start --name server -- "python3 -m http.server 8080"
-```
-
-Start with production restart policy:
-```bash
-lynx start app.js --restart always --backoff expo --max-restarts 50
+lynx start main.js --isolation dynamic
 ```
 
 Start a scheduled task (runs every hour):
@@ -79,6 +113,6 @@ Error: ERR_BAD_REQUEST: invalid cwd: stat /invalid/path: no such file or directo
 
 *   **Environment Variables**: Environment variables provided via `--env-file` are loaded into the process environment but are **NOT** persisted in the application specification file (`~/.config/lynx/apps/<id>.json`). This ensures secrets are not stored in plain text on disk.
 *   **Isolation**:
-    *   **User Mode**: Processes run as the current user. They cannot create new OS users.
-    *   **System Mode**: Processes run as the `lynx` user (or configured user). `DynamicUser` support is planned for future releases.
+    *   **Self Mode** (`--isolation self`): Processes run as the same user as the daemon.
+    *   **DynamicUser** (`--isolation dynamic`): Processes run as a transient system user with restricted filesystem access (`ProtectSystem=strict`, `ProtectHome=yes`) and no new privileges. Recommended for production.
 *   **Shell Execution**: Shell execution is disabled by default. Use `--shell` only if necessary, as it introduces shell injection risks if inputs are not sanitized.
