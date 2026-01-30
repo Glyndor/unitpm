@@ -49,6 +49,24 @@ func Execute(args []string) int {
 		return 0
 	}
 
+	if cmdName == cmdHelp {
+		if len(args) > 1 {
+			subName := resolveCommand(args[1])
+			if subName != "" && subName != cmdHelp {
+				return printCommandHelp(subName)
+			}
+			if subName == cmdHelp {
+				help.RenderRootHelp(os.Stdout, specs, false)
+				return 0
+			}
+			printError(os.Stderr, "Command not found: %s", args[1])
+			help.RenderRootHelp(os.Stderr, specs, false)
+			return 1
+		}
+		help.RenderRootHelp(os.Stdout, specs, false)
+		return 0
+	}
+
 	// Handle subcommand help
 	if len(args) > 1 && isHelpRequest(args[1:]) {
 		return printCommandHelp(cmdName)
