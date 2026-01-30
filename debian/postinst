@@ -2,9 +2,18 @@
 set -e
 
 if [ "$1" = "configure" ]; then
+    # Create lynxadm group if it doesn't exist
+    if ! getent group lynxadm >/dev/null; then
+        addgroup --system lynxadm
+    fi
+
+    # Create lynx user if it doesn't exist
     if ! getent passwd lynx >/dev/null; then
         adduser --system --group --no-create-home --home /var/lib/lynx lynx
     fi
+
+    # Add lynx user to lynxadm group
+    adduser lynx lynxadm
 
     # Ensure directories exist with correct permissions
     mkdir -p /var/lib/lynx /var/log/lynx
