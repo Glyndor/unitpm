@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"time"
 
@@ -72,15 +73,25 @@ type specParser struct {
 	args []string
 	pos  int
 
-	name     string
-	cwd      string
-	stdio    string
-	runAs    string
-	cmdParts []string
-	cron     string
-	runtime  string
-	envFile  string
-	shell    bool
+	name          string
+	cwd           string
+	stdio         string
+	runAs         string
+	cmdParts      []string
+	cron          string
+	runtime       string
+	envFile       string
+	shell         bool
+	restartPolicy string
+	maxRestarts   int
+	restartDelay  int
+	backoff       string
+	stopOnExit    []int
+	logDir        string
+	stdout        string
+	stderr        string
+	logFormat     string
+	logTimestamp  string
 
 	parsingFlags bool
 }
@@ -89,6 +100,13 @@ func (p *specParser) parse() (protocol.AppSpec, error) {
 	p.parsingFlags = true
 	p.stdio = "inherit"
 	p.runAs = "self"
+	p.restartPolicy = "on-failure"
+	p.maxRestarts = 10
+	p.restartDelay = 2000
+	p.backoff = "expo"
+	p.stopOnExit = []int{0}
+	p.logFormat = "plain"
+	p.logTimestamp = "rfc3339"
 
 	for p.pos = 0; p.pos < len(p.args); p.pos++ {
 		arg := p.args[p.pos]
@@ -137,7 +155,7 @@ func (p *specParser) handleFlag(arg string) error {
 		return p.readStringValue(&p.name)
 	case "--cwd":
 		return p.readStringValue(&p.cwd)
-	case "--cron":
+	case "--cron", "--schedule":
 		return p.readStringValue(&p.cron)
 	case "--runtime":
 		return p.readStringValue(&p.runtime)
@@ -146,7 +164,26 @@ func (p *specParser) handleFlag(arg string) error {
 		return nil
 	case "--env-file":
 		return p.readStringValue(&p.envFile)
-	// TODO: Add support for other flags if needed
+	case "--restart":
+		return p.readStringValue(&p.restartPolicy)
+	case "--max-restarts":
+		return p.readIntValue(&p.maxRestarts)
+	case "--restart-delay":
+		return p.readIntValue(&p.restartDelay)
+	case "--backoff":
+		return p.readStringValue(&p.backoff)
+	case "--stop-on-exit":
+		return p.readIntList(&p.stopOnExit)
+	case "--log-dir":
+		return p.readStringValue(&p.logDir)
+	case "--stdout":
+		return p.readStringValue(&p.stdout)
+	case "--stderr":
+		return p.readStringValue(&p.stderr)
+	case "--log-format":
+		return p.readStringValue(&p.logFormat)
+	case "--log-timestamp":
+		return p.readStringValue(&p.logTimestamp)
 	default:
 		return fmt.Errorf("unknown flag: %s", arg)
 	}
@@ -158,6 +195,41 @@ func (p *specParser) readStringValue(target *string) error {
 		return errors.New("missing value for flag")
 	}
 	*target = p.args[p.pos]
+	return nil
+}
+
+func (p *specParser) readIntValue(target *int) error {
+	p.pos++
+	if p.pos >= len(p.args) {
+		return errors.New("missing value for flag")
+	}
+	val, err := strconv.Atoi(p.args[p.pos])
+	if err != nil {
+		return fmt.Errorf("invalid integer value: %s", p.args[p.pos])
+	}
+	*target = val
+	return nil
+}
+
+func (p *specParser) readIntList(target *[]int) error {
+	p.pos++
+	if p.pos >= len(p.args) {
+		return errors.New("missing value for flag")
+	}
+	parts := strings.Split(p.args[p.pos], ",")
+	var list []int
+	for _, s := range parts {
+		s = strings.TrimSpace(s)
+		if s == "" {
+			continue
+		}
+		val, err := strconv.Atoi(s)
+		if err != nil {
+			return fmt.Errorf("invalid integer in list: %s", s)
+		}
+		list = append(list, val)
+	}
+	*target = list
 	return nil
 }
 
@@ -186,7 +258,22 @@ func (p *specParser) finalize() (protocol.AppSpec, error) {
 		Cwd:     cwd,
 		Cron:    p.cron,
 		Logs: &protocol.AppLogs{
-			Mode: p.stdio,
+			Mode:      p.stdio,
+			Stdout:    p.stdout,
+			Stderr:    p.stderr,
+			Dir:       p.logDir,
+			Format:    p.logFormat,
+			Timestamp: p.logTimestamp,
+		},
+		Restart: &protocol.AppRestart{
+			Policy:      p.restartPolicy,
+			MaxRetries:  p.maxRestarts,
+			BackoffMs:   p.restartDelay,
+			BackoffType: p.backoff,
+			StopOnExit:  p.stopOnExit,
+		},
+		RunAs: &protocol.RunAsPolicy{
+			Mode: p.runAs,
 		},
 		Env: make(map[string]string),
 	}
@@ -202,6 +289,7 @@ func (p *specParser) finalize() (protocol.AppSpec, error) {
 				Type:    "entry",
 				Entry:   token,
 				Runtime: p.runtime,
+				Shell:   p.shell,
 			}
 		} else {
 			// Try to tokenize to see if it's a command string
@@ -212,6 +300,7 @@ func (p *specParser) finalize() (protocol.AppSpec, error) {
 					Type:    "command",
 					Command: parts[0],
 					Args:    parts[1:],
+					Shell:   p.shell,
 				}
 			} else {
 				// Single part. Check extension for inference.
@@ -222,18 +311,21 @@ func (p *specParser) finalize() (protocol.AppSpec, error) {
 						Type:    "entry",
 						Entry:   token,
 						Runtime: "node",
+						Shell:   p.shell,
 					}
 				case ".go":
 					spec.Exec = protocol.AppExec{
 						Type:    "entry",
 						Entry:   token,
 						Runtime: "go run",
+						Shell:   p.shell,
 					}
 				default:
 					// Treat as simple command
 					spec.Exec = protocol.AppExec{
 						Type:    "command",
 						Command: token,
+						Shell:   p.shell,
 					}
 				}
 			}
@@ -244,6 +336,7 @@ func (p *specParser) finalize() (protocol.AppSpec, error) {
 			Type:    "command",
 			Command: p.cmdParts[0],
 			Args:    p.cmdParts[1:],
+			Shell:   p.shell,
 		}
 	}
 
@@ -251,12 +344,7 @@ func (p *specParser) finalize() (protocol.AppSpec, error) {
 }
 
 func PrintHelp() {
-	fmt.Println("Usage: lynx start <command|file> [flags]")
-	fmt.Println("\nFlags:")
-	fmt.Println("  --name <name>      Assign a name to the process")
-	fmt.Println("  --cwd <dir>        Working directory")
-	fmt.Println("  --cron <schedule>  Cron schedule")
-	fmt.Println("  --runtime <rt>     Runtime for entry file (e.g., node, python)")
+	help.RenderCommandHelp(os.Stdout, GetSpec())
 }
 
 func printSuccessResponse(data *protocol.StartResponseData, name string) {
@@ -281,12 +369,22 @@ func GetSpec() help.CommandSpec {
 		Usage:       term.BoldString("lynx start <command|file> [flags]"),
 		Description: "Start a new process.",
 		Options: []help.Option{
-			{Short: "", Long: "--name", Description: "Assign a name to the process"},
-			{Short: "", Long: "--cwd", Description: "Working directory"},
+			{Short: "", Long: "--name <name>", Description: "Assign a name to the process"},
+			{Short: "", Long: "--cwd <dir>", Description: "Working directory"},
 			{Short: "", Long: "--shell", Description: "Execute command in shell"},
-			{Short: "", Long: "--cron", Description: "Cron schedule"},
-			{Short: "", Long: "--runtime", Description: "Runtime for entry file (e.g., node, python)"},
-			{Short: "", Long: "--env-file", Description: "Path to environment file"},
+			{Short: "", Long: "--schedule <cron>", Description: "Cron schedule for restart (alias --cron)"},
+			{Short: "", Long: "--restart <policy>", Description: "Restart policy (never, on-failure, always)"},
+			{Short: "", Long: "--max-restarts <N>", Description: "Max restarts (default 10)"},
+			{Short: "", Long: "--restart-delay <ms>", Description: "Restart delay in ms (default 2000)"},
+			{Short: "", Long: "--backoff <type>", Description: "Backoff strategy (none, linear, expo)"},
+			{Short: "", Long: "--stop-on-exit <codes>", Description: "Exit codes to stop on (comma-separated)"},
+			{Short: "", Long: "--log-dir <path>", Description: "Directory for logs"},
+			{Short: "", Long: "--stdout <file>", Description: "Stdout file (relative to log-dir)"},
+			{Short: "", Long: "--stderr <file>", Description: "Stderr file (relative to log-dir)"},
+			{Short: "", Long: "--log-format <fmt>", Description: "Log format (plain, json)"},
+			{Short: "", Long: "--log-timestamp <fmt>", Description: "Log timestamp (rfc3339, unix, none)"},
+			{Short: "", Long: "--runtime <rt>", Description: "Runtime for entry file (e.g., node, python)"},
+			{Short: "", Long: "--env-file <file>", Description: "Path to environment file"},
 		},
 	}
 }

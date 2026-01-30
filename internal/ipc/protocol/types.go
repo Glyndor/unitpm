@@ -36,15 +36,20 @@ type AppExec struct {
 }
 
 type AppLogs struct {
-	Mode   string `json:"mode"` // "inherit" | "pipe" | "file"
-	Stdout string `json:"stdout,omitempty"`
-	Stderr string `json:"stderr,omitempty"`
+	Mode      string `json:"mode"`               // "inherit" | "pipe" | "file"
+	Stdout    string `json:"stdout,omitempty"`   // path
+	Stderr    string `json:"stderr,omitempty"`   // path
+	Dir       string `json:"dir,omitempty"`      // log directory
+	Format    string `json:"format,omitempty"`   // "plain" | "json"
+	Timestamp string `json:"timestamp,omitempty"` // "rfc3339" | "unix" | "none"
 }
 
 type AppRestart struct {
-	Policy     string `json:"policy"` // "never" | "always" | "on-failure"
-	MaxRetries int    `json:"maxRetries,omitempty"`
-	BackoffMs  int    `json:"backoffMs,omitempty"`
+	Policy      string `json:"policy"`              // "never" | "always" | "on-failure"
+	MaxRetries  int    `json:"maxRetries,omitempty"`
+	BackoffMs   int    `json:"backoffMs,omitempty"`
+	BackoffType string `json:"backoffType,omitempty"` // "none" | "linear" | "expo"
+	StopOnExit  []int  `json:"stopOnExit,omitempty"`
 }
 
 // StartSpec is deprecated, replaced by AppSpec.

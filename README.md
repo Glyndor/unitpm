@@ -1,88 +1,80 @@
 # Lynx
 
-Lynx is a secure process manager for Debian/Ubuntu systems, designed as a systemd-friendly alternative to PM2 or Supervisor. It allows you to manage and supervise processes through a lightweight daemon and a command-line interface.
+**The Secure, Systemd-Native Process Manager for Linux.**
 
-## Supported Platforms
+Lynx is a lightweight, secure alternative to PM2 or Supervisor, designed specifically for Debian/Ubuntu systems. It leverages `systemd` for robust process supervision while providing a developer-friendly CLI for easy management.
 
-*   **OS:** Linux (Debian/Ubuntu)
-*   **Init System:** systemd
+## Quickstart
 
-## Components
+### 1. Build from Source
+```bash
+# Requires Go 1.22+
+go build ./cmd/lynx ./cmd/lynxd
+```
 
-*   **lynxd**: The background daemon that supervises processes. It must be running for the CLI to work.
-*   **lynx**: The command-line client used to interact with the daemon (start, stop, and list processes).
+### 2. Install via .deb (Recommended)
+```bash
+# Build the package
+dpkg-buildpackage -us -uc -b
 
-## Key Features
+# Install
+sudo dpkg -i ../lynx_*.deb
+```
 
-*   **Secure by Design:** Strictly controls process isolation and permissions. No `sudo` required for app management.
-*   **App Spec v1:** JSON-based application specification storage using XDG standards.
-*   **Stable Identifiers:** Processes are identified by stable UUID v4 identifiers.
-*   **Systemd Integration:** Daemon runs as a proper systemd service.
+### 3. Start the Daemon
+```bash
+# Start the system service
+sudo systemctl enable --now lynx.lynxd
 
-## Quick Start
+# Check status
+systemctl status lynx.lynxd
+```
 
-1.  **Start the daemon**
-    If installed via package, the service should be running:
-    ```bash
-    systemctl status lynxd
-    ```
+### 4. Run Your First App
+```bash
+# Start a node app with restart policy
+lynx start main.js --name my-api --restart always
 
-    Or run manually for dev:
-    ```bash
-    ./lynxd
-    ```
+# List running processes
+lynx list
+```
 
-2.  **Manage processes**
-    ```bash
-    # Start a simple command
-    lynx start --name "my-worker" --cwd ./worker -- node index.js
+## Why Lynx?
 
-    # Check status
-    lynx list
-    ```
+*   **Systemd-First**: Doesn't reinvent the wheel. The daemon integrates natively with Linux init systems for rock-solid reliability.
+*   **Secure Defaults**: Strictly controls permissions. Spec files are 0600, no implicit `sudo`, and rigorous path validation prevents traversal attacks.
+*   **Declarative Specs**: Every process is defined by a JSON specification stored in `~/.config/lynx/apps`, making it GitOps-friendly.
+*   **Accurate Metrics**: Aggregates CPU and Memory usage for entire process trees using Cgroups V2 (where available), ensuring no child process goes unnoticed.
 
 ## Commands
 
-For detailed documentation on each command, please refer to the links below:
+| Command | Description | Documentation |
+|---------|-------------|---------------|
+| `start` | Start a new process with monitoring, scheduling, and restart policies. | [Docs](docs/commands/start.md) |
+| `list` | List all managed processes with real-time status and metrics. | [Docs](docs/commands/list.md) |
+| `startup` | Generate and install system startup scripts. | [Docs](docs/commands/startup.md) |
+| `version` | Display CLI, Daemon, and Protocol version information. | [Docs](docs/commands/version.md) |
+| `help` | Show help for any command. | [Docs](docs/commands/help.md) |
 
-*   [start](docs/commands/start.md) - Start a new process managed by Lynx.
-*   [list](docs/commands/list.md) - List all processes managed by Lynx.
-*   [startup](docs/commands/startup.md) - Generate and install the system startup script.
-*   [version](docs/commands/version.md) - Show Lynx version information.
+## Packaging
 
-## Storage
+Lynx is designed to be installed as a native Debian package.
 
-Lynx stores application specifications in your user configuration directory (XDG_CONFIG_HOME):
-*   **Linux:** `~/.config/lynx/apps/`
+**Build Requirements:**
+```bash
+sudo apt install build-essential debhelper golang-go
+```
 
-Files are stored securely with restricted permissions (0600).
+**Build & Install:**
+```bash
+# 1. Build package
+dpkg-buildpackage -us -uc -b
 
-## Packaging (Debian/Ubuntu)
+# 2. Install
+sudo dpkg -i ../lynx_*.deb
+```
 
-Lynx is designed to be packaged as a `.deb` file.
-
-### Build .deb Package
-
-1.  **Install prerequisites:**
-    ```bash
-    sudo apt install build-essential debhelper golang-go
-    ```
-
-2.  **Build the package:**
-    Run the following command in the project root:
-    ```bash
-    dpkg-buildpackage -us -uc -b
-    ```
-
-3.  **Install:**
-    ```bash
-    sudo dpkg -i ../lynx_*.deb
-    ```
-
-### Systemd Usage
-
-The package installs a systemd unit `lynx.lynxd.service`.
-
-*   **Start/Restart:** `sudo systemctl restart lynxd`
-*   **Status:** `sudo systemctl status lynxd`
-*   **Logs:** `journalctl -u lynxd -f`
+**Service Management:**
+The package installs a systemd unit named `lynx.lynxd.service`.
+*   **Logs**: `journalctl -u lynx.lynxd -f`
+*   **Restart**: `sudo systemctl restart lynx.lynxd`

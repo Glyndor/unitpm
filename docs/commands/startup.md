@@ -12,7 +12,7 @@ lynx startup [flags]
 
 | Flag | Type | Default | Description | Example |
 |------|------|---------|-------------|---------|
-| `-h`, `--help` | - | - | Show help message. | `lynx startup --help` |
+| `-h`, `--help` | - | - | Show help message. | — |
 
 ## Examples
 

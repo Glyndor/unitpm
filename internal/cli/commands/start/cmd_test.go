@@ -12,7 +12,23 @@ import (
 
 func TestParseAppSpec(t *testing.T) {
 	cwd, _ := os.Getwd()
-	
+
+	defaultLogs := &protocol.AppLogs{
+		Mode:      "inherit",
+		Format:    "plain",
+		Timestamp: "rfc3339",
+	}
+	defaultRestart := &protocol.AppRestart{
+		Policy:      "on-failure",
+		MaxRetries:  10,
+		BackoffMs:   2000,
+		BackoffType: "expo",
+		StopOnExit:  []int{0},
+	}
+	defaultRunAs := &protocol.RunAsPolicy{
+		Mode: "self",
+	}
+
 	tests := []struct {
 		name    string
 		args    []string
@@ -27,7 +43,9 @@ func TestParseAppSpec(t *testing.T) {
 				Version: 1,
 				Name:    "",
 				Cwd:     cwd,
-				Logs:    &protocol.AppLogs{Mode: "inherit"},
+				Logs:    defaultLogs,
+				Restart: defaultRestart,
+				RunAs:   defaultRunAs,
 				Env:     map[string]string{},
 				Exec: protocol.AppExec{
 					Type:    "entry",
@@ -44,7 +62,9 @@ func TestParseAppSpec(t *testing.T) {
 				Version: 1,
 				Name:    "Test",
 				Cwd:     cwd,
-				Logs:    &protocol.AppLogs{Mode: "inherit"},
+				Logs:    defaultLogs,
+				Restart: defaultRestart,
+				RunAs:   defaultRunAs,
 				Env:     map[string]string{},
 				Exec: protocol.AppExec{
 					Type:    "entry",
@@ -61,7 +81,9 @@ func TestParseAppSpec(t *testing.T) {
 				Version: 1,
 				Name:    "",
 				Cwd:     cwd,
-				Logs:    &protocol.AppLogs{Mode: "inherit"},
+				Logs:    defaultLogs,
+				Restart: defaultRestart,
+				RunAs:   defaultRunAs,
 				Env:     map[string]string{},
 				Exec: protocol.AppExec{
 					Type:    "command",
@@ -78,7 +100,9 @@ func TestParseAppSpec(t *testing.T) {
 				Version: 1,
 				Name:    "test",
 				Cwd:     cwd,
-				Logs:    &protocol.AppLogs{Mode: "inherit"},
+				Logs:    defaultLogs,
+				Restart: defaultRestart,
+				RunAs:   defaultRunAs,
 				Env:     map[string]string{},
 				Exec: protocol.AppExec{
 					Type:    "command",
@@ -95,7 +119,9 @@ func TestParseAppSpec(t *testing.T) {
 				Version: 1,
 				Name:    "",
 				Cwd:     cwd,
-				Logs:    &protocol.AppLogs{Mode: "inherit"},
+				Logs:    defaultLogs,
+				Restart: defaultRestart,
+				RunAs:   defaultRunAs,
 				Env:     map[string]string{},
 				Exec: protocol.AppExec{
 					Type:    "command",
@@ -112,7 +138,9 @@ func TestParseAppSpec(t *testing.T) {
 				Version: 1,
 				Name:    "",
 				Cwd:     cwd,
-				Logs:    &protocol.AppLogs{Mode: "inherit"},
+				Logs:    defaultLogs,
+				Restart: defaultRestart,
+				RunAs:   defaultRunAs,
 				Env:     map[string]string{},
 				Exec: protocol.AppExec{
 					Type:    "command",
@@ -129,7 +157,9 @@ func TestParseAppSpec(t *testing.T) {
 				Version: 1,
 				Name:    "",
 				Cwd:     cwd,
-				Logs:    &protocol.AppLogs{Mode: "inherit"},
+				Logs:    defaultLogs,
+				Restart: defaultRestart,
+				RunAs:   defaultRunAs,
 				Env:     map[string]string{},
 				Exec: protocol.AppExec{
 					Type:    "entry",
@@ -154,12 +184,12 @@ func TestParseAppSpec(t *testing.T) {
 				}
 				return
 			}
-			
-			// Normalize Cwd for comparison as it might resolve to slightly different absolute paths depending on environment
+
+			// Normalize Cwd for comparison
 			if got.Cwd != "" {
 				got.Cwd = cwd
 			}
-			
+
 			if !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("ParseAppSpec() = %+v, want %+v", got, tt.want)
 			}

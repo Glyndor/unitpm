@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.1.2] - 2026-01-29
+
+### Features
+- **start**: Added support for PM2-like flags: `--restart`, `--max-restarts`, `--backoff`, `--schedule`, `--log-dir`, `--stdout`, `--stderr`.
+- **daemon**: Implemented restart policy (always, on-failure, never) and cron-based scheduling.
+- **daemon**: Implemented log file management (stdout/stderr redirection) and directory isolation.
+- **cli**: Standardized command documentation and improved help output.
+
 ## [0.1.1] - 2026-01-29
 
 ### Features

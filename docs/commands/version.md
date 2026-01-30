@@ -12,7 +12,7 @@ lynx version [flags]
 
 | Flag | Type | Default | Description | Example |
 |------|------|---------|-------------|---------|
-| `-h`, `--help` | - | - | Show help message. | `lynx version --help` |
+| `-h`, `--help` | - | - | Show help message. | — |
 
 ## Examples
 
@@ -21,7 +21,8 @@ Show version:
 lynx version
 ```
 
-Example output:
+## Example output
+
 ```
 Lynx CLI
   Version : v0.1.0

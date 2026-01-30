@@ -1,3 +1,5 @@
+//go:build linux
+
 // Package manager implements the core process management logic.
 package manager
 

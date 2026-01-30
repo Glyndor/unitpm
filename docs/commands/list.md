@@ -5,7 +5,7 @@ List all processes managed by Lynx.
 ## Synopsis
 
 ```bash
-lynx list
+lynx list [flags]
 ```
 
 ## Flags
@@ -13,6 +13,7 @@ lynx list
 | Flag | Type | Default | Description | Example |
 |------|------|---------|-------------|---------|
 | `--long` | boolean | false | Show detailed process information (full IDs, uptime, etc). | `lynx list --long` |
+| `-h`, `--help` | - | - | Show help message. | — |
 
 ## Metrics
 
@@ -34,7 +35,16 @@ List with full IDs:
 lynx list --long
 ```
 
-Example output:
+## Example output
+
+Standard:
+```
+id       | name         | status  | uptime | cpu  | mem
+-------- | ------------ | ------- | ------ | ---- | ------
+e73a9f1b | test-app     | online  | 1h 2m  | 0.1% | 12 MB
+```
+
+Long:
 ```
 id       | name                           | namespace            | version    | mode       | pid      | uptime     | ↺     | status          | cpu      | mem        | user            | watch
 -------- | ------------------------------ | -------------------- | ---------- | ---------- | -------- | ---------- | ----- | --------------- | -------- | ---------- | --------------- | ----------

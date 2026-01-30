@@ -1,10 +1,11 @@
+//go:build linux
+
 package transport_test
 
 import (
 	"context"
 	"errors"
 	"os"
-	"runtime"
 	"strconv"
 	"strings"
 	"testing"
@@ -63,9 +64,6 @@ func TestIPC(t *testing.T) {
 }
 
 func TestSocketPermissions(t *testing.T) {
-	if runtime.GOOS == "windows" {
-		t.Skip("Skipping socket permissions test on Windows")
-	}
 	server := transport.NewServer()
 	if err := server.Start(); err != nil {
 		t.Fatalf("Failed to start server: %v", err)
@@ -164,9 +162,9 @@ func TestLimits(t *testing.T) {
 	} else {
 		t.Logf("Got expected error: %v", err)
 		// We expect ERR_LIMITS or connection closed
-		if !strings.Contains(err.Error(), "ERR_LIMITS") && 
-			!strings.Contains(err.Error(), "EOF") && 
-			!strings.Contains(err.Error(), "connection reset") && 
+		if !strings.Contains(err.Error(), "ERR_LIMITS") &&
+			!strings.Contains(err.Error(), "EOF") &&
+			!strings.Contains(err.Error(), "connection reset") &&
 			!strings.Contains(err.Error(), "timeout") &&
 			!strings.Contains(err.Error(), "response ID mismatch") {
 			// It's possible the server closes before sending response, or client fails to read response.
