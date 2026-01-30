@@ -10,9 +10,9 @@ lynx startup [flags]
 
 ## Flags
 
-| Flag | Type | Description |
-|------|------|-------------|
-| `-h`, `--help` | - | Show help message. |
+| Flag | Type | Default | Description | Example |
+|------|------|---------|-------------|---------|
+| `-h`, `--help` | - | - | Show help message. | `lynx startup --help` |
 
 ## Examples
 

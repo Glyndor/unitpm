@@ -10,7 +10,9 @@ lynx list
 
 ## Flags
 
-No flags.
+| Flag | Type | Default | Description | Example |
+|------|------|---------|-------------|---------|
+| `--long` | boolean | false | Show detailed process information (full IDs, uptime, etc). | `lynx list --long` |
 
 ## Metrics
 

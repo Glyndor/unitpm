@@ -10,14 +10,14 @@ lynx start [flags] <command>
 
 ## Flags
 
-| Flag | Type | Description |
-|------|------|-------------|
-| `--name` | string | Name of the process (default: auto-generated from command). |
-| `--cwd` | string | Working directory for the process (default: current directory). |
-| `--cron` | string | Cron schedule expression for scheduled execution. |
-| `--runtime` | string | Runtime limit (e.g. "1h", "30s"). |
-| `--shell` | boolean | Execute command inside a shell. |
-| `--env-file` | string | Path to a file containing environment variables. |
+| Flag | Type | Default | Description | Example |
+|------|------|---------|-------------|---------|
+| `--name` | string | auto | Name of the process. | `--name my-app` |
+| `--cwd` | string | . | Working directory for the process. | `--cwd /var/www` |
+| `--cron` | string | - | Cron schedule expression for scheduled execution. | `--cron "@hourly"` |
+| `--runtime` | string | - | Runtime limit (e.g. "1h", "30s"). | `--runtime 30m` |
+| `--shell` | boolean | false | Execute command inside a shell. | `--shell` |
+| `--env-file` | string | - | Path to a file containing environment variables. | `--env-file .env` |
 
 ## Examples
 
