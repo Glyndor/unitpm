@@ -1,0 +1,3 @@
+#!/bin/sh
+echo "lynx usr/bin"
+echo "lynxd usr/sbin"

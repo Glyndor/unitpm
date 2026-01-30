@@ -1,0 +1,22 @@
+[Unit]
+Description=Lynx Process Manager Daemon
+After=network.target
+
+[Service]
+Type=simple
+ExecStart=/usr/sbin/lynxd
+Restart=on-failure
+User=lynx
+Group=lynx
+RuntimeDirectory=lynx
+StateDirectory=lynx
+LogsDirectory=lynx
+# Hardening
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectSystem=strict
+ProtectHome=read-only
+ReadWritePaths=/var/lib/lynx /var/log/lynx /run/lynx
+
+[Install]
+WantedBy=multi-user.target

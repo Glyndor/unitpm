@@ -1,0 +1,15 @@
+Source: lynx
+Section: admin
+Priority: optional
+Maintainer: Lynx Maintainers <maintainers@example.com>
+Build-Depends: debhelper-compat (= 13), golang-go
+Standards-Version: 4.6.2
+Homepage: https://github.com/Jaro-c/Lynx
+Rules-Requires-Root: no
+
+Package: lynx
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}, systemd
+Description: Process manager for Debian/Ubuntu
+ Lynx is a secure, systemd-friendly process manager.
+ It provides a CLI and daemon for managing applications.

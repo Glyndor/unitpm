@@ -1,0 +1,15 @@
+#!/bin/sh
+set -e
+
+if [ "$1" = "configure" ]; then
+    if ! getent passwd lynx >/dev/null; then
+        adduser --system --group --no-create-home --home /var/lib/lynx lynx
+    fi
+
+    # Ensure directories exist with correct permissions
+    mkdir -p /var/lib/lynx /var/log/lynx
+    chown lynx:lynx /var/lib/lynx /var/log/lynx
+    chmod 0700 /var/lib/lynx /var/log/lynx
+fi
+
+#DEBHELPER#
