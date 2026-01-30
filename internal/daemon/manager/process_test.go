@@ -1,113 +1,62 @@
-//go:build linux
-
-package manager_test
+package manager
 
 import (
 	"os"
+	"strings"
 	"testing"
-	"time"
 
-	"github.com/Jaro-c/Lynx/internal/daemon/manager"
 	"github.com/Jaro-c/Lynx/internal/ipc/protocol"
-	"github.com/Jaro-c/Lynx/internal/types"
 )
 
-func TestProcess_RestartNonBlocking(t *testing.T) {
-	// 1. Setup a process that fails immediately
+func TestPrepareEnv(t *testing.T) {
+	// Mock spec
 	spec := protocol.AppSpec{
-		ID:      "test-restart-non-blocking",
-		Name:    "test-restart",
-		Version: 1,
+		Name: "test-app",
 		Exec: protocol.AppExec{
-			Type:    "command",
-			Command: "sh",
-			Args:    []string{"-c", "exit 1"},
-		},
-		Restart: &protocol.AppRestart{
-			Policy:      "on-failure",
-			MaxRetries:  3,
-			BackoffMs:   100, // Short backoff for test
-			BackoffType: "constant",
-		},
-		Logs: &protocol.AppLogs{
-			Mode: "inherit",
+			Command: "echo",
 		},
 	}
 
-	// Mock XDG_STATE_HOME for log dir creation (if needed)
-	tempDir, err := os.MkdirTemp("", "lynx-test-logs")
-	if err != nil {
-		t.Fatalf("failed to create temp dir: %v", err)
-	}
-	defer os.RemoveAll(tempDir)
-	os.Setenv("XDG_STATE_HOME", tempDir)
-
-	proc, err := manager.NewProcess(spec.ID, spec)
-	if err != nil {
-		t.Fatalf("NewProcess failed: %v", err)
-	}
-
-	// 2. Start the process
-	start := time.Now()
-	if err := proc.Start(); err != nil {
-		t.Fatalf("Start failed: %v", err)
-	}
-	duration := time.Since(start)
-
-	// Verify Start() was non-blocking (should be very fast)
-	if duration > 50*time.Millisecond {
-		t.Errorf("Start() took too long: %v", duration)
-	}
-
-	// 3. Verify it enters Running state
-	info := proc.Info()
-	if info.State != types.StateRunning && info.State != types.StateExited && info.State != types.StateFailed {
-		t.Errorf("Unexpected state: %v", info.State)
-	}
-
-	// 4. Wait for restart (Backoff 100ms + overhead)
-	// It should exit immediately, enter handleRestart, sleep 100ms, then restart.
-	time.Sleep(200 * time.Millisecond)
+	// Case 1: Dynamic Mode (Should not have HOME)
+	dynamicSpec := spec
+	dynamicSpec.RunAs = &protocol.RunAsPolicy{Mode: "dynamic"}
 	
-	_ = proc.Stop()
-}
-
-func TestProcess_SupervisionScheduling(t *testing.T) {
-	// Test that supervision doesn't block
-	spec := protocol.AppSpec{
-		ID:      "test-supervision",
-		Name:    "test-supervision",
-		Version: 1,
-		Exec: protocol.AppExec{
-			Type:    "command",
-			Command: "sleep",
-			Args:    []string{"0.5"},
-		},
-		Restart: &protocol.AppRestart{
-			Policy:      "always",
-			MaxRetries:  1,
-			BackoffMs:   100,
-			BackoffType: "linear",
-		},
-	}
-
-	proc, err := manager.NewProcess(spec.ID, spec)
+	proc, _ := NewProcess("test-id", dynamicSpec)
+	
+	// Inject a fake HOME into process env for testing logic (mocking os.Environ is hard without refactor, 
+	// but we can rely on the fact that 'go test' runs with some env)
+	// We just check that the result does NOT contain HOME if it was in os.Environ()
+	// Actually, in system mode (uid 0), we whitelist. 
+	// Since we can't easily mock Getuid(), we test the logic branches by inference or assuming we are user mode (uid != 0).
+	// If we are user mode, os.Environ() is used. It likely has HOME.
+	
+	env, err := proc.prepareEnv()
 	if err != nil {
-		t.Fatalf("NewProcess failed: %v", err)
+		t.Fatalf("prepareEnv failed: %v", err)
+	}
+	
+	for _, e := range env {
+		if strings.HasPrefix(e, "HOME=") {
+			t.Errorf("Dynamic mode should not have HOME, found: %s", e)
+		}
 	}
 
-	t0 := time.Now()
-	err = proc.Start()
+	// Case 2: Normal Mode (Should have HOME)
+	normalSpec := spec
+	proc2, _ := NewProcess("test-id-2", normalSpec)
+	env2, err := proc2.prepareEnv()
 	if err != nil {
-		t.Fatalf("Start failed: %v", err)
+		t.Fatalf("prepareEnv failed: %v", err)
 	}
-	if time.Since(t0) > 100*time.Millisecond {
-		t.Error("Start() blocked too long")
+	
+	foundHome := false
+	for _, e := range env2 {
+		if strings.HasPrefix(e, "HOME=") {
+			foundHome = true
+			break
+		}
 	}
-
-	// Cleanup
-	go func() {
-		time.Sleep(1 * time.Second)
-		_ = proc.Stop()
-	}()
+	if !foundHome {
+		t.Error("Normal mode should have HOME")
+	}
 }

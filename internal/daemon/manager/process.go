@@ -11,6 +11,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"sync"
 	"time"
@@ -21,6 +22,8 @@ import (
 	"github.com/Jaro-c/Lynx/internal/types"
 	"github.com/robfig/cron/v3"
 )
+
+var validIDRegex = regexp.MustCompile(`^[a-zA-Z0-9_\-]+$`)
 
 // Process wraps an OS process with state tracking.
 type Process struct {
@@ -41,6 +44,10 @@ type Process struct {
 // NewProcess creates a new process instance.
 // It does not start the process.
 func NewProcess(id string, spec protocol.AppSpec) (*Process, error) {
+	if !validIDRegex.MatchString(id) {
+		return nil, fmt.Errorf("invalid process ID: must be alphanumeric/dashes")
+	}
+
 	name := spec.Name
 	if name == "" {
 		if spec.Exec.Type == "entry" {
@@ -174,6 +181,11 @@ func (p *Process) prepareCmd() (*exec.Cmd, error) {
 	// 6. Configure isolation (wraps command if needed)
 	cmd, err = p.prepareIsolation(ctx, cmd)
 	if err != nil {
+		// Close logs if isolation fails to prevent FD leak
+		for _, f := range p.logFiles {
+			_ = f.Close()
+		}
+		p.logFiles = nil
 		return nil, err
 	}
 
@@ -218,8 +230,69 @@ func (p *Process) resolveCommand() (string, []string, error) {
 }
 
 func (p *Process) prepareEnv() ([]string, error) {
-	env := os.Environ()
+	var env []string
+	uid := os.Geteuid()
 
+	// 1. Base Environment
+	if uid == 0 {
+		// System Mode: Whitelist to prevent leaking secrets (e.g. AWS_KEYS)
+		allowed := []string{
+			"PATH", "LANG", "TERM", "TZ", "TMPDIR",
+			"USER", "LOGNAME", "SHELL", "PWD",
+			"XDG_DATA_HOME", "XDG_CONFIG_HOME", "XDG_STATE_HOME", "XDG_CACHE_HOME", "XDG_RUNTIME_DIR",
+		}
+
+		sysEnv := os.Environ()
+		for _, e := range sysEnv {
+			key := strings.SplitN(e, "=", 2)[0]
+			allow := false
+			for _, a := range allowed {
+				if key == a {
+					allow = true
+					break
+				}
+			}
+			if !allow && strings.HasPrefix(key, "LC_") {
+				allow = true
+			}
+			if allow {
+				env = append(env, e)
+			}
+		}
+	} else {
+		// User Mode: Inherit full environment
+		env = os.Environ()
+	}
+
+	// 2. Handle HOME
+	// In dynamic isolation, systemd manages HOME. Do not inject daemon's HOME.
+	isDynamic := p.spec.RunAs != nil && p.spec.RunAs.Mode == "dynamic"
+
+	if isDynamic {
+		// Filter out HOME if it exists (e.g. from user mode inheritance)
+		filtered := env[:0]
+		for _, e := range env {
+			if !strings.HasPrefix(e, "HOME=") {
+				filtered = append(filtered, e)
+			}
+		}
+		env = filtered
+	} else {
+		// If not dynamic, ensure HOME is present (especially for system mode where we didn't whitelist it)
+		// Check if HOME is already there
+		hasHome := false
+		for _, e := range env {
+			if strings.HasPrefix(e, "HOME=") {
+				hasHome = true
+				break
+			}
+		}
+		if !hasHome {
+			env = append(env, "HOME="+os.Getenv("HOME"))
+		}
+	}
+
+	// 3. Env File
 	if p.spec.EnvFile != "" {
 		file, err := os.Open(p.spec.EnvFile)
 		if err != nil {
@@ -260,7 +333,7 @@ func (p *Process) prepareIsolation(ctx context.Context, cmd *exec.Cmd) (*exec.Cm
 		if err := os.MkdirAll(credsDir, 0700); err != nil {
 			return nil, fmt.Errorf("failed to create creds dir: %w", err)
 		}
-		
+
 		envPath := filepath.Join(credsDir, "env")
 		// Write envs to file
 		// We use cmd.Env which contains merged envs
@@ -288,12 +361,20 @@ func (p *Process) prepareIsolation(ctx context.Context, cmd *exec.Cmd) (*exec.Cm
 		}
 
 		sdArgs = append(sdArgs, "--")
+
+		// Use _exec-env wrapper
+		lynxBin, err := p.getLynxBinary()
+		if err != nil {
+			return nil, fmt.Errorf("failed to locate lynx binary for env wrapper: %w", err)
+		}
+		sdArgs = append(sdArgs, lynxBin, "_exec-env")
+
 		sdArgs = append(sdArgs, cmd.Path)
 		sdArgs = append(sdArgs, cmd.Args[1:]...)
 
 		newCmd := exec.CommandContext(ctx, "systemd-run", sdArgs...)
 		// Do NOT pass host env to systemd-run to avoid leaking secrets in process tree
-		// newCmd.Env = cmd.Env 
+		// newCmd.Env = cmd.Env
 		newCmd.Stdout = cmd.Stdout
 		newCmd.Stderr = cmd.Stderr
 		return newCmd, nil
@@ -548,4 +629,27 @@ func (p *Process) Info() types.ProcessInfo {
 // Spec returns the process spec.
 func (p *Process) Spec() protocol.AppSpec {
 	return p.spec
+}
+
+// ResetBackoff resets the restart counter and backoff timer.
+// This should be called on manual restart.
+func (p *Process) ResetBackoff() {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	p.restartCount = 0
+	p.lastRestart = time.Time{}
+}
+
+func (p *Process) getLynxBinary() (string, error) {
+	// Try to find adjacent to current binary (lynxd)
+	exe, err := os.Executable()
+	if err == nil {
+		dir := filepath.Dir(exe)
+		lynxPath := filepath.Join(dir, "lynx")
+		if _, err := os.Stat(lynxPath); err == nil {
+			return lynxPath, nil
+		}
+	}
+	// Fallback to path lookup
+	return exec.LookPath("lynx")
 }
