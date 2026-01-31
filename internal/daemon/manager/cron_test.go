@@ -21,7 +21,7 @@ func TestNewProcess_CronScheduler(t *testing.T) { //nolint:testpackage
 	}
 
 	// 2. Initialize process
-	p, err := NewProcess("test-id-123", spec)
+	p, err := NewProcess("123e4567-e89b-12d3-a456-426614174000", spec)
 	if err != nil {
 		t.Fatalf("NewProcess failed: %v", err)
 	}
