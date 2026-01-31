@@ -1,3 +1,5 @@
+//go:build linux
+
 package manager
 
 import (
@@ -20,7 +22,10 @@ func TestPrepareEnv(t *testing.T) {
 	dynamicSpec := spec
 	dynamicSpec.RunAs = &protocol.RunAsPolicy{Mode: "dynamic"}
 	
-	proc, _ := NewProcess("test-id", dynamicSpec)
+	proc, err := NewProcess("123e4567-e89b-12d3-a456-426614174000", dynamicSpec)
+	if err != nil {
+		t.Fatalf("NewProcess failed: %v", err)
+	}
 	
 	// Inject a fake HOME into process env for testing logic (mocking os.Environ is hard without refactor, 
 	// but we can rely on the fact that 'go test' runs with some env)
@@ -42,7 +47,10 @@ func TestPrepareEnv(t *testing.T) {
 
 	// Case 2: Normal Mode (Should have HOME)
 	normalSpec := spec
-	proc2, _ := NewProcess("123e4567-e89b-12d3-a456-426614174001", normalSpec)
+	proc2, err := NewProcess("123e4567-e89b-12d3-a456-426614174001", normalSpec)
+	if err != nil {
+		t.Fatalf("NewProcess failed: %v", err)
+	}
 	env2, err := proc2.prepareEnv()
 	if err != nil {
 		t.Fatalf("prepareEnv failed: %v", err)
