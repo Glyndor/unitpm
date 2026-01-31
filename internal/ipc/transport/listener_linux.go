@@ -46,9 +46,11 @@ func listen(path string) (net.Listener, error) {
 		if mode&0002 != 0 {
 			return nil, fmt.Errorf("socket directory %s is world-writable (mode %o): insecure", dir, mode)
 		}
-		// Optional: Check owner is root? 
-		// stat_t := info.Sys().(*syscall.Stat_t)
-		// if stat_t.Uid != 0 { ... }
+		// Check owner is root
+		stat_t := info.Sys().(*syscall.Stat_t)
+		if stat_t.Uid != 0 {
+			return nil, fmt.Errorf("socket directory %s is not owned by root (uid: %d)", dir, stat_t.Uid)
+		}
 	}
 
 	var lc net.ListenConfig
