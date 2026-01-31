@@ -105,6 +105,9 @@ func (m *Manager) Restart(id string) error {
 		return fmt.Errorf("process not found: %s", id)
 	}
 
+	// Manual restart resets backoff
+	proc.ResetBackoff()
+
 	return proc.Restart()
 }
 
@@ -120,15 +123,24 @@ func (m *Manager) ResolveID(identifier string) (string, error) {
 
 	var candidates []string
 
-	// 2. Prefix or Name match
-	for id, proc := range m.processes {
+	// 2. Prefix Match
+	for id := range m.processes {
 		if strings.HasPrefix(id, identifier) {
 			candidates = append(candidates, id)
-		} else if proc.info.Name == identifier {
+		}
+	}
+	if len(candidates) > 0 {
+		goto CheckCandidates
+	}
+
+	// 3. Name Match
+	for id, proc := range m.processes {
+		if proc.info.Name == identifier {
 			candidates = append(candidates, id)
 		}
 	}
 
+CheckCandidates:
 	if len(candidates) == 0 {
 		return "", fmt.Errorf("process not found: %s", identifier)
 	}
