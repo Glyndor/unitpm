@@ -36,8 +36,13 @@ func validateIdentity(conn net.Conn) (*Identity, error) {
 		return nil, credErr
 	}
 
-	if int(cred.Uid) != os.Getuid() && cred.Uid != 0 {
-		return nil, fmt.Errorf("unauthorized user: %d", cred.Uid)
+	daemonUID := os.Getuid()
+	clientUID := int(cred.Uid)
+
+	// If daemon is root (0), we rely on socket permissions (0660 group lynxadm).
+	// If daemon is user, we require exact UID match.
+	if daemonUID != 0 && clientUID != daemonUID {
+		return nil, fmt.Errorf("unauthorized user: %d (daemon uid: %d)", clientUID, daemonUID)
 	}
 
 	return &Identity{

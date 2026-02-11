@@ -3,9 +3,11 @@ package spec
 
 import (
 	"fmt"
+	"log"
 	"os"
 	"path/filepath"
 
+	"github.com/Jaro-c/Lynx/internal/ipc/protocol"
 	"github.com/Jaro-c/Lynx/internal/jsonx"
 	"github.com/google/uuid"
 )
@@ -69,4 +71,42 @@ func DeleteSpec(id string) error {
 		return err
 	}
 	return nil
+}
+
+// LoadAll loads all application specs from the config directory.
+// It skips invalid files with a warning log.
+func LoadAll() ([]protocol.AppSpec, error) {
+	dir, err := GetSpecDir()
+	if err != nil {
+		return nil, err
+	}
+
+	entries, err := os.ReadDir(dir)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read spec dir: %w", err)
+	}
+
+	var specs []protocol.AppSpec
+	for _, entry := range entries {
+		if entry.IsDir() || filepath.Ext(entry.Name()) != ".json" {
+			continue
+		}
+
+		path := filepath.Join(dir, entry.Name())
+		bytes, err := os.ReadFile(path)
+		if err != nil {
+			log.Printf("Warning: failed to read spec file %s: %v", path, err)
+			continue
+		}
+
+		var spec protocol.AppSpec
+		if err := jsonx.Unmarshal(bytes, &spec); err != nil {
+			log.Printf("Warning: failed to parse spec file %s: %v", path, err)
+			continue
+		}
+
+		specs = append(specs, spec)
+	}
+
+	return specs, nil
 }

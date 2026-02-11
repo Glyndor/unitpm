@@ -12,6 +12,7 @@ import (
 	"github.com/Jaro-c/Lynx/internal/cli/commands/stop"
 	"github.com/Jaro-c/Lynx/internal/cli/commands/restart"
 	"github.com/Jaro-c/Lynx/internal/cli/commands/delete"
+	"github.com/Jaro-c/Lynx/internal/cli/commands/execenv"
 	"github.com/Jaro-c/Lynx/internal/cli/commands/startup"
 	"github.com/Jaro-c/Lynx/internal/cli/commands/version"
 	"github.com/Jaro-c/Lynx/internal/cli/errs"
@@ -29,6 +30,7 @@ const (
 	cmdDelete  = "delete"
 	cmdStartup = "startup"
 	cmdVersion = "version"
+	cmdExecEnv = "_exec-env"
 	cmdHelp    = "help"
 	flagHelp   = "--help"
 )
@@ -106,6 +108,8 @@ func runCommand(name string, args []string) error {
 	switch name {
 	case cmdVersion:
 		return version.Run(os.Stdout, args)
+	case cmdExecEnv:
+		return execenv.Run(args)
 	case cmdStartup:
 		return startup.Run(nil, args)
 	case cmdList, cmdStart, cmdStop, cmdRestart, cmdDelete:
@@ -180,4 +184,5 @@ func registerCommands() {
 	registry.Register(start.GetSpec())
 	registry.Register(startup.GetSpec())
 	registry.Register(version.GetSpec())
+	registry.Register(execenv.GetSpec())
 }

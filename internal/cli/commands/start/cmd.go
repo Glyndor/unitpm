@@ -35,8 +35,10 @@ func Run(client *transport.Client, args []string) error {
 	}
 
 	// Derive base name if empty
+	autoNamed := false
 	baseName := appSpec.Name
 	if baseName == "" {
+		autoNamed = true
 		if appSpec.Exec.Type == "entry" {
 			baseName = filepath.Base(appSpec.Exec.Entry)
 		} else {
@@ -47,14 +49,7 @@ func Run(client *transport.Client, args []string) error {
 	for i := 0; i < scale; i++ {
 		thisSpec := appSpec
 		
-		// Set Name with index if scaling
-		if scale > 1 {
-			thisSpec.Name = fmt.Sprintf("%s-%d", baseName, i+1)
-		} else {
-			thisSpec.Name = baseName
-		}
-
-		// Generate ID
+		// Generate ID first
 		id, err := spec.GenerateUUIDv4()
 		if err != nil {
 			return fmt.Errorf("failed to generate ID: %w", err)
@@ -62,11 +57,36 @@ func Run(client *transport.Client, args []string) error {
 		thisSpec.ID = id
 		thisSpec.CreatedAt = time.Now().Format(time.RFC3339)
 
-		// Save Spec to disk
-		_, err = spec.SaveSpec(thisSpec.ID, thisSpec)
-		if err != nil {
-			return fmt.Errorf("failed to save spec: %w", err)
+		// Set Name
+		if autoNamed {
+			shortID := id
+			if len(id) > 8 {
+				shortID = id[:8]
+			}
+			if scale > 1 {
+				thisSpec.Name = fmt.Sprintf("%s-%d-%s", baseName, i+1, shortID)
+			} else {
+				thisSpec.Name = fmt.Sprintf("%s-%s", baseName, shortID)
+			}
+		} else {
+			if scale > 1 {
+				thisSpec.Name = fmt.Sprintf("%s-%d", baseName, i+1)
+			} else {
+				thisSpec.Name = baseName
+			}
 		}
+
+		// Inject Instance Index
+		if thisSpec.Env == nil {
+			thisSpec.Env = make(map[string]string)
+		}
+		thisSpec.Env["LYNX_INSTANCE"] = strconv.Itoa(i)
+
+		// Save the spec to disk
+	_, err = spec.SaveSpec(thisSpec.ID, thisSpec)
+	if err != nil {
+		return fmt.Errorf("failed to save spec: %w", err)
+	}
 		
 		// Send Request
 		req := protocol.StartRequest{

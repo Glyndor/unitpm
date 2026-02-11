@@ -23,6 +23,12 @@ func main() {
 	// Register all handlers
 	daemon.RegisterHandlers(server, mgr, false)
 
+	// Restore state
+	log.Println("Restoring processes...")
+	if err := mgr.Restore(); err != nil {
+		log.Printf("Warning: Failed to restore state: %v", err)
+	}
+
 	if err := server.Start(); err != nil {
 		log.Fatalf("Failed to start IPC server: %v", err)
 	}

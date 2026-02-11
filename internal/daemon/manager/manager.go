@@ -6,10 +6,12 @@ package manager
 import (
 	"errors"
 	"fmt"
+	"log"
 	"strings"
 	"sync"
 
 	"github.com/Jaro-c/Lynx/internal/ipc/protocol"
+	spec2 "github.com/Jaro-c/Lynx/internal/spec"
 	"github.com/Jaro-c/Lynx/internal/types"
 )
 
@@ -24,6 +26,30 @@ func NewManager() *Manager {
 	return &Manager{
 		processes: make(map[string]*Process),
 	}
+}
+
+// Restore loads existing specs from disk and starts them.
+func (m *Manager) Restore() error {
+	specs, err := spec2.LoadAll()
+	if err != nil {
+		return fmt.Errorf("failed to load specs: %w", err)
+	}
+
+	log.Printf("Found %d specs to restore", len(specs))
+
+	for _, s := range specs {
+		if s.Disabled {
+			log.Printf("Skipping disabled process: %s", s.Name)
+			continue
+		}
+		log.Printf("Restoring process: %s (%s)", s.Name, s.ID)
+		if _, err := m.StartWithSpec(s); err != nil {
+			log.Printf("Error restoring process %s: %v", s.ID, err)
+			// Continue restoring others
+		}
+	}
+
+	return nil
 }
 
 // Start creates and starts a new process.
@@ -54,6 +80,14 @@ func (m *Manager) StartWithSpec(spec protocol.AppSpec) (types.ProcessInfo, error
 		return types.ProcessInfo{}, err
 	}
 
+	// Ensure Disabled is false (in case it was restarted manually)
+	if spec.Disabled {
+		spec.Disabled = false
+		if _, err := spec2.SaveSpec(spec.ID, spec); err != nil {
+			log.Printf("Warning: failed to update spec for %s: %v", spec.ID, err)
+		}
+	}
+
 	m.processes[spec.ID] = proc
 	return proc.Info(), nil
 }
@@ -76,7 +110,18 @@ func (m *Manager) Stop(id string) error {
 		return fmt.Errorf("process not found: %s", id)
 	}
 
-	return proc.Stop()
+	if err := proc.Stop(); err != nil {
+		return err
+	}
+
+	// Persist Disabled state
+	s := proc.Spec()
+	s.Disabled = true
+	if _, err := spec2.SaveSpec(s.ID, s); err != nil {
+		log.Printf("Warning: failed to save disabled state for %s: %v", id, err)
+	}
+
+	return nil
 }
 
 // Delete stops a process and removes it from the manager.

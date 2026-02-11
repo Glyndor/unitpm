@@ -67,6 +67,7 @@ type AppSpec struct {
 	Cron      string            `json:"cron,omitempty"` // Schedule
 	RunAs     *RunAsPolicy      `json:"runAs,omitempty"`
 	CreatedAt string            `json:"created_at,omitempty"`
+	Disabled  bool              `json:"disabled,omitempty"`
 }
 
 // AppExec defines execution details.
