@@ -14,6 +14,7 @@ import (
 	"github.com/Jaro-c/Lynx/internal/types"
 )
 
+// setupTestEnv overrides HOME to prevent accidental fallback to real user directories.
 func setupTestEnv(t *testing.T) func() {
 	t.Helper()
 
@@ -26,6 +27,7 @@ func setupTestEnv(t *testing.T) func() {
 		_ = os.RemoveAll(tempDir)
 		os.Unsetenv("XDG_CONFIG_HOME")
 		os.Unsetenv("XDG_STATE_HOME")
+		os.Unsetenv("HOME")
 	}
 
 	logDir := filepath.Join(tempDir, "lynx", "logs")
@@ -41,6 +43,10 @@ func setupTestEnv(t *testing.T) func() {
 	if err := os.Setenv("XDG_STATE_HOME", tempDir); err != nil {
 		restore()
 		t.Fatalf("failed to set XDG_STATE_HOME: %v", err)
+	}
+	if err := os.Setenv("HOME", tempDir); err != nil {
+		restore()
+		t.Fatalf("failed to set HOME: %v", err)
 	}
 
 	return restore
