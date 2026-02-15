@@ -114,7 +114,7 @@ func (m *Manager) Stop(id string) error {
 		return fmt.Errorf("process not found: %s", id)
 	}
 
-	if err := proc.Stop(); err != nil {
+	if err := proc.Stop(true); err != nil {
 		return err
 	}
 

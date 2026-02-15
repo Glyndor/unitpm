@@ -24,13 +24,13 @@ import (
 	"github.com/robfig/cron/v3"
 )
 
-// Process wraps an OS process with state tracking.
 type Process struct {
 	mu            sync.Mutex
 	cmd           *exec.Cmd
 	info          types.ProcessInfo
 	spec          protocol.AppSpec
 	stoppedByUser bool
+	noAutoRestart bool
 	exitError     error
 	startTime     time.Time
 	logFiles      []*os.File
@@ -133,10 +133,15 @@ func (p *Process) Start() error {
 	return nil
 }
 
-// Restart stops and starts the process.
 func (p *Process) Restart() error {
-	_ = p.Stop() //nolint:errcheck
-	// Allow some time for cleanup?
+	p.mu.Lock()
+	if p.noAutoRestart {
+		p.mu.Unlock()
+		return nil
+	}
+	p.mu.Unlock()
+
+	_ = p.Stop(false) //nolint:errcheck
 	time.Sleep(100 * time.Millisecond)
 	return p.Start()
 }
@@ -556,19 +561,27 @@ func (p *Process) handleRestart(exitCode int) {
 	}()
 }
 
-// Stop signals the process to terminate.
-func (p *Process) Stop() error {
+func (p *Process) Stop(byUser bool) error {
 	p.mu.Lock()
 
 	if p.scheduler != nil {
 		p.scheduler.Stop()
 	}
 
+	if byUser {
+		p.noAutoRestart = true
+	}
+
 	if p.info.State != types.StateRunning {
+		if byUser {
+			p.info.State = types.StateStopped
+		}
 		p.mu.Unlock()
 		return nil
 	}
-	p.stoppedByUser = true
+	if byUser {
+		p.stoppedByUser = true
+	}
 	proc := p.cmd.Process
 	p.mu.Unlock()
 
@@ -614,6 +627,7 @@ func (p *Process) ResetBackoff() {
 	defer p.mu.Unlock()
 	p.restartCount = 0
 	p.lastRestart = time.Time{}
+	p.noAutoRestart = false
 }
 
 func (p *Process) getLynxBinary() (string, error) {
