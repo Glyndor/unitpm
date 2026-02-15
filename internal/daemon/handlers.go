@@ -1,3 +1,5 @@
+//go:build linux
+
 // Package daemon provides the core daemon logic and initialization.
 package daemon
 

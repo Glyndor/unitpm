@@ -1,3 +1,5 @@
+//go:build linux
+
 package handlers_test
 
 import (

@@ -1,3 +1,5 @@
+//go:build linux
+
 // Package handlers provides the request handlers for the daemon.
 package handlers
 
