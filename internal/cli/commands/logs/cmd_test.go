@@ -194,6 +194,11 @@ func TestRunFollow(t *testing.T) {
 		t.Fatal(err)
 	}
 	os.Stdout = w
+	t.Cleanup(func() {
+		os.Stdout = oldStdout
+		_ = w.Close()
+		_ = r.Close()
+	})
 
 	lineCh := make(chan string, 100)
 	doneRead := make(chan struct{})
@@ -265,11 +270,8 @@ func TestRunFollow(t *testing.T) {
 	case <-time.After(1 * time.Second):
 		t.Fatal("timeout waiting for Run to exit after cancel")
 	}
-
 	if err := w.Close(); err != nil {
 		t.Fatal(err)
 	}
-	os.Stdout = oldStdout
-
 	<-doneRead
 }
