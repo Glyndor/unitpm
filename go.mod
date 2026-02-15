@@ -6,7 +6,8 @@ require (
 	github.com/bytedance/sonic v1.15.0
 	github.com/google/uuid v1.6.0
 	github.com/robfig/cron/v3 v3.0.1
-	golang.org/x/term v0.39.0
+	golang.org/x/term v0.40.0
+	gopkg.in/yaml.v3 v3.0.1
 )
 
 require (
@@ -15,6 +16,6 @@ require (
 	github.com/cloudwego/base64x v0.1.6 // indirect
 	github.com/klauspost/cpuid/v2 v2.3.0 // indirect
 	github.com/twitchyliquid64/golang-asm v0.15.1 // indirect
-	golang.org/x/arch v0.23.0 // indirect
-	golang.org/x/sys v0.40.0 // indirect
+	golang.org/x/arch v0.24.0 // indirect
+	golang.org/x/sys v0.41.0 // indirect
 )
