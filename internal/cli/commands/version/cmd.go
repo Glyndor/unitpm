@@ -1,4 +1,6 @@
 // Package version implements the version command.
+//go:build linux
+
 package version
 
 import (

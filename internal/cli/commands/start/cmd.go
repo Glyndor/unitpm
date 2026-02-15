@@ -1,4 +1,6 @@
 // Package start implements the start command.
+//go:build linux
+
 package start
 
 import (

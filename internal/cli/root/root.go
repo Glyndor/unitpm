@@ -1,4 +1,6 @@
 // Package root implements the root command.
+//go:build linux
+
 package root
 
 import (
@@ -17,6 +19,7 @@ import (
 	"github.com/Jaro-c/Lynx/internal/cli/commands/monit"
 	"github.com/Jaro-c/Lynx/internal/cli/commands/reload"
 	"github.com/Jaro-c/Lynx/internal/cli/commands/restart"
+	"github.com/Jaro-c/Lynx/internal/cli/commands/show"
 	"github.com/Jaro-c/Lynx/internal/cli/commands/start"
 	"github.com/Jaro-c/Lynx/internal/cli/commands/startup"
 	"github.com/Jaro-c/Lynx/internal/cli/commands/stop"
