@@ -18,6 +18,7 @@ import (
 	daemonRuntime "github.com/Jaro-c/Lynx/internal/daemon/runtime"
 	"github.com/Jaro-c/Lynx/internal/ipc/protocol"
 	"github.com/Jaro-c/Lynx/internal/metrics"
+	"github.com/Jaro-c/Lynx/internal/paths"
 	"github.com/Jaro-c/Lynx/internal/types"
 	"github.com/google/uuid"
 	"github.com/robfig/cron/v3"
@@ -402,26 +403,20 @@ func (p *Process) setupLogs(cmd *exec.Cmd) error {
 	}
 
 	// Determine Log Directory
-	logDir, err := p.getLogDir(logs.Dir)
+	stdoutPath, stderrPath, err := paths.ResolveLogPaths(&p.spec)
 	if err != nil {
 		return err
 	}
 
-	// Create per-app log directory
-	appLogDir := filepath.Join(logDir, p.info.ID)
-	if err := os.MkdirAll(appLogDir, 0700); err != nil {
+	// Create per-app log directory (stdoutPath/stderrPath are usually in the same dir)
+	if err := os.MkdirAll(filepath.Dir(stdoutPath), 0700); err != nil {
+		return fmt.Errorf("failed to create log dir: %w", err)
+	}
+	if err := os.MkdirAll(filepath.Dir(stderrPath), 0700); err != nil {
 		return fmt.Errorf("failed to create log dir: %w", err)
 	}
 
 	// Open Stdout
-	stdoutPath := logs.Stdout
-	if stdoutPath == "" {
-		stdoutPath = "stdout.log"
-	}
-	if !filepath.IsAbs(stdoutPath) {
-		stdoutPath = filepath.Join(appLogDir, stdoutPath)
-	}
-
 	fOut, err := os.OpenFile(stdoutPath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0600)
 	if err != nil {
 		return fmt.Errorf("failed to open stdout log: %w", err)
@@ -430,14 +425,6 @@ func (p *Process) setupLogs(cmd *exec.Cmd) error {
 	cmd.Stdout = fOut
 
 	// Open Stderr
-	stderrPath := logs.Stderr
-	if stderrPath == "" {
-		stderrPath = "stderr.log"
-	}
-	if !filepath.IsAbs(stderrPath) {
-		stderrPath = filepath.Join(appLogDir, stderrPath)
-	}
-
 	if stderrPath == stdoutPath {
 		cmd.Stderr = fOut
 	} else {
@@ -450,24 +437,6 @@ func (p *Process) setupLogs(cmd *exec.Cmd) error {
 	}
 
 	return nil
-}
-
-func (p *Process) getLogDir(configuredDir string) (string, error) {
-	if configuredDir != "" {
-		return configuredDir, nil
-	}
-	if os.Geteuid() == 0 {
-		return "/var/log/lynx", nil
-	}
-	stateHome := os.Getenv("XDG_STATE_HOME")
-	if stateHome != "" {
-		return filepath.Join(stateHome, "lynx/logs"), nil
-	}
-	home, err := os.UserHomeDir()
-	if err != nil {
-		return "", fmt.Errorf("failed to get user home: %w", err)
-	}
-	return filepath.Join(home, ".local/state/lynx/logs"), nil
 }
 
 // monitor waits for process exit and updates state.

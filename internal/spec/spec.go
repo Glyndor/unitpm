@@ -37,6 +37,24 @@ func GetSpecDir() (string, error) {
 	return specDir, nil
 }
 
+// LoadSpec loads a single spec by ID.
+func LoadSpec(id string) (*protocol.AppSpec, error) {
+	dir, err := GetSpecDir()
+	if err != nil {
+		return nil, err
+	}
+	path := filepath.Join(dir, id+".json")
+	bytes, err := os.ReadFile(path)
+	if err != nil {
+		return nil, err
+	}
+	var spec protocol.AppSpec
+	if err := jsonx.Unmarshal(bytes, &spec); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal spec: %w", err)
+	}
+	return &spec, nil
+}
+
 // SaveSpec writes the spec to the XDG config directory.
 func SaveSpec(id string, data interface{}) (string, error) {
 	dir, err := GetSpecDir()

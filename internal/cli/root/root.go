@@ -7,13 +7,14 @@ import (
 	"io"
 	"os"
 
-	"github.com/Jaro-c/Lynx/internal/cli/commands/list"
-	"github.com/Jaro-c/Lynx/internal/cli/commands/start"
-	"github.com/Jaro-c/Lynx/internal/cli/commands/stop"
-	"github.com/Jaro-c/Lynx/internal/cli/commands/restart"
 	"github.com/Jaro-c/Lynx/internal/cli/commands/delete"
 	"github.com/Jaro-c/Lynx/internal/cli/commands/execenv"
+	"github.com/Jaro-c/Lynx/internal/cli/commands/list"
+	"github.com/Jaro-c/Lynx/internal/cli/commands/logs"
+	"github.com/Jaro-c/Lynx/internal/cli/commands/restart"
+	"github.com/Jaro-c/Lynx/internal/cli/commands/start"
 	"github.com/Jaro-c/Lynx/internal/cli/commands/startup"
+	"github.com/Jaro-c/Lynx/internal/cli/commands/stop"
 	"github.com/Jaro-c/Lynx/internal/cli/commands/version"
 	"github.com/Jaro-c/Lynx/internal/cli/errs"
 	"github.com/Jaro-c/Lynx/internal/cli/help"
@@ -24,6 +25,7 @@ import (
 
 const (
 	cmdList    = "list"
+	cmdLogs    = "logs"
 	cmdStart   = "start"
 	cmdStop    = "stop"
 	cmdRestart = "restart"
@@ -112,6 +114,8 @@ func runCommand(name string, args []string) error {
 		return execenv.Run(args)
 	case cmdStartup:
 		return startup.Run(nil, args)
+	case cmdLogs:
+		return logs.Run(args)
 	case cmdList, cmdStart, cmdStop, cmdRestart, cmdDelete:
 		client, err := transport.NewClient()
 		if err != nil {
@@ -139,6 +143,9 @@ func printCommandHelp(name string) int {
 	switch name {
 	case cmdList:
 		list.PrintHelp()
+	case cmdLogs:
+		fmt.Println(logs.GetSpec().Usage)
+		fmt.Println(logs.GetSpec().Description)
 	case cmdStart:
 		start.PrintHelp()
 	case cmdStop:
@@ -181,7 +188,11 @@ func printError(w io.Writer, format string, a ...any) {
 
 func registerCommands() {
 	registry.Register(list.GetSpec())
+	registry.Register(logs.GetSpec())
 	registry.Register(start.GetSpec())
+	registry.Register(stop.GetSpec())
+	registry.Register(restart.GetSpec())
+	registry.Register(delete.GetSpec())
 	registry.Register(startup.GetSpec())
 	registry.Register(version.GetSpec())
 	registry.Register(execenv.GetSpec())
