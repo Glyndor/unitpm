@@ -575,12 +575,15 @@ func (p *Process) Stop(byUser bool) error {
 	if p.info.State != types.StateRunning {
 		if byUser {
 			p.info.State = types.StateStopped
+			p.info.PID = 0
 		}
 		p.mu.Unlock()
 		return nil
 	}
 	if byUser {
 		p.stoppedByUser = true
+		p.info.State = types.StateStopped
+		p.info.PID = 0
 	}
 	proc := p.cmd.Process
 	p.mu.Unlock()
