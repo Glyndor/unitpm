@@ -1,12 +1,15 @@
 package logs
 
 import (
+	"bufio"
+	"context"
 	"fmt"
 	"io"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/Jaro-c/Lynx/internal/ipc/protocol"
 	"github.com/Jaro-c/Lynx/internal/jsonx"
@@ -142,4 +145,131 @@ func TestRun(t *testing.T) {
 			t.Errorf("Should not contain stdout: %s", out)
 		}
 	})
+}
+
+func TestRunFollow(t *testing.T) {
+	tmpDir := t.TempDir()
+	configHome := filepath.Join(tmpDir, ".config")
+	stateHome := filepath.Join(tmpDir, ".local/state")
+	t.Setenv("XDG_CONFIG_HOME", configHome)
+	t.Setenv("XDG_STATE_HOME", stateHome)
+
+	specDir := filepath.Join(configHome, "lynx", "apps")
+	logDir := filepath.Join(stateHome, "lynx", "logs", "followapp")
+	if err := os.MkdirAll(specDir, 0700); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.MkdirAll(logDir, 0700); err != nil {
+		t.Fatal(err)
+	}
+
+	spec := protocol.AppSpec{
+		ID:   "followapp",
+		Name: "Follow App",
+		Logs: &protocol.AppLogs{
+			Dir:    "",
+			Stdout: "stdout.log",
+			Stderr: "stderr.log",
+		},
+	}
+	specData, err := jsonx.Marshal(spec)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(specDir, "followapp.json"), specData, 0600); err != nil {
+		t.Fatal(err)
+	}
+
+	stdoutPath := filepath.Join(logDir, "stdout.log")
+	if err := os.WriteFile(stdoutPath, []byte{}, 0600); err != nil {
+		t.Fatal(err)
+	}
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	oldStdout := os.Stdout
+	r, w, err := os.Pipe()
+	if err != nil {
+		t.Fatal(err)
+	}
+	os.Stdout = w
+
+	lineCh := make(chan string, 100)
+	doneRead := make(chan struct{})
+
+	go func() {
+		scanner := bufio.NewScanner(r)
+		for scanner.Scan() {
+			lineCh <- scanner.Text()
+		}
+		close(doneRead)
+	}()
+
+	errCh := make(chan error, 1)
+	go func() {
+		errCh <- runWithContext(ctx, []string{"followapp", "--stdout", "--follow"})
+	}()
+
+	f, err := os.OpenFile(stdoutPath, os.O_APPEND|os.O_WRONLY, 0600)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for i := 1; i <= 3; i++ {
+		if _, err := fmt.Fprintf(f, "OUT Follow %d\n", i); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if err := f.Close(); err != nil {
+		t.Fatal(err)
+	}
+
+	want := map[string]bool{
+		"OUT Follow 1": false,
+		"OUT Follow 2": false,
+		"OUT Follow 3": false,
+	}
+
+	timeout := time.After(1 * time.Second)
+	for {
+		all := true
+		for _, v := range want {
+			if !v {
+				all = false
+				break
+			}
+		}
+		if all {
+			break
+		}
+
+		select {
+		case line := <-lineCh:
+			for k := range want {
+				if strings.Contains(line, k) {
+					want[k] = true
+				}
+			}
+		case <-timeout:
+			t.Fatalf("timeout waiting for follow lines: %+v", want)
+		}
+	}
+
+	cancel()
+
+	select {
+	case err := <-errCh:
+		if err != nil {
+			t.Fatalf("Run returned error: %v", err)
+		}
+	case <-time.After(1 * time.Second):
+		t.Fatal("timeout waiting for Run to exit after cancel")
+	}
+
+	if err := w.Close(); err != nil {
+		t.Fatal(err)
+	}
+	os.Stdout = oldStdout
+
+	<-doneRead
 }

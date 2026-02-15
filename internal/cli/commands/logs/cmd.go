@@ -2,6 +2,7 @@ package logs
 
 import (
 	"bufio"
+	"context"
 	"fmt"
 	"io"
 	"os"
@@ -17,8 +18,14 @@ import (
 	"github.com/Jaro-c/Lynx/internal/term"
 )
 
+type Sleeper func(time.Duration)
+
 // Run executes the logs command.
 func Run(args []string) error {
+	return runWithContext(context.Background(), args)
+}
+
+func runWithContext(ctx context.Context, args []string) error {
 	var (
 		lines      = 200
 		follow     = false
@@ -98,7 +105,7 @@ func Run(args []string) error {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			tailFile(stdoutPath, "STDOUT", lines, follow)
+			tailFile(ctx, stdoutPath, "STDOUT", lines, follow, time.Sleep)
 		}()
 	}
 
@@ -106,7 +113,7 @@ func Run(args []string) error {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			tailFile(stderrPath, "STDERR", lines, follow)
+			tailFile(ctx, stderrPath, "STDERR", lines, follow, time.Sleep)
 		}()
 	}
 
@@ -114,19 +121,28 @@ func Run(args []string) error {
 	return nil
 }
 
-func tailFile(path, label string, n int, follow bool) {
+func tailFile(ctx context.Context, path, label string, n int, follow bool, sleep Sleeper) {
 	f, err := os.Open(path)
 	if err != nil {
 		if os.IsNotExist(err) {
 			// File might not exist yet if process hasn't started/logged
 			if follow {
 				fmt.Printf("[%s] File not found, waiting...\n", label)
-				// Wait for file creation
 				for {
-					time.Sleep(1 * time.Second)
+					select {
+					case <-ctx.Done():
+						return
+					default:
+					}
+
+					sleep(1 * time.Second)
 					f, err = os.Open(path)
 					if err == nil {
 						break
+					}
+					if !os.IsNotExist(err) {
+						fmt.Printf("[%s] Error: %v\n", label, err)
+						return
 					}
 				}
 			} else {
@@ -147,18 +163,20 @@ func tailFile(path, label string, n int, follow bool) {
 		return
 	}
 
-	// Seek to end to ensure we don't re-read what printLastNLines read?
-	// printLastNLines should leave offset at end.
-	// But printLastNLines might iterate.
-	// Simpler: Seek end.
 	_, _ = f.Seek(0, io.SeekEnd)
 
 	reader := bufio.NewReader(f)
 	for {
+		select {
+		case <-ctx.Done():
+			return
+		default:
+		}
+
 		line, err := reader.ReadString('\n')
 		if err != nil {
 			if err == io.EOF {
-				time.Sleep(200 * time.Millisecond)
+				sleep(200 * time.Millisecond)
 				continue
 			}
 			fmt.Printf("[%s] Error: %v\n", label, err)
