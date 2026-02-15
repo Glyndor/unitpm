@@ -67,6 +67,10 @@ func (m *Manager) StartWithSpec(spec protocol.AppSpec) (types.ProcessInfo, error
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
+	if spec.Namespace == "" {
+		spec.Namespace = "default"
+	}
+
 	if _, exists := m.processes[spec.ID]; exists {
 		return types.ProcessInfo{}, fmt.Errorf("process with ID %s already exists", spec.ID)
 	}
@@ -156,10 +160,62 @@ func (m *Manager) Restart(id string) error {
 	return proc.Restart()
 }
 
+func (m *Manager) Reload(id string) error {
+	s, err := spec2.LoadSpec(id)
+	if err != nil {
+		return fmt.Errorf("failed to load spec: %w", err)
+	}
+
+	if s.Namespace == "" {
+		s.Namespace = "default"
+	}
+
+	s.Disabled = false
+	if _, err := spec2.SaveSpec(s.ID, *s); err != nil {
+		log.Printf("Warning: failed to save spec for %s: %v", s.ID, err)
+	}
+
+	_ = m.Stop(id)
+
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	delete(m.processes, id)
+
+	proc, err := NewProcess(id, *s)
+	if err != nil {
+		return err
+	}
+	if err := proc.Start(); err != nil {
+		return err
+	}
+
+	m.processes[id] = proc
+	return nil
+}
+
 // ResolveID resolves an identifier (ID, prefix, or name) to a unique ID.
 func (m *Manager) ResolveID(identifier string) (string, error) {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
+
+	if idx := strings.Index(identifier, ":"); idx != -1 {
+		ns := identifier[:idx]
+		name := identifier[idx+1:]
+		var candidates []string
+		for id, proc := range m.processes {
+			if proc.info.Namespace == ns && proc.info.Name == name {
+				candidates = append(candidates, id)
+			}
+		}
+		if len(candidates) == 0 {
+			return "", fmt.Errorf("process not found: %s", identifier)
+		}
+		if len(candidates) > 1 {
+			return "", fmt.Errorf("ambiguous selector '%s': matches %v", identifier, candidates)
+		}
+		return candidates[0], nil
+	}
 
 	// 1. Exact ID match
 	if _, exists := m.processes[identifier]; exists {

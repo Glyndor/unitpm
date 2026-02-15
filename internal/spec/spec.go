@@ -52,6 +52,9 @@ func LoadSpec(id string) (*protocol.AppSpec, error) {
 	if err := jsonx.Unmarshal(bytes, &spec); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal spec: %w", err)
 	}
+	if spec.Namespace == "" {
+		spec.Namespace = "default"
+	}
 	return &spec, nil
 }
 
@@ -121,6 +124,10 @@ func LoadAll() ([]protocol.AppSpec, error) {
 		if err := jsonx.Unmarshal(bytes, &spec); err != nil {
 			log.Printf("Warning: failed to parse spec file %s: %v", path, err)
 			continue
+		}
+
+		if spec.Namespace == "" {
+			spec.Namespace = "default"
 		}
 
 		specs = append(specs, spec)

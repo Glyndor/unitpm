@@ -48,7 +48,7 @@ func Run(client *transport.Client, args []string) error {
 
 	for i := 0; i < scale; i++ {
 		thisSpec := appSpec
-		
+
 		// Generate ID first
 		id, err := spec.GenerateUUIDv4()
 		if err != nil {
@@ -83,11 +83,11 @@ func Run(client *transport.Client, args []string) error {
 		thisSpec.Env["LYNX_INSTANCE"] = strconv.Itoa(i)
 
 		// Save the spec to disk
-	_, err = spec.SaveSpec(thisSpec.ID, thisSpec)
-	if err != nil {
-		return fmt.Errorf("failed to save spec: %w", err)
-	}
-		
+		_, err = spec.SaveSpec(thisSpec.ID, thisSpec)
+		if err != nil {
+			return fmt.Errorf("failed to save spec: %w", err)
+		}
+
 		// Send Request
 		req := protocol.StartRequest{
 			ProtocolVersion: 1,
@@ -118,6 +118,7 @@ type specParser struct {
 	pos  int
 
 	name          string
+	namespace     string
 	cwd           string
 	stdio         string
 	runAs         string
@@ -203,6 +204,8 @@ func (p *specParser) handleFlag(arg string) error {
 	switch arg {
 	case "--name":
 		return p.readStringValue(&p.name)
+	case "--namespace":
+		return p.readStringValue(&p.namespace)
 	case "--cwd":
 		return p.readStringValue(&p.cwd)
 	case "--cron", "--schedule":
@@ -306,11 +309,17 @@ func (p *specParser) finalize() (protocol.AppSpec, error) {
 		return protocol.AppSpec{}, fmt.Errorf("failed to resolve absolute path for cwd: %w", err)
 	}
 
+	ns := p.namespace
+	if ns == "" {
+		ns = "default"
+	}
+
 	spec := protocol.AppSpec{
-		Version: 1,
-		Name:    p.name,
-		Cwd:     cwd,
-		Cron:    p.cron,
+		Version:   1,
+		Name:      p.name,
+		Namespace: ns,
+		Cwd:       cwd,
+		Cron:      p.cron,
 		Logs: &protocol.AppLogs{
 			Mode:      p.stdio,
 			Stdout:    p.stdout,
@@ -427,6 +436,7 @@ func GetSpec() help.CommandSpec {
 		Description: "Start a new process.",
 		Options: []help.Option{
 			{Short: "", Long: "--name <name>", Description: "Assign a name to the process"},
+			{Short: "", Long: "--namespace <name>", Description: "Assign a namespace to the process"},
 			{Short: "", Long: "--cwd <dir>", Description: "Working directory"},
 			{Short: "", Long: "--shell", Description: "Execute command in shell"},
 			{Short: "", Long: "--schedule <cron>", Description: "Cron schedule for restart (alias --cron)"},

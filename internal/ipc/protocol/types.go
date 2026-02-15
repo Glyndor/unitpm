@@ -53,18 +53,18 @@ type StartError struct {
 	Message string `json:"message"`
 }
 
-// AppSpec defines the application specification.
 type AppSpec struct {
 	Version   int               `json:"version"`
 	ID        string            `json:"id"`
 	Name      string            `json:"name"`
+	Namespace string            `json:"namespace,omitempty"`
 	Exec      AppExec           `json:"exec"`
 	Cwd       string            `json:"cwd,omitempty"`
 	Env       map[string]string `json:"env,omitempty"`
 	EnvFile   string            `json:"envFile,omitempty"`
 	Logs      *AppLogs          `json:"logs,omitempty"`
 	Restart   *AppRestart       `json:"restart,omitempty"`
-	Cron      string            `json:"cron,omitempty"` // Schedule
+	Cron      string            `json:"cron,omitempty"`
 	RunAs     *RunAsPolicy      `json:"runAs,omitempty"`
 	CreatedAt string            `json:"created_at,omitempty"`
 	Disabled  bool              `json:"disabled,omitempty"`
@@ -82,7 +82,7 @@ type AppExec struct {
 
 // AppLogs defines logging configuration.
 type AppLogs struct {
-	Mode      string `json:"mode"`                // "inherit" | "file"
+	Mode      string `json:"mode"` // "inherit" | "file"
 	Dir       string `json:"dir,omitempty"`
 	Stdout    string `json:"stdout,omitempty"`
 	Stderr    string `json:"stderr,omitempty"`
@@ -92,7 +92,7 @@ type AppLogs struct {
 
 // AppRestart defines restart policy.
 type AppRestart struct {
-	Policy      string `json:"policy"`              // "never" | "always" | "on-failure"
+	Policy      string `json:"policy"` // "never" | "always" | "on-failure"
 	MaxRetries  int    `json:"maxRetries,omitempty"`
 	BackoffMs   int    `json:"backoffMs,omitempty"`
 	BackoffType string `json:"backoffType,omitempty"` // "none" | "linear" | "expo"

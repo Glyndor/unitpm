@@ -7,10 +7,15 @@ import (
 	"io"
 	"os"
 
+	"github.com/Jaro-c/Lynx/internal/cli/commands/apply"
 	"github.com/Jaro-c/Lynx/internal/cli/commands/delete"
 	"github.com/Jaro-c/Lynx/internal/cli/commands/execenv"
+	"github.com/Jaro-c/Lynx/internal/cli/commands/export"
+	"github.com/Jaro-c/Lynx/internal/cli/commands/flush"
 	"github.com/Jaro-c/Lynx/internal/cli/commands/list"
 	"github.com/Jaro-c/Lynx/internal/cli/commands/logs"
+	"github.com/Jaro-c/Lynx/internal/cli/commands/monit"
+	"github.com/Jaro-c/Lynx/internal/cli/commands/reload"
 	"github.com/Jaro-c/Lynx/internal/cli/commands/restart"
 	"github.com/Jaro-c/Lynx/internal/cli/commands/start"
 	"github.com/Jaro-c/Lynx/internal/cli/commands/startup"
@@ -32,6 +37,12 @@ const (
 	cmdDelete  = "delete"
 	cmdStartup = "startup"
 	cmdVersion = "version"
+	cmdApply   = "apply"
+	cmdExport  = "export"
+	cmdShow    = "show"
+	cmdMonit   = "monit"
+	cmdReload  = "reload"
+	cmdFlush   = "flush"
 	cmdExecEnv = "_exec-env"
 	cmdHelp    = "help"
 	flagHelp   = "--help"
@@ -110,13 +121,29 @@ func runCommand(name string, args []string) error {
 	switch name {
 	case cmdVersion:
 		return version.Run(os.Stdout, args)
+	case cmdExport:
+		return export.Run(args)
 	case cmdExecEnv:
 		return execenv.Run(args)
 	case cmdStartup:
 		return startup.Run(nil, args)
 	case cmdLogs:
 		return logs.Run(args)
-	case cmdList, cmdStart, cmdStop, cmdRestart, cmdDelete:
+	case cmdShow:
+		client, err := transport.NewClient()
+		if err != nil {
+			return fmt.Errorf("failed to connect to daemon: %w", err)
+		}
+		defer func() { _ = client.Close() }()
+		return show.Run(client, args)
+	case cmdMonit:
+		client, err := transport.NewClient()
+		if err != nil {
+			return fmt.Errorf("failed to connect to daemon: %w", err)
+		}
+		defer func() { _ = client.Close() }()
+		return monit.Run(client, args)
+	case cmdList, cmdStart, cmdStop, cmdRestart, cmdDelete, cmdApply, cmdReload, cmdFlush:
 		client, err := transport.NewClient()
 		if err != nil {
 			return fmt.Errorf("failed to connect to daemon: %w", err)
@@ -128,12 +155,18 @@ func runCommand(name string, args []string) error {
 			return list.Run(client, args)
 		case cmdStart:
 			return start.Run(client, args)
+		case cmdApply:
+			return apply.Run(client, args)
 		case cmdStop:
 			return stop.Run(client, args)
 		case cmdRestart:
 			return restart.Run(client, args)
 		case cmdDelete:
 			return delete.Run(client, args)
+		case cmdReload:
+			return reload.Run(client, args)
+		case cmdFlush:
+			return flush.Run(client, args)
 		}
 	}
 	return nil
@@ -158,6 +191,18 @@ func printCommandHelp(name string) int {
 		startup.PrintHelp()
 	case cmdVersion:
 		version.PrintHelp()
+	case cmdApply:
+		apply.PrintHelp()
+	case cmdExport:
+		export.PrintHelp()
+	case cmdShow:
+		show.PrintHelp()
+	case cmdMonit:
+		monit.PrintHelp()
+	case cmdReload:
+		reload.PrintHelp()
+	case cmdFlush:
+		flush.PrintHelp()
 	}
 	return 0
 }
@@ -196,4 +241,10 @@ func registerCommands() {
 	registry.Register(startup.GetSpec())
 	registry.Register(version.GetSpec())
 	registry.Register(execenv.GetSpec())
+	registry.Register(apply.GetSpec())
+	registry.Register(export.GetSpec())
+	registry.Register(show.GetSpec())
+	registry.Register(monit.GetSpec())
+	registry.Register(reload.GetSpec())
+	registry.Register(flush.GetSpec())
 }

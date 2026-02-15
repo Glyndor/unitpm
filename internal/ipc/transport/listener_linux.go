@@ -67,7 +67,7 @@ func listen(path string) (net.Listener, error) {
 			gid, _ := strconv.Atoi(g.Gid)
 			// Change group ownership of the SOCKET
 			if err := os.Chown(path, -1, gid); err != nil {
-				// Log error? We don't have logger here. 
+				// Log error? We don't have logger here.
 				// But failing to set group might be okay if we are not running as a user who can do it (e.g. dev)
 				// However, in production it should work.
 			}

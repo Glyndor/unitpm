@@ -1,0 +1,93 @@
+package apply
+
+import (
+	"fmt"
+	"os"
+	"time"
+
+	"github.com/Jaro-c/Lynx/internal/cli/errs"
+	"github.com/Jaro-c/Lynx/internal/cli/help"
+	"github.com/Jaro-c/Lynx/internal/ipc/protocol"
+	"github.com/Jaro-c/Lynx/internal/ipc/transport"
+	"github.com/Jaro-c/Lynx/internal/lynxfile"
+	"github.com/Jaro-c/Lynx/internal/spec"
+	"github.com/Jaro-c/Lynx/internal/term"
+)
+
+func Run(client *transport.Client, args []string) error {
+	if help.IsHelp(args) {
+		PrintHelp()
+		return nil
+	}
+
+	if len(args) == 0 {
+		return errs.NewUsageError("missing Lynxfile path")
+	}
+
+	path := args[0]
+
+	f, err := os.Open(path)
+	if err != nil {
+		return fmt.Errorf("failed to open Lynxfile: %w", err)
+	}
+	defer f.Close()
+
+	file, err := lynxfile.Parse(f)
+	if err != nil {
+		return err
+	}
+
+	specs, err := file.ToAppSpecs()
+	if err != nil {
+		return err
+	}
+
+	for _, s := range specs {
+		id, err := spec.GenerateUUIDv4()
+		if err != nil {
+			return fmt.Errorf("failed to generate ID: %w", err)
+		}
+
+		s.ID = id
+		if s.Namespace == "" {
+			s.Namespace = "default"
+		}
+		s.CreatedAt = time.Now().Format(time.RFC3339)
+
+		if s.Env == nil {
+			s.Env = make(map[string]string)
+		}
+
+		if _, err := spec.SaveSpec(s.ID, s); err != nil {
+			return fmt.Errorf("failed to save spec: %w", err)
+		}
+
+		req := protocol.StartRequest{
+			ProtocolVersion: 1,
+			Type:            "start",
+			RequestID:       s.ID,
+			Spec:            s,
+		}
+
+		var resp protocol.StartResponseData
+		if err := client.Call("start", req, &resp); err != nil {
+			return fmt.Errorf("apply failed for %s: %w", s.Name, err)
+		}
+
+		term.Printf("Applied %s/%s\n", s.Namespace, s.Name)
+	}
+
+	return nil
+}
+
+func GetSpec() help.CommandSpec {
+	return help.CommandSpec{
+		Name:        "apply",
+		Usage:       "lynx apply <Lynxfile.yml>",
+		Description: "Apply a Lynxfile.yml declarative configuration",
+	}
+}
+
+func PrintHelp(w ...interface{}) {
+	help.RenderCommandHelp(os.Stdout, GetSpec())
+}

@@ -68,7 +68,15 @@ func runWithContext(ctx context.Context, args []string) error {
 		return fmt.Errorf("missing process ID or name")
 	}
 
-	// Resolve target locally
+	var namespace string
+	var nameOrID string
+	if idx := strings.Index(target, ":"); idx != -1 {
+		namespace = target[:idx]
+		nameOrID = target[idx+1:]
+	} else {
+		nameOrID = target
+	}
+
 	specs, err := spec.LoadAll()
 	if err != nil {
 		return fmt.Errorf("failed to load specs: %w", err)
@@ -76,12 +84,18 @@ func runWithContext(ctx context.Context, args []string) error {
 
 	var match *protocol.AppSpec
 	for _, s := range specs {
-		// Match exact ID, Name, or partial ID
-		if s.ID == target || s.Name == target || strings.HasPrefix(s.ID, target) {
+		ns := s.Namespace
+		if ns == "" {
+			ns = "default"
+		}
+		if namespace != "" && ns != namespace {
+			continue
+		}
+		if s.ID == nameOrID || s.Name == nameOrID || strings.HasPrefix(s.ID, nameOrID) {
 			if match != nil && match.ID != s.ID {
 				return fmt.Errorf("ambiguous argument '%s': matches multiple processes", target)
 			}
-			current := s // copy
+			current := s
 			match = &current
 		}
 	}

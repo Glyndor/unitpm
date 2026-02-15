@@ -20,7 +20,7 @@ func Run(client *transport.Client, args []string) error {
 			Status string `json:"status"`
 			ID     string `json:"id"`
 		}
-		
+
 		err := client.Call("stop", map[string]string{"id": id}, &resp)
 		if err != nil {
 			term.Printf("Failed to stop %s: %v\n", id, err)

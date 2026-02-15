@@ -56,12 +56,17 @@ func NewProcess(id string, spec protocol.AppSpec) (*Process, error) {
 		}
 	}
 
+	ns := spec.Namespace
+	if ns == "" {
+		ns = "default"
+	}
+
 	proc := &Process{
 		spec: spec,
 		info: types.ProcessInfo{
 			ID:        id,
 			Name:      name,
-			Namespace: "default",
+			Namespace: ns,
 			Version:   "0.0.1",
 			Mode:      "fork",
 			State:     types.StateStopped,
@@ -98,7 +103,8 @@ func (p *Process) Start() error {
 	}
 	p.cmd = cmd
 
-	p.startTime = time.Now()
+	now := time.Now()
+	p.startTime = now
 	if err := p.cmd.Start(); err != nil {
 		p.info.State = types.StateFailed
 		return fmt.Errorf("failed to start process: %w", err)
@@ -106,6 +112,9 @@ func (p *Process) Start() error {
 
 	p.info.PID = p.cmd.Process.Pid
 	p.info.State = types.StateRunning
+	if p.info.CreatedAt == "" {
+		p.info.CreatedAt = now.Format(time.RFC3339)
+	}
 	p.exitError = nil
 	p.stoppedByUser = false
 

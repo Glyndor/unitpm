@@ -33,7 +33,11 @@ func Run(client *transport.Client, args []string) error {
 	}
 
 	var showLong bool
+	var namespaceFilter string
+	var sortSpec string
 	fs.BoolVar(&showLong, "long", false, "Show full process IDs")
+	fs.StringVar(&namespaceFilter, "namespace", "", "Filter by namespace")
+	fs.StringVar(&sortSpec, "sort", "", "Sort order, e.g. 'namespace:asc,name:asc,createdAt:desc'")
 
 	if err := fs.Parse(args); err != nil {
 		if strings.HasPrefix(err.Error(), "flag provided but not defined: -") {
@@ -52,15 +56,84 @@ func Run(client *transport.Client, args []string) error {
 		return fmt.Errorf("list failed: %w", err)
 	}
 
-	// Sort processes: Namespace -> Name -> ID
+	if namespaceFilter != "" {
+		filtered := processes[:0]
+		for _, p := range processes {
+			ns := p.Namespace
+			if ns == "" {
+				ns = "default"
+			}
+			if ns == namespaceFilter {
+				filtered = append(filtered, p)
+			}
+		}
+		processes = filtered
+	}
+
+	fields, err := parseSortSpec(sortSpec)
+	if err != nil {
+		return err
+	}
+
+	if len(fields) == 0 {
+		fields = []sortField{
+			{Field: "namespace", Asc: true},
+			{Field: "name", Asc: true},
+			{Field: "createdAt", Asc: false},
+			{Field: "id", Asc: true},
+		}
+	}
+
 	sort.Slice(processes, func(i, j int) bool {
-		if processes[i].Namespace != processes[j].Namespace {
-			return processes[i].Namespace < processes[j].Namespace
+		for _, f := range fields {
+			switch f.Field {
+			case "namespace":
+				ni := processes[i].Namespace
+				if ni == "" {
+					ni = "default"
+				}
+				nj := processes[j].Namespace
+				if nj == "" {
+					nj = "default"
+				}
+				if ni == nj {
+					continue
+				}
+				if f.Asc {
+					return ni < nj
+				}
+				return ni > nj
+			case "name":
+				ni := strings.ToLower(processes[i].Name)
+				nj := strings.ToLower(processes[j].Name)
+				if ni == nj {
+					continue
+				}
+				if f.Asc {
+					return ni < nj
+				}
+				return ni > nj
+			case "createdAt":
+				ci := processes[i].CreatedAt
+				cj := processes[j].CreatedAt
+				if ci == cj {
+					continue
+				}
+				if f.Asc {
+					return ci < cj
+				}
+				return ci > cj
+			case "id":
+				if processes[i].ID == processes[j].ID {
+					continue
+				}
+				if f.Asc {
+					return processes[i].ID < processes[j].ID
+				}
+				return processes[i].ID > processes[j].ID
+			}
 		}
-		if processes[i].Name != processes[j].Name {
-			return processes[i].Name < processes[j].Name
-		}
-		return processes[i].ID < processes[j].ID
+		return false
 	})
 
 	renderTable(processes, showLong)
@@ -175,8 +248,48 @@ func GetSpec() help.CommandSpec {
 		Options: []help.Option{
 			{Short: "-h", Long: "--help", Description: "Show this help message."},
 			{Short: "", Long: "--long", Description: "Show full process IDs."},
+			{Short: "", Long: "--namespace <name>", Description: "Filter by namespace"},
+			{Short: "", Long: "--sort <fields>", Description: "Sort order, e.g. 'namespace:asc,name:asc,createdAt:desc'"},
 		},
 	}
+}
+
+type sortField struct {
+	Field string
+	Asc   bool
+}
+
+func parseSortSpec(spec string) ([]sortField, error) {
+	if spec == "" {
+		return nil, nil
+	}
+
+	parts := strings.Split(spec, ",")
+	fields := make([]sortField, 0, len(parts))
+	for _, part := range parts {
+		part = strings.TrimSpace(part)
+		if part == "" {
+			continue
+		}
+		field := part
+		asc := true
+		if idx := strings.Index(part, ":"); idx != -1 {
+			field = strings.TrimSpace(part[:idx])
+			dir := strings.ToLower(strings.TrimSpace(part[idx+1:]))
+			if dir == "desc" {
+				asc = false
+			} else if dir != "" && dir != "asc" {
+				return nil, &errs.UsageError{Message: fmt.Sprintf("invalid sort direction: %s", dir)}
+			}
+		}
+		switch field {
+		case "namespace", "name", "createdAt", "id":
+		default:
+			return nil, &errs.UsageError{Message: fmt.Sprintf("invalid sort field: %s", field)}
+		}
+		fields = append(fields, sortField{Field: field, Asc: asc})
+	}
+	return fields, nil
 }
 
 // PrintHelp prints the help message for the list command.

@@ -19,8 +19,6 @@ const (
 	StateRestarting ProcessState = "restarting"
 )
 
-// ProcessInfo represents the status of a managed process
-// It contains only raw data, no formatting.
 type ProcessInfo struct {
 	ID        string       `json:"id"`
 	Name      string       `json:"name"`
@@ -35,4 +33,5 @@ type ProcessInfo struct {
 	Memory    int64        `json:"memory_bytes"` // Bytes
 	User      string       `json:"user"`
 	Watch     bool         `json:"watch"`
+	CreatedAt string       `json:"created_at,omitempty"`
 }

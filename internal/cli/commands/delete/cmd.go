@@ -31,7 +31,7 @@ func Run(client *transport.Client, args []string) error {
 			Status string `json:"status"`
 			ID     string `json:"id"`
 		}
-		
+
 		req := map[string]interface{}{
 			"id":    id,
 			"purge": purge,
