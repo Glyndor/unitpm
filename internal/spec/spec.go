@@ -107,7 +107,7 @@ func LoadAll() ([]protocol.AppSpec, error) {
 		return nil, fmt.Errorf("failed to read spec dir: %w", err)
 	}
 
-	var specs []protocol.AppSpec
+	specs := make([]protocol.AppSpec, 0, len(entries))
 	for _, entry := range entries {
 		if entry.IsDir() || filepath.Ext(entry.Name()) != ".json" {
 			continue

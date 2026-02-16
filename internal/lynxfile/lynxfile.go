@@ -1,6 +1,7 @@
 package lynxfile
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"strings"
@@ -59,12 +60,12 @@ func Parse(r io.Reader) (*File, error) {
 	}
 
 	if len(f.Apps) == 0 {
-		return nil, fmt.Errorf("lynxfile has no apps")
+		return nil, errors.New("lynxfile has no apps")
 	}
 
 	for _, app := range f.Apps {
 		if strings.TrimSpace(app.Name) == "" {
-			return nil, fmt.Errorf("Lynxfile app has empty name")
+			return nil, errors.New("lynxfile app has empty name")
 		}
 		if app.Command != "" && app.Entry != "" {
 			return nil, fmt.Errorf("lynxfile app %s has both command and entry", app.Name)
@@ -115,7 +116,11 @@ func (f *File) ToAppSpecs() ([]protocol.AppSpec, error) {
 			}
 		}
 
-		if app.Logs.Dir != "" || app.Logs.Stdout != "" || app.Logs.Stderr != "" || app.Logs.Format != "" || app.Logs.Timestamp != "" {
+		if app.Logs.Dir != "" ||
+			app.Logs.Stdout != "" ||
+			app.Logs.Stderr != "" ||
+			app.Logs.Format != "" ||
+			app.Logs.Timestamp != "" {
 			base.Logs = &protocol.AppLogs{
 				Dir:       app.Logs.Dir,
 				Stdout:    app.Logs.Stdout,

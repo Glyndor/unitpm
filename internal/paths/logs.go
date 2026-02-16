@@ -28,7 +28,7 @@ func GetLogDir(configuredDir string) (string, error) {
 }
 
 // ResolveLogPaths returns the absolute paths for stdout and stderr logs for a given spec.
-func ResolveLogPaths(spec *protocol.AppSpec) (stdoutPath, stderrPath string, err error) {
+func ResolveLogPaths(spec *protocol.AppSpec) (string, string, error) {
 	logs := spec.Logs
 	if logs == nil {
 		logs = &protocol.AppLogs{}
@@ -43,7 +43,7 @@ func ResolveLogPaths(spec *protocol.AppSpec) (stdoutPath, stderrPath string, err
 	appLogDir := filepath.Join(logDir, spec.ID)
 
 	// Stdout
-	stdoutPath = logs.Stdout
+	stdoutPath := logs.Stdout
 	if stdoutPath == "" {
 		stdoutPath = "stdout.log"
 	}
@@ -52,7 +52,7 @@ func ResolveLogPaths(spec *protocol.AppSpec) (stdoutPath, stderrPath string, err
 	}
 
 	// Stderr
-	stderrPath = logs.Stderr
+	stderrPath := logs.Stderr
 	if stderrPath == "" {
 		stderrPath = "stderr.log"
 	}

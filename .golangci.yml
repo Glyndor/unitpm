@@ -146,6 +146,13 @@ linters:
         # Do not enforce suggested struct field access rewrites
         - -QF1008
 
+    revive:
+      rules:
+        - name: exported
+          disabled: true
+        - name: package-comments
+          disabled: true
+
     goimports:
       # Local import prefix for proper grouping
       local-prefixes:

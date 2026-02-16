@@ -1,5 +1,5 @@
 // Package types contains shared type definitions.
-package types //nolint:revive
+package types
 
 // ProcessState represents the current state of a process.
 type ProcessState string
