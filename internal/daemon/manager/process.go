@@ -476,6 +476,7 @@ func (p *Process) monitor() {
 
 	if p.stoppedByUser {
 		p.info.State = types.StateStopped
+		p.info.PID = 0
 		p.mu.Unlock()
 		return
 	}
