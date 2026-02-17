@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/Jaro-c/Lynx/internal/ipc/protocol"
 )
@@ -11,7 +12,15 @@ import (
 // GetLogDir resolves the root log directory.
 func GetLogDir(configuredDir string) (string, error) {
 	if configuredDir != "" {
-		return configuredDir, nil
+		if len(configuredDir) > 4096 {
+			return "", fmt.Errorf("log dir too long")
+		}
+		clean := filepath.Clean(configuredDir)
+		if strings.Contains(clean, ".."+string(os.PathSeparator)) ||
+			strings.HasPrefix(clean, ".."+string(os.PathSeparator)) {
+			return "", fmt.Errorf("invalid log dir")
+		}
+		return clean, nil
 	}
 	if os.Geteuid() == 0 {
 		return "/var/log/lynx", nil

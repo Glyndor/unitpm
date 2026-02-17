@@ -173,3 +173,118 @@ func TestLimits(t *testing.T) {
 		}
 	}
 }
+
+func TestIPCAllowlistUIDs_Allowed(t *testing.T) {
+	uid := os.Getuid()
+	if err := os.Setenv("LYNX_IPC_ALLOW_UIDS", strconv.Itoa(uid)); err != nil {
+		t.Fatalf("failed to set allowlist env: %v", err)
+	}
+	defer func() { _ = os.Unsetenv("LYNX_IPC_ALLOW_UIDS") }()
+
+	server := transport.NewServer()
+	server.Register("ping", func(_ context.Context, _ jsonx.RawMessage) (jsonx.RawMessage, error) {
+		return jsonx.Marshal(map[string]string{"response": "pong"})
+	})
+
+	if err := server.Start(); err != nil {
+		t.Fatalf("Failed to start server: %v", err)
+	}
+	defer func() { _ = server.Close() }()
+
+	time.Sleep(100 * time.Millisecond)
+
+	client, err := transport.NewClient()
+	if err != nil {
+		t.Fatalf("Failed to create client: %v", err)
+	}
+	defer func() { _ = client.Close() }()
+
+	var result map[string]string
+	if err := client.Call("ping", nil, &result); err != nil {
+		t.Fatalf("Ping with allowlist failed: %v", err)
+	}
+	if result["response"] != "pong" {
+		t.Errorf("Unexpected response: got %v, want pong", result)
+	}
+}
+
+func TestIPCAllowlistUIDs_Denied(t *testing.T) {
+	if err := os.Setenv("LYNX_IPC_ALLOW_UIDS", "999999"); err != nil {
+		t.Fatalf("failed to set allowlist env: %v", err)
+	}
+	defer func() { _ = os.Unsetenv("LYNX_IPC_ALLOW_UIDS") }()
+
+	server := transport.NewServer()
+	server.Register("ping", func(_ context.Context, _ jsonx.RawMessage) (jsonx.RawMessage, error) {
+		return jsonx.Marshal(map[string]string{"response": "pong"})
+	})
+
+	if err := server.Start(); err != nil {
+		t.Fatalf("Failed to start server: %v", err)
+	}
+	defer func() { _ = server.Close() }()
+
+	time.Sleep(100 * time.Millisecond)
+
+	client, err := transport.NewClient()
+	if err != nil {
+		return
+	}
+	defer func() { _ = client.Close() }()
+
+	var result map[string]string
+	err = client.Call("ping", nil, &result)
+	if err == nil {
+		t.Fatal("expected error for unauthorized client, got nil")
+	}
+	if !strings.Contains(err.Error(), "unauthorized user") &&
+		!strings.Contains(err.Error(), "permission") &&
+		!strings.Contains(err.Error(), "denied") {
+		t.Fatalf("unexpected error for unauthorized client: %v", err)
+	}
+}
+
+func TestServerRecoverFromHandlerPanic(t *testing.T) {
+	server := transport.NewServer()
+	server.Register("panic", func(
+		_ context.Context,
+		_ jsonx.RawMessage,
+	) (jsonx.RawMessage, error) {
+		panic("boom")
+	})
+	server.Register("ping", func(
+		_ context.Context,
+		_ jsonx.RawMessage,
+	) (jsonx.RawMessage, error) {
+		return jsonx.Marshal(map[string]string{"response": "pong"})
+	})
+
+	if err := server.Start(); err != nil {
+		t.Fatalf("Failed to start server: %v", err)
+	}
+	defer func() { _ = server.Close() }()
+
+	time.Sleep(100 * time.Millisecond)
+
+	client, err := transport.NewClient()
+	if err != nil {
+		t.Fatalf("Failed to create client: %v", err)
+	}
+	defer func() { _ = client.Close() }()
+
+	_ = client.Call("panic", nil, nil)
+
+	client2, err := transport.NewClient()
+	if err != nil {
+		t.Fatalf("Failed to create second client: %v", err)
+	}
+	defer func() { _ = client2.Close() }()
+
+	var result map[string]string
+	if err := client2.Call("ping", nil, &result); err != nil {
+		t.Fatalf("Ping after panic failed: %v", err)
+	}
+	if result["response"] != "pong" {
+		t.Errorf("Unexpected response after panic: got %v, want pong", result)
+	}
+}

@@ -7,6 +7,8 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"os"
+	"strconv"
 	"strings"
 	"sync"
 
@@ -66,6 +68,14 @@ func (m *Manager) Start(_, _ string) (string, error) {
 func (m *Manager) StartWithSpec(spec protocol.AppSpec) (types.ProcessInfo, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
+
+	if limitStr := os.Getenv("LYNX_MAX_PROCESSES"); limitStr != "" {
+		if limit, err := strconv.Atoi(limitStr); err == nil && limit > 0 {
+			if len(m.processes) >= limit {
+				return types.ProcessInfo{}, errors.New("ERR_LIMITS: max processes reached")
+			}
+		}
+	}
 
 	if spec.Namespace == "" {
 		spec.Namespace = "default"

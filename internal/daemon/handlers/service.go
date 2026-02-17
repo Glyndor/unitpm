@@ -6,7 +6,9 @@ package handlers
 import (
 	"errors"
 	"os"
+	"path/filepath"
 	"regexp"
+	"strings"
 
 	"github.com/Jaro-c/Lynx/internal/daemon/manager"
 	"github.com/Jaro-c/Lynx/internal/daemon/policy"
@@ -16,6 +18,7 @@ import (
 )
 
 var nameRegex = regexp.MustCompile(`^[a-zA-Z0-9][a-zA-Z0-9._-]{0,63}$`)
+var namespaceRegex = regexp.MustCompile(`^[a-zA-Z0-9][a-zA-Z0-9._-]{0,63}$`)
 
 // StartProcess handles the process start request with full validation and policy enforcement.
 func StartProcess(
@@ -80,6 +83,67 @@ func validateSpec(spec protocol.AppSpec) error {
 	if spec.Name != "" {
 		if !nameRegex.MatchString(spec.Name) {
 			return errors.New("ERR_BAD_REQUEST: invalid name format")
+		}
+	}
+
+	if spec.Namespace != "" {
+		if !namespaceRegex.MatchString(spec.Namespace) {
+			return errors.New("ERR_BAD_REQUEST: invalid namespace format")
+		}
+	}
+
+	if spec.EnvFile != "" {
+		if len(spec.EnvFile) > 4096 {
+			return errors.New("ERR_LIMITS: env_file path too long")
+		}
+		if strings.Contains(spec.EnvFile, ".."+string(os.PathSeparator)) ||
+			strings.Contains(spec.EnvFile, string(os.PathSeparator)+"..") {
+			return errors.New("ERR_BAD_REQUEST: env_file must not contain '..'")
+		}
+	}
+
+	if spec.Logs != nil {
+		if len(spec.Logs.Dir) > 4096 {
+			return errors.New("ERR_LIMITS: log dir too long")
+		}
+		if spec.Logs.Mode != "" &&
+			spec.Logs.Mode != "inherit" &&
+			spec.Logs.Mode != "file" {
+			return errors.New("ERR_BAD_REQUEST: invalid logs mode")
+		}
+		if spec.Logs.Format != "" &&
+			spec.Logs.Format != "plain" &&
+			spec.Logs.Format != "json" {
+			return errors.New("ERR_BAD_REQUEST: invalid logs format")
+		}
+		if spec.Logs.Timestamp != "" &&
+			spec.Logs.Timestamp != "none" &&
+			spec.Logs.Timestamp != "rfc3339" &&
+			spec.Logs.Timestamp != "unix" {
+			return errors.New("ERR_BAD_REQUEST: invalid logs timestamp")
+		}
+
+		for _, p := range []string{spec.Logs.Dir, spec.Logs.Stdout, spec.Logs.Stderr} {
+			if p == "" {
+				continue
+			}
+			if len(p) > 4096 {
+				return errors.New("ERR_LIMITS: log path too long")
+			}
+			clean := filepath.Clean(p)
+			if strings.Contains(clean, ".."+string(os.PathSeparator)) ||
+				strings.HasPrefix(clean, ".."+string(os.PathSeparator)) {
+				return errors.New("ERR_BAD_REQUEST: log paths must not contain '..'")
+			}
+		}
+	}
+
+	if spec.Cron != "" {
+		if len(spec.Cron) > 256 {
+			return errors.New("ERR_LIMITS: cron spec too long")
+		}
+		if strings.Contains(spec.Cron, "\n") || strings.Contains(spec.Cron, "\r") {
+			return errors.New("ERR_BAD_REQUEST: invalid cron spec")
 		}
 	}
 

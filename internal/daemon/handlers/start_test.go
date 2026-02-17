@@ -239,6 +239,51 @@ func TestStartHandler_Execution(t *testing.T) {
 	}
 }
 
+func TestStartHandler_ShellDeniedInPrivilegedMode(t *testing.T) {
+	mgr := manager.NewManager()
+	handler := handlers.StartHandler(mgr, true)
+
+	ctx := context.WithValue(
+		context.Background(),
+		transport.ContextKeyIdentity,
+		&transport.Identity{
+			UID: "1000",
+			GID: "1000",
+			PID: 1234,
+		},
+	)
+
+	spec := protocol.AppSpec{
+		ID: "123e4567-e89b-12d3-a456-426614174100",
+		Exec: protocol.AppExec{
+			Type:    "command",
+			Command: "echo",
+			Args:    []string{"hello"},
+			Shell:   true,
+		},
+		RunAs: &protocol.RunAsPolicy{Mode: "self"},
+	}
+
+	req := protocol.StartRequest{
+		ProtocolVersion: 1,
+		Type:            "start",
+		RequestID:       spec.ID,
+		Spec:            spec,
+	}
+	reqBytes, err := jsonx.Marshal(req)
+	if err != nil {
+		t.Fatalf("Failed to marshal req: %v", err)
+	}
+
+	_, err = handler(ctx, reqBytes)
+	if err == nil {
+		t.Fatal("StartHandler() expected error for shell in privileged mode, got nil")
+	}
+	if !strings.Contains(err.Error(), "ERR_UNSUPPORTED") {
+		t.Fatalf("StartHandler() error = %v, want ERR_UNSUPPORTED", err)
+	}
+}
+
 func makeEnv(count int) map[string]string {
 	env := make(map[string]string)
 	for i := 0; i < count; i++ {

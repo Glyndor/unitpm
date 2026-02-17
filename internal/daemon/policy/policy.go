@@ -11,15 +11,22 @@ import (
 )
 
 // AuthorizeStart checks if the start request is allowed.
-func AuthorizeStart(spec protocol.AppSpec, _ *transport.Identity, _ bool) error {
+func AuthorizeStart(spec protocol.AppSpec, _ *transport.Identity, daemonPrivileged bool) error {
+	if spec.Exec.Shell && daemonPrivileged {
+		return errors.New("ERR_UNSUPPORTED: shell execution not allowed in system daemon")
+	}
+
 	if spec.RunAs == nil {
-		// Default to self if not specified, which is allowed
 		return nil
 	}
 
 	switch spec.RunAs.Mode {
 	case "self":
-		// User can always run as themselves
+		return nil
+	case "dynamic":
+		if !daemonPrivileged {
+			return errors.New("ERR_UNSUPPORTED: run_as=dynamic requires system daemon")
+		}
 		return nil
 	case "app_user":
 		return errors.New("ERR_UNSUPPORTED: run_as=app_user not supported in Phase 1")

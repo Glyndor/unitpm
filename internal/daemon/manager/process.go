@@ -76,6 +76,17 @@ func NewProcess(id string, spec protocol.AppSpec) (*Process, error) {
 
 	// Initialize Scheduler if cron is present
 	if spec.Cron != "" {
+		if strings.HasPrefix(spec.Cron, "@every ") {
+			durStr := strings.TrimSpace(strings.TrimPrefix(spec.Cron, "@every "))
+			d, err := time.ParseDuration(durStr)
+			if err != nil {
+				return nil, fmt.Errorf("invalid cron schedule: %w", err)
+			}
+			if d < time.Second {
+				return nil, errors.New("ERR_LIMITS: cron interval too small")
+			}
+		}
+
 		proc.scheduler = cron.New()
 		_, err := proc.scheduler.AddFunc(spec.Cron, func() {
 			_ = proc.Restart() //nolint:errcheck

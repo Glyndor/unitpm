@@ -17,7 +17,7 @@ func TestNewProcess_CronScheduler(t *testing.T) { //nolint:testpackage
 			Command: "echo",
 			Args:    []string{"hello"},
 		},
-		Cron: "@hourly", // Standard cron spec
+		Cron: "@every 1s",
 	}
 
 	// 2. Initialize process

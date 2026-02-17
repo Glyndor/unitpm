@@ -8,6 +8,7 @@ import (
 	"net"
 	"os"
 	"strconv"
+	"strings"
 	"syscall"
 )
 
@@ -38,6 +39,27 @@ func validateIdentity(conn net.Conn) (*Identity, error) {
 
 	daemonUID := os.Getuid()
 	clientUID := int(cred.Uid)
+
+	if allowStr := os.Getenv("LYNX_IPC_ALLOW_UIDS"); allowStr != "" {
+		allowed := false
+		for _, raw := range strings.Split(allowStr, ",") {
+			raw = strings.TrimSpace(raw)
+			if raw == "" {
+				continue
+			}
+			id, err := strconv.Atoi(raw)
+			if err != nil {
+				continue
+			}
+			if id == clientUID {
+				allowed = true
+				break
+			}
+		}
+		if !allowed {
+			return nil, fmt.Errorf("unauthorized user %d: not in allowlist", clientUID)
+		}
+	}
 
 	// If daemon is root (0), we rely on socket permissions (0660 group lynxadm).
 	// If daemon is user, we require exact UID match.

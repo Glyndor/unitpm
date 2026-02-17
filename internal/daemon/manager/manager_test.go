@@ -161,3 +161,58 @@ func TestRestoreAndPersistence(t *testing.T) {
 	// Cleanup process C
 	_ = mgr.Stop(idC)
 }
+
+func TestManager_MaxProcessesLimit(t *testing.T) {
+	tempDir, err := os.MkdirTemp("", "lynx-mgr-maxproc")
+	if err != nil {
+		t.Fatalf("failed to create temp dir: %v", err)
+	}
+	defer os.RemoveAll(tempDir)
+
+	os.Setenv("XDG_CONFIG_HOME", tempDir)
+	defer os.Unsetenv("XDG_CONFIG_HOME")
+
+	logDir := filepath.Join(tempDir, "lynx/logs")
+	if err := os.MkdirAll(logDir, 0700); err != nil {
+		t.Fatalf("failed to create log dir: %v", err)
+	}
+	os.Setenv("XDG_STATE_HOME", tempDir)
+	defer os.Unsetenv("XDG_STATE_HOME")
+
+	if err := os.Setenv("LYNX_MAX_PROCESSES", "1"); err != nil {
+		t.Fatalf("failed to set LYNX_MAX_PROCESSES: %v", err)
+	}
+	defer func() { _ = os.Unsetenv("LYNX_MAX_PROCESSES") }()
+
+	mgr := manager.NewManager()
+
+	specA := protocol.AppSpec{
+		Version: 1,
+		ID:      uuid.NewString(),
+		Name:    "app-a",
+		Exec: protocol.AppExec{
+			Type:    "command",
+			Command: "sleep",
+			Args:    []string{"1"},
+		},
+	}
+
+	if _, err := mgr.StartWithSpec(specA); err != nil {
+		t.Fatalf("StartWithSpec(A) failed: %v", err)
+	}
+
+	specB := protocol.AppSpec{
+		Version: 1,
+		ID:      uuid.NewString(),
+		Name:    "app-b",
+		Exec: protocol.AppExec{
+			Type:    "command",
+			Command: "sleep",
+			Args:    []string{"1"},
+		},
+	}
+
+	if _, err := mgr.StartWithSpec(specB); err == nil {
+		t.Fatal("expected error when starting beyond LYNX_MAX_PROCESSES, got nil")
+	}
+}

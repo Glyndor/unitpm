@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/Jaro-c/Lynx/internal/daemon/handlers"
 	"github.com/Jaro-c/Lynx/internal/daemon/manager"
@@ -132,7 +133,20 @@ func RegisterHandlers(server *transport.Server, mgr *manager.Manager, privileged
 
 		// Delete logs if requested
 		if args.Purge && appLogDir != "" {
-			_ = os.RemoveAll(appLogDir)
+			base := appLogDir
+			if idx := strings.LastIndex(appLogDir, string(os.PathSeparator)); idx != -1 {
+				base = appLogDir[:idx]
+			}
+			baseResolved, err := filepath.EvalSymlinks(base)
+			if err == nil {
+				targetResolved, err := filepath.EvalSymlinks(appLogDir)
+				if err == nil {
+					rel, relErr := filepath.Rel(baseResolved, targetResolved)
+					if relErr == nil && rel != ".." && !strings.HasPrefix(rel, ".."+string(os.PathSeparator)) {
+						_ = os.RemoveAll(targetResolved)
+					}
+				}
+			}
 		}
 
 		// Delete credentials if dynamic user
@@ -236,8 +250,24 @@ func RegisterHandlers(server *transport.Server, mgr *manager.Manager, privileged
 			if p == "" {
 				continue
 			}
-			if err := os.Truncate(p, 0); err != nil && !os.IsNotExist(err) {
-				return nil, fmt.Errorf("failed to truncate %s: %w", p, err)
+			dir := filepath.Dir(p)
+			baseResolved, err := filepath.EvalSymlinks(dir)
+			if err != nil {
+				return nil, fmt.Errorf("failed to resolve log dir: %w", err)
+			}
+			targetResolved, err := filepath.EvalSymlinks(p)
+			if err != nil {
+				if os.IsNotExist(err) {
+					continue
+				}
+				return nil, fmt.Errorf("failed to resolve log file: %w", err)
+			}
+			rel, relErr := filepath.Rel(baseResolved, targetResolved)
+			if relErr != nil || rel == ".." || strings.HasPrefix(rel, ".."+string(os.PathSeparator)) {
+				return nil, fmt.Errorf("refusing to truncate log outside log dir")
+			}
+			if err := os.Truncate(targetResolved, 0); err != nil && !os.IsNotExist(err) {
+				return nil, fmt.Errorf("failed to truncate %s: %w", targetResolved, err)
 			}
 		}
 

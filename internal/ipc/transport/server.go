@@ -124,6 +124,8 @@ func (s *Server) acceptLoop() {
 
 func (s *Server) handleConnection(conn net.Conn) {
 	defer func() {
+		if r := recover(); r != nil {
+		}
 		<-s.sem // Release semaphore
 		_ = conn.Close()
 	}()
