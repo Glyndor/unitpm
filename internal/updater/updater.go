@@ -1,0 +1,160 @@
+// Package updater handles checking and applying updates from GitHub Releases.
+package updater
+
+import (
+	"encoding/json"
+	"fmt"
+	"io"
+	"net/http"
+	"os"
+	"os/exec"
+	"path/filepath"
+	"runtime"
+	"strings"
+	"time"
+
+	"github.com/Jaro-c/Lynx/internal/version"
+)
+
+const (
+	repoOwner = "Jaro-c"
+	repoName  = "Lynx"
+)
+
+// Release represents a GitHub release.
+type Release struct {
+	TagName string  `json:"tag_name"`
+	Assets  []Asset `json:"assets"`
+	Body    string  `json:"body"`
+	HTMLURL string  `json:"html_url"`
+}
+
+// Asset represents a file in a GitHub release.
+type Asset struct {
+	Name               string `json:"name"`
+	BrowserDownloadURL string `json:"browser_download_url"`
+}
+
+// Check checks for updates on GitHub.
+// Returns the release info if a new version is available, or nil if up to date.
+func Check() (*Release, error) {
+	url := fmt.Sprintf("https://api.github.com/repos/%s/%s/releases/latest", repoOwner, repoName)
+	client := &http.Client{Timeout: 10 * time.Second}
+
+	resp, err := client.Get(url)
+	if err != nil {
+		return nil, fmt.Errorf("failed to check for updates: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("github api returned status: %s", resp.Status)
+	}
+
+	var release Release
+	if err := json.NewDecoder(resp.Body).Decode(&release); err != nil {
+		return nil, fmt.Errorf("failed to decode release info: %w", err)
+	}
+
+	// Simple version comparison (assumes vX.Y.Z format)
+	// Remove 'v' prefix if present
+	current := strings.TrimPrefix(version.Version, "v")
+	latest := strings.TrimPrefix(release.TagName, "v")
+
+	if current == latest {
+		return nil, nil // Up to date
+	}
+
+	return &release, nil
+}
+
+// Apply downloads and applies the update.
+func Apply(release *Release) error {
+	exePath, err := os.Executable()
+	if err != nil {
+		return fmt.Errorf("failed to determine executable path: %w", err)
+	}
+
+	// Resolve symlinks (e.g., if running from /usr/bin/lynx -> /opt/lynx/lynx)
+	exePath, err = filepath.EvalSymlinks(exePath)
+	if err != nil {
+		return fmt.Errorf("failed to resolve symlinks: %w", err)
+	}
+
+	// Find compatible asset
+	assetURL := ""
+	osName := runtime.GOOS
+	arch := runtime.GOARCH
+
+	// Expected pattern: lynx_linux_amd64 or lynx_linux_arm64
+	target := fmt.Sprintf("lynx_%s_%s", osName, arch)
+
+	for _, asset := range release.Assets {
+		if strings.Contains(asset.Name, target) {
+			assetURL = asset.BrowserDownloadURL
+			break
+		}
+	}
+
+	if assetURL == "" {
+		return fmt.Errorf("no compatible binary found for %s/%s in release %s", osName, arch, release.TagName)
+	}
+
+	// Create temp file
+	tmpFile, err := os.CreateTemp(filepath.Dir(exePath), "lynx-update-*")
+	if err != nil {
+		return fmt.Errorf("failed to create temp file (check permissions): %w", err)
+	}
+	defer os.Remove(tmpFile.Name()) // Clean up on error, but we'll rename if successful
+
+	// Download
+	resp, err := http.Get(assetURL)
+	if err != nil {
+		tmpFile.Close()
+		return fmt.Errorf("failed to download update: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		tmpFile.Close()
+		return fmt.Errorf("download failed with status: %s", resp.Status)
+	}
+
+	_, err = io.Copy(tmpFile, resp.Body)
+	tmpFile.Close() // Close before chmod/rename
+	if err != nil {
+		return fmt.Errorf("failed to write update file: %w", err)
+	}
+
+	// Make executable
+	if err := os.Chmod(tmpFile.Name(), 0755); err != nil {
+		return fmt.Errorf("failed to set executable permissions: %w", err)
+	}
+
+	// Replace binary
+	// On Linux, we can rename over a running binary (it stays open for the running process, new process gets new file)
+	if err := os.Rename(tmpFile.Name(), exePath); err != nil {
+		return fmt.Errorf("failed to replace binary: %w", err)
+	}
+
+	return nil
+}
+
+// IsManagedByPackageSystem tries to detect if the binary is managed by apt/dpkg.
+func IsManagedByPackageSystem() bool {
+	exePath, err := os.Executable()
+	if err != nil {
+		return false
+	}
+	exePath, _ = filepath.EvalSymlinks(exePath)
+
+	// Common system paths
+	if strings.HasPrefix(exePath, "/usr/bin") || strings.HasPrefix(exePath, "/bin") {
+		// Check if dpkg knows about it
+		cmd := exec.Command("dpkg", "-S", exePath)
+		if err := cmd.Run(); err == nil {
+			return true
+		}
+	}
+	return false
+}

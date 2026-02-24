@@ -124,6 +124,7 @@ Lynx supports two modes of operation:
 | `export` | Export a namespace to Lynxfile.yml. | [Docs](docs/commands/export.md) |
 | `startup` | Enable system startup for the daemon (systemd). | [Docs](docs/commands/startup.md) |
 | `version` | Display CLI, Daemon, and Protocol version information. | [Docs](docs/commands/version.md) |
+| `update` | Check for updates and apply them. | [Docs](docs/commands/update.md) |
 | `help` | Show help for any command. | [Docs](docs/commands/help.md) |
 
 ## Releases

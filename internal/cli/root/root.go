@@ -23,6 +23,7 @@ import (
 	"github.com/Jaro-c/Lynx/internal/cli/commands/start"
 	"github.com/Jaro-c/Lynx/internal/cli/commands/startup"
 	"github.com/Jaro-c/Lynx/internal/cli/commands/stop"
+	"github.com/Jaro-c/Lynx/internal/cli/commands/update"
 	"github.com/Jaro-c/Lynx/internal/cli/commands/version"
 	"github.com/Jaro-c/Lynx/internal/cli/errs"
 	"github.com/Jaro-c/Lynx/internal/cli/help"
@@ -46,6 +47,7 @@ const (
 	cmdMonit   = "monit"
 	cmdReload  = "reload"
 	cmdFlush   = "flush"
+	cmdUpdate  = "update"
 	cmdExecEnv = "_exec-env"
 	cmdHelp    = "help"
 	flagHelp   = "--help"
@@ -124,6 +126,8 @@ func runCommand(name string, args []string) error {
 	switch name {
 	case cmdVersion:
 		return version.Run(os.Stdout, args)
+	case cmdUpdate:
+		return update.Run(os.Stdout, args)
 	case cmdExport:
 		return export.Run(args)
 	case cmdExecEnv:
@@ -194,6 +198,8 @@ func printCommandHelp(name string) int {
 		startup.PrintHelp()
 	case cmdVersion:
 		version.PrintHelp()
+	case cmdUpdate:
+		update.PrintHelp()
 	case cmdApply:
 		apply.PrintHelp()
 	case cmdExport:
@@ -243,6 +249,7 @@ func registerCommands() {
 	registry.Register(delete.GetSpec())
 	registry.Register(startup.GetSpec())
 	registry.Register(version.GetSpec())
+	registry.Register(update.GetSpec())
 	registry.Register(execenv.GetSpec())
 	registry.Register(apply.GetSpec())
 	registry.Register(export.GetSpec())
