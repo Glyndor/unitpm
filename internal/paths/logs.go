@@ -9,20 +9,70 @@ import (
 	"github.com/Jaro-c/Lynx/internal/ipc/protocol"
 )
 
+var getEuid = os.Geteuid
+
 // GetLogDir resolves the root log directory.
 func GetLogDir(configuredDir string) (string, error) {
+	euid := getEuid()
+
 	if configuredDir != "" {
 		if len(configuredDir) > 4096 {
 			return "", fmt.Errorf("log dir too long")
 		}
 		clean := filepath.Clean(configuredDir)
-		if strings.Contains(clean, ".."+string(os.PathSeparator)) ||
-			strings.HasPrefix(clean, ".."+string(os.PathSeparator)) {
+		if clean == ".." || strings.HasPrefix(clean, ".."+string(os.PathSeparator)) {
 			return "", fmt.Errorf("invalid log dir")
 		}
+		if euid == 0 {
+			if !filepath.IsAbs(clean) {
+				return "", fmt.Errorf("invalid log dir: must be absolute when running as root")
+			}
+
+			allowedRoots := []string{"/var/log/lynx"}
+			if stateHome := os.Getenv("XDG_STATE_HOME"); stateHome != "" {
+				allowedRoots = append(allowedRoots, filepath.Join(stateHome, "lynx/logs"))
+			}
+
+			var resolvedRoots []string
+			for _, root := range allowedRoots {
+				base := filepath.Clean(root)
+				if !filepath.IsAbs(base) {
+					continue
+				}
+				if r, err := filepath.EvalSymlinks(base); err == nil {
+					base = r
+				}
+				resolvedRoots = append(resolvedRoots, base)
+			}
+
+			candidate := clean
+			if !filepath.IsAbs(candidate) {
+				return "", fmt.Errorf("invalid log dir: must be absolute when running as root")
+			}
+
+			for _, root := range resolvedRoots {
+				if !withinRoot(root, candidate) {
+					continue
+				}
+
+				if candidateResolved, err := filepath.EvalSymlinks(candidate); err == nil {
+					if withinRoot(root, candidateResolved) {
+						return candidate, nil
+					}
+					continue
+				} else if os.IsNotExist(err) {
+					if withinRoot(root, candidate) && !pathContainsUnsafeSymlink(root, candidate) {
+						return candidate, nil
+					}
+				}
+			}
+
+			return "", fmt.Errorf("invalid log dir: outside allowed roots")
+		}
+
 		return clean, nil
 	}
-	if os.Geteuid() == 0 {
+	if euid == 0 {
 		return "/var/log/lynx", nil
 	}
 	stateHome := os.Getenv("XDG_STATE_HOME")
@@ -34,6 +84,52 @@ func GetLogDir(configuredDir string) (string, error) {
 		return "", fmt.Errorf("failed to get user home: %w", err)
 	}
 	return filepath.Join(home, ".local/state/lynx/logs"), nil
+}
+
+func withinRoot(root, path string) bool {
+	rel, err := filepath.Rel(root, path)
+	if err != nil {
+		return false
+	}
+	if rel == ".." || strings.HasPrefix(rel, ".."+string(os.PathSeparator)) {
+		return false
+	}
+	if strings.HasPrefix(rel, ".."+string(os.PathSeparator)) {
+		return false
+	}
+	return true
+}
+
+func pathContainsUnsafeSymlink(root, path string) bool {
+	rel, err := filepath.Rel(root, path)
+	if err != nil {
+		return true
+	}
+	parts := strings.Split(rel, string(os.PathSeparator))
+	current := root
+	for _, part := range parts {
+		if part == "" || part == "." {
+			continue
+		}
+		current = filepath.Join(current, part)
+		info, err := os.Lstat(current)
+		if err != nil {
+			if os.IsNotExist(err) {
+				return false
+			}
+			return true
+		}
+		if info.Mode()&os.ModeSymlink != 0 {
+			resolved, err := filepath.EvalSymlinks(current)
+			if err != nil {
+				return true
+			}
+			if !withinRoot(root, resolved) {
+				return true
+			}
+		}
+	}
+	return false
 }
 
 // ResolveLogPaths returns the absolute paths for stdout and stderr logs for a given spec.

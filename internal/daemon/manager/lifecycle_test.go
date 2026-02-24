@@ -5,6 +5,7 @@ package manager
 import (
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
@@ -122,7 +123,7 @@ func TestCronRespectsNoAutoRestart(t *testing.T) {
 			Command: "sleep",
 			Args:    []string{"10"},
 		},
-		Cron: "@every 100ms",
+		Cron: "@every 10s",
 	}
 
 	p, err := NewProcess(id, spec)
@@ -158,6 +159,65 @@ func TestCronRespectsNoAutoRestart(t *testing.T) {
 	}
 	if info.PID != 0 {
 		t.Fatalf("expected PID 0 after Stop(true), got %d", info.PID)
+	}
+}
+
+func TestCronEveryIntervalBounds(t *testing.T) {
+	restore := setupTestEnv(t)
+	defer restore()
+
+	id := uuid.NewString()
+
+	_, err := NewProcess(id, protocol.AppSpec{
+		Version: 1,
+		ID:      id,
+		Name:    "cron-too-fast",
+		Exec: protocol.AppExec{
+			Type:    "command",
+			Command: "sleep",
+			Args:    []string{"1"},
+		},
+		Cron: "@every 1s",
+	})
+	if err == nil {
+		t.Fatalf("expected error for too-small cron interval")
+	}
+	if !strings.Contains(err.Error(), "ERR_LIMITS: cron interval") {
+		t.Fatalf("expected ERR_LIMITS cron interval error, got %v", err)
+	}
+
+	id = uuid.NewString()
+	_, err = NewProcess(id, protocol.AppSpec{
+		Version: 1,
+		ID:      id,
+		Name:    "cron-too-slow",
+		Exec: protocol.AppExec{
+			Type:    "command",
+			Command: "sleep",
+			Args:    []string{"1"},
+		},
+		Cron: "@every 48h",
+	})
+	if err == nil {
+		t.Fatalf("expected error for too-large cron interval")
+	}
+	if !strings.Contains(err.Error(), "ERR_LIMITS: cron interval") {
+		t.Fatalf("expected ERR_LIMITS cron interval error, got %v", err)
+	}
+
+	id = uuid.NewString()
+	if _, err := NewProcess(id, protocol.AppSpec{
+		Version: 1,
+		ID:      id,
+		Name:    "cron-ok",
+		Exec: protocol.AppExec{
+			Type:    "command",
+			Command: "sleep",
+			Args:    []string{"1"},
+		},
+		Cron: "@every 10s",
+	}); err != nil {
+		t.Fatalf("expected @every 10s to be accepted, got %v", err)
 	}
 }
 

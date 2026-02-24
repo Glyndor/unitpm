@@ -80,10 +80,13 @@ func NewProcess(id string, spec protocol.AppSpec) (*Process, error) {
 			durStr := strings.TrimSpace(strings.TrimPrefix(spec.Cron, "@every "))
 			d, err := time.ParseDuration(durStr)
 			if err != nil {
-				return nil, fmt.Errorf("invalid cron schedule: %w", err)
+				return nil, fmt.Errorf("ERR_LIMITS: invalid cron interval: %w", err)
 			}
-			if d < time.Second {
-				return nil, errors.New("ERR_LIMITS: cron interval too small")
+			if d < 5*time.Second {
+				return nil, errors.New("ERR_LIMITS: cron interval must be >= 5s")
+			}
+			if d > 24*time.Hour {
+				return nil, errors.New("ERR_LIMITS: cron interval must be <= 24h")
 			}
 		}
 
@@ -92,7 +95,7 @@ func NewProcess(id string, spec protocol.AppSpec) (*Process, error) {
 			_ = proc.Restart() //nolint:errcheck
 		})
 		if err != nil {
-			return nil, fmt.Errorf("invalid cron schedule: %w", err)
+			return nil, fmt.Errorf("ERR_LIMITS: invalid cron schedule: %w", err)
 		}
 	}
 

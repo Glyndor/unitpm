@@ -5,6 +5,7 @@ package manager_test
 import (
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
@@ -214,5 +215,89 @@ func TestManager_MaxProcessesLimit(t *testing.T) {
 
 	if _, err := mgr.StartWithSpec(specB); err == nil {
 		t.Fatal("expected error when starting beyond LYNX_MAX_PROCESSES, got nil")
+	}
+}
+
+func TestManager_MaxProcessesLimitInvalidEnv(t *testing.T) {
+	tempDir, err := os.MkdirTemp("", "lynx-mgr-maxproc-invalid")
+	if err != nil {
+		t.Fatalf("failed to create temp dir: %v", err)
+	}
+	defer os.RemoveAll(tempDir)
+
+	os.Setenv("XDG_CONFIG_HOME", tempDir)
+	defer os.Unsetenv("XDG_CONFIG_HOME")
+
+	logDir := filepath.Join(tempDir, "lynx/logs")
+	if err := os.MkdirAll(logDir, 0700); err != nil {
+		t.Fatalf("failed to create log dir: %v", err)
+	}
+	os.Setenv("XDG_STATE_HOME", tempDir)
+	defer os.Unsetenv("XDG_STATE_HOME")
+
+	if err := os.Setenv("LYNX_MAX_PROCESSES", "invalid"); err != nil {
+		t.Fatalf("failed to set LYNX_MAX_PROCESSES: %v", err)
+	}
+	defer func() { _ = os.Unsetenv("LYNX_MAX_PROCESSES") }()
+
+	mgr := manager.NewManager()
+
+	specA := protocol.AppSpec{
+		Version: 1,
+		ID:      uuid.NewString(),
+		Name:    "app-a",
+		Exec: protocol.AppExec{
+			Type:    "command",
+			Command: "sleep",
+			Args:    []string{"1"},
+		},
+	}
+
+	if _, err := mgr.StartWithSpec(specA); err == nil {
+		t.Fatal("expected error for invalid LYNX_MAX_PROCESSES")
+	} else if !strings.HasPrefix(err.Error(), "ERR_LIMITS: invalid LYNX_MAX_PROCESSES") {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
+func TestManager_MaxProcessesLimitNonPositive(t *testing.T) {
+	tempDir, err := os.MkdirTemp("", "lynx-mgr-maxproc-nonpositive")
+	if err != nil {
+		t.Fatalf("failed to create temp dir: %v", err)
+	}
+	defer os.RemoveAll(tempDir)
+
+	os.Setenv("XDG_CONFIG_HOME", tempDir)
+	defer os.Unsetenv("XDG_CONFIG_HOME")
+
+	logDir := filepath.Join(tempDir, "lynx/logs")
+	if err := os.MkdirAll(logDir, 0700); err != nil {
+		t.Fatalf("failed to create log dir: %v", err)
+	}
+	os.Setenv("XDG_STATE_HOME", tempDir)
+	defer os.Unsetenv("XDG_STATE_HOME")
+
+	if err := os.Setenv("LYNX_MAX_PROCESSES", "0"); err != nil {
+		t.Fatalf("failed to set LYNX_MAX_PROCESSES: %v", err)
+	}
+	defer func() { _ = os.Unsetenv("LYNX_MAX_PROCESSES") }()
+
+	mgr := manager.NewManager()
+
+	specA := protocol.AppSpec{
+		Version: 1,
+		ID:      uuid.NewString(),
+		Name:    "app-a",
+		Exec: protocol.AppExec{
+			Type:    "command",
+			Command: "sleep",
+			Args:    []string{"1"},
+		},
+	}
+
+	if _, err := mgr.StartWithSpec(specA); err == nil {
+		t.Fatal("expected error for non-positive LYNX_MAX_PROCESSES")
+	} else if !strings.HasPrefix(err.Error(), "ERR_LIMITS: LYNX_MAX_PROCESSES must be > 0") {
+		t.Fatalf("unexpected error: %v", err)
 	}
 }

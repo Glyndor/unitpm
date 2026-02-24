@@ -228,7 +228,7 @@ func TestIPCAllowlistUIDs_Denied(t *testing.T) {
 
 	client, err := transport.NewClient()
 	if err != nil {
-		return
+		t.Fatalf("Failed to create client: %v", err)
 	}
 	defer func() { _ = client.Close() }()
 

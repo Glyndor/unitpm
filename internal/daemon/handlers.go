@@ -5,6 +5,7 @@ package daemon
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -246,28 +247,75 @@ func RegisterHandlers(server *transport.Server, mgr *manager.Manager, privileged
 			return nil, fmt.Errorf("failed to resolve log paths: %w", err)
 		}
 
+		logRoot, err := paths.GetLogDir("")
+		if s.Logs != nil && s.Logs.Dir != "" {
+			logRoot, err = paths.GetLogDir(s.Logs.Dir)
+		}
+		if err != nil {
+			return nil, fmt.Errorf("failed to resolve log root: %w", err)
+		}
+		baseResolved, err := filepath.EvalSymlinks(logRoot)
+		if err != nil {
+			return nil, fmt.Errorf("failed to resolve log root symlinks: %w", err)
+		}
+
 		for _, p := range []string{stdoutPath, stderrPath} {
 			if p == "" {
 				continue
 			}
-			dir := filepath.Dir(p)
-			baseResolved, err := filepath.EvalSymlinks(dir)
-			if err != nil {
-				return nil, fmt.Errorf("failed to resolve log dir: %w", err)
+
+			targetPath := p
+			if !filepath.IsAbs(targetPath) {
+				targetPath = filepath.Join(logRoot, targetPath)
 			}
-			targetResolved, err := filepath.EvalSymlinks(p)
+			targetPath = filepath.Clean(targetPath)
+
+			targetDir := filepath.Dir(targetPath)
+			targetResolvedDir, err := filepath.EvalSymlinks(targetDir)
+			if err != nil {
+				if os.IsNotExist(err) {
+					dirClean := filepath.Clean(targetDir)
+					relDir, relErr := filepath.Rel(baseResolved, dirClean)
+					if relErr != nil || relDir == ".." || strings.HasPrefix(relDir, ".."+string(os.PathSeparator)) {
+						return nil, fmt.Errorf("refusing to truncate log outside log root")
+					}
+					relFile, relFileErr := filepath.Rel(baseResolved, targetPath)
+					if relFileErr != nil || relFile == ".." || strings.HasPrefix(relFile, ".."+string(os.PathSeparator)) {
+						return nil, fmt.Errorf("refusing to truncate log outside log root")
+					}
+					continue
+				}
+				return nil, fmt.Errorf("failed to resolve log directory symlinks: %w", err)
+			}
+
+			relDir, relErr := filepath.Rel(baseResolved, targetResolvedDir)
+			if relErr != nil || relDir == ".." || strings.HasPrefix(relDir, ".."+string(os.PathSeparator)) {
+				return nil, fmt.Errorf("refusing to truncate log outside log root")
+			}
+
+			relFile, relFileErr := filepath.Rel(baseResolved, targetPath)
+			if relFileErr != nil || relFile == ".." || strings.HasPrefix(relFile, ".."+string(os.PathSeparator)) {
+				return nil, fmt.Errorf("refusing to truncate log outside log root")
+			}
+
+			info, err := os.Lstat(targetPath)
 			if err != nil {
 				if os.IsNotExist(err) {
 					continue
 				}
-				return nil, fmt.Errorf("failed to resolve log file: %w", err)
+				return nil, fmt.Errorf("failed to stat log file: %w", err)
 			}
-			rel, relErr := filepath.Rel(baseResolved, targetResolved)
-			if relErr != nil || rel == ".." || strings.HasPrefix(rel, ".."+string(os.PathSeparator)) {
-				return nil, fmt.Errorf("refusing to truncate log outside log dir")
+
+			if info.Mode()&os.ModeSymlink != 0 {
+				return nil, errors.New("ERR_BAD_REQUEST: refusing to truncate symlink log file")
 			}
-			if err := os.Truncate(targetResolved, 0); err != nil && !os.IsNotExist(err) {
-				return nil, fmt.Errorf("failed to truncate %s: %w", targetResolved, err)
+
+			if !info.Mode().IsRegular() {
+				return nil, fmt.Errorf("refusing to truncate non-regular log file %s", targetPath)
+			}
+
+			if err := os.Truncate(targetPath, 0); err != nil && !os.IsNotExist(err) {
+				return nil, fmt.Errorf("failed to truncate %s: %w", targetPath, err)
 			}
 		}
 

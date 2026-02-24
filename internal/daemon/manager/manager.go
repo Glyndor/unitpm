@@ -70,10 +70,15 @@ func (m *Manager) StartWithSpec(spec protocol.AppSpec) (types.ProcessInfo, error
 	defer m.mu.Unlock()
 
 	if limitStr := os.Getenv("LYNX_MAX_PROCESSES"); limitStr != "" {
-		if limit, err := strconv.Atoi(limitStr); err == nil && limit > 0 {
-			if len(m.processes) >= limit {
-				return types.ProcessInfo{}, errors.New("ERR_LIMITS: max processes reached")
-			}
+		limit, err := strconv.Atoi(limitStr)
+		if err != nil {
+			return types.ProcessInfo{}, fmt.Errorf("ERR_LIMITS: invalid LYNX_MAX_PROCESSES: %w", err)
+		}
+		if limit <= 0 {
+			return types.ProcessInfo{}, errors.New("ERR_LIMITS: LYNX_MAX_PROCESSES must be > 0")
+		}
+		if len(m.processes) >= limit {
+			return types.ProcessInfo{}, errors.New("ERR_LIMITS: max processes reached")
 		}
 	}
 
