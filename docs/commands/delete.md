@@ -1,11 +1,11 @@
-# delete
+# delete | remove | rm
 
 Delete one or more processes and their configurations.
 
 ## Synopsis
 
 ```bash
-lynx delete [--purge] <id|name>...
+lynx delete|remove|rm [--purge] <id|name>...
 ```
 
 ## Description
