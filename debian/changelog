@@ -1,3 +1,9 @@
+lynx (0.3.0-1ubuntu1) UNRELEASED; urgency=medium
+
+New release 0.3.0  * 
+
+ -- Admin <jaroc@Admin.localdomain>  Tue, 24 Feb 2026 21:54:38 -0500
+
 lynx (0.3.0-1) unstable; urgency=medium
 
   * Add self-updater with GitHub releases integration
