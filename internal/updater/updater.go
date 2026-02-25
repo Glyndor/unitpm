@@ -2,6 +2,7 @@
 package updater
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -37,11 +38,16 @@ type Asset struct {
 
 // Check checks for updates on GitHub.
 // Returns the release info if a new version is available, or nil if up to date.
-func Check() (*Release, error) {
+func Check(ctx context.Context) (*Release, error) {
 	url := fmt.Sprintf("https://api.github.com/repos/%s/%s/releases/latest", repoOwner, repoName)
 	client := &http.Client{Timeout: 10 * time.Second}
 
-	resp, err := client.Get(url)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create request: %w", err)
+	}
+
+	resp, err := client.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("failed to check for updates: %w", err)
 	}
@@ -69,7 +75,7 @@ func Check() (*Release, error) {
 }
 
 // Apply downloads and applies the update.
-func Apply(release *Release) error {
+func Apply(ctx context.Context, release *Release) error {
 	exePath, err := os.Executable()
 	if err != nil {
 		return fmt.Errorf("failed to determine executable path: %w", err)
@@ -97,10 +103,19 @@ func Apply(release *Release) error {
 	}
 
 	if assetURL == "" {
-		return fmt.Errorf("no compatible binary found for %s/%s in release %s", osName, arch, release.TagName)
+		return fmt.Errorf(
+			"no compatible binary found for %s/%s in release %s",
+			osName,
+			arch,
+			release.TagName,
+		)
 	}
 
-	// Create temp file
+	// Download and replace
+	return downloadAndReplace(ctx, assetURL, exePath)
+}
+
+func downloadAndReplace(ctx context.Context, assetURL, exePath string) error {
 	tmpFile, err := os.CreateTemp(filepath.Dir(exePath), "lynx-update-*")
 	if err != nil {
 		return fmt.Errorf("failed to create temp file (check permissions): %w", err)
@@ -108,7 +123,13 @@ func Apply(release *Release) error {
 	defer os.Remove(tmpFile.Name()) // Clean up on error, but we'll rename if successful
 
 	// Download
-	resp, err := http.Get(assetURL)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, assetURL, nil)
+	if err != nil {
+		tmpFile.Close()
+		return fmt.Errorf("failed to create download request: %w", err)
+	}
+
+	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		tmpFile.Close()
 		return fmt.Errorf("failed to download update: %w", err)
@@ -127,13 +148,14 @@ func Apply(release *Release) error {
 	}
 
 	// Make executable
-	if err := os.Chmod(tmpFile.Name(), 0755); err != nil {
+	if err := tmpFile.Chmod(0755); err != nil {
 		return fmt.Errorf("failed to set executable permissions: %w", err)
 	}
 
 	// Replace binary
 	// On Linux, we can rename over a running binary (it stays open for the running process, new process gets new file)
-	if err := os.Rename(tmpFile.Name(), exePath); err != nil {
+	cleanExePath := filepath.Clean(exePath)
+	if err := os.Rename(tmpFile.Name(), cleanExePath); err != nil {
 		return fmt.Errorf("failed to replace binary: %w", err)
 	}
 
@@ -146,12 +168,17 @@ func IsManagedByPackageSystem() bool {
 	if err != nil {
 		return false
 	}
-	exePath, _ = filepath.EvalSymlinks(exePath)
+	exePath, err = filepath.EvalSymlinks(exePath)
+	if err != nil {
+		return false
+	}
 
 	// Common system paths
 	if strings.HasPrefix(exePath, "/usr/bin") || strings.HasPrefix(exePath, "/bin") {
 		// Check if dpkg knows about it
-		cmd := exec.Command("dpkg", "-S", exePath)
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+		cmd := exec.CommandContext(ctx, "dpkg", "-S", exePath)
 		if err := cmd.Run(); err == nil {
 			return true
 		}

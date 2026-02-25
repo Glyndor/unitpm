@@ -82,62 +82,9 @@ func (f *File) ToAppSpecs() ([]protocol.AppSpec, error) {
 	var specs []protocol.AppSpec
 
 	for _, app := range f.Apps {
-		ns := app.Namespace
-		if ns == "" {
-			ns = f.Namespace
-		}
-		if ns == "" {
-			ns = "default"
-		}
-
-		base := protocol.AppSpec{
-			Version:   1,
-			Name:      app.Name,
-			Namespace: ns,
-			Cwd:       app.Cwd,
-			Env:       app.Env,
-		}
-
-		if app.Command != "" {
-			cmdParts := tokenizeCommand(app.Command)
-			if len(cmdParts) == 0 {
-				return nil, fmt.Errorf("invalid command for app %s", app.Name)
-			}
-			base.Exec = protocol.AppExec{
-				Type:    "command",
-				Command: cmdParts[0],
-				Args:    cmdParts[1:],
-			}
-		} else {
-			base.Exec = protocol.AppExec{
-				Type:    "entry",
-				Entry:   app.Entry,
-				Runtime: app.Runtime,
-			}
-		}
-
-		if app.Logs.Dir != "" ||
-			app.Logs.Stdout != "" ||
-			app.Logs.Stderr != "" ||
-			app.Logs.Format != "" ||
-			app.Logs.Timestamp != "" {
-			base.Logs = &protocol.AppLogs{
-				Dir:       app.Logs.Dir,
-				Stdout:    app.Logs.Stdout,
-				Stderr:    app.Logs.Stderr,
-				Format:    app.Logs.Format,
-				Timestamp: app.Logs.Timestamp,
-			}
-		}
-
-		if app.Restart.Policy != "" {
-			base.Restart = &protocol.AppRestart{
-				Policy:      app.Restart.Policy,
-				MaxRetries:  app.Restart.MaxRestarts,
-				BackoffMs:   app.Restart.DelayMs,
-				BackoffType: app.Restart.Backoff,
-				StopOnExit:  app.Restart.StopOnExit,
-			}
+		base, err := app.ToAppSpec(f.Namespace)
+		if err != nil {
+			return nil, err
 		}
 
 		instances := app.Instances
@@ -156,4 +103,70 @@ func (f *File) ToAppSpecs() ([]protocol.AppSpec, error) {
 func tokenizeCommand(cmd string) []string {
 	fields := strings.Fields(cmd)
 	return fields
+}
+
+func (app AppConfig) ToAppSpec(defaultNamespace string) (protocol.AppSpec, error) {
+	ns := app.Namespace
+	if ns == "" {
+		ns = defaultNamespace
+	}
+	if ns == "" {
+		ns = "default"
+	}
+
+	base := protocol.AppSpec{
+		Version:   1,
+		Name:      app.Name,
+		Namespace: ns,
+		Cwd:       app.Cwd,
+		Env:       app.Env,
+		Logs:      app.buildLogs(),
+		Restart:   app.buildRestart(),
+	}
+
+	if app.Command != "" {
+		cmdParts := tokenizeCommand(app.Command)
+		if len(cmdParts) == 0 {
+			return protocol.AppSpec{}, fmt.Errorf("invalid command for app %s", app.Name)
+		}
+		base.Exec = protocol.AppExec{
+			Type:    "command",
+			Command: cmdParts[0],
+			Args:    cmdParts[1:],
+		}
+	} else {
+		base.Exec = protocol.AppExec{
+			Type:    "entry",
+			Entry:   app.Entry,
+			Runtime: app.Runtime,
+		}
+	}
+
+	return base, nil
+}
+
+func (app AppConfig) buildLogs() *protocol.AppLogs {
+	if app.Logs.Dir != "" || app.Logs.Stdout != "" || app.Logs.Stderr != "" || app.Logs.Format != "" || app.Logs.Timestamp != "" {
+		return &protocol.AppLogs{
+			Dir:       app.Logs.Dir,
+			Stdout:    app.Logs.Stdout,
+			Stderr:    app.Logs.Stderr,
+			Format:    app.Logs.Format,
+			Timestamp: app.Logs.Timestamp,
+		}
+	}
+	return nil
+}
+
+func (app AppConfig) buildRestart() *protocol.AppRestart {
+	if app.Restart.Policy != "" {
+		return &protocol.AppRestart{
+			Policy:      app.Restart.Policy,
+			MaxRetries:  app.Restart.MaxRestarts,
+			BackoffMs:   app.Restart.DelayMs,
+			BackoffType: app.Restart.Backoff,
+			StopOnExit:  app.Restart.StopOnExit,
+		}
+	}
+	return nil
 }

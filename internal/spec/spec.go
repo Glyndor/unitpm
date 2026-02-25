@@ -30,11 +30,12 @@ func GetSpecDir() (string, error) {
 	}
 
 	specDir := filepath.Join(configHome, "lynx", "apps")
-	if err := os.MkdirAll(specDir, 0700); err != nil {
+	cleanSpecDir := filepath.Clean(specDir)
+	if err := os.MkdirAll(cleanSpecDir, 0700); err != nil {
 		return "", fmt.Errorf("failed to create spec dir: %w", err)
 	}
 
-	return specDir, nil
+	return cleanSpecDir, nil
 }
 
 // LoadSpec loads a single spec by ID.

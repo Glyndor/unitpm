@@ -1,6 +1,7 @@
 package paths
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -16,62 +17,74 @@ func GetLogDir(configuredDir string) (string, error) {
 	euid := getEuid()
 
 	if configuredDir != "" {
-		if len(configuredDir) > 4096 {
-			return "", fmt.Errorf("log dir too long")
-		}
-		clean := filepath.Clean(configuredDir)
-		if clean == ".." || strings.HasPrefix(clean, ".."+string(os.PathSeparator)) {
-			return "", fmt.Errorf("invalid log dir")
-		}
-		if euid == 0 {
-			if !filepath.IsAbs(clean) {
-				return "", fmt.Errorf("invalid log dir: must be absolute when running as root")
-			}
-
-			allowedRoots := []string{"/var/log/lynx"}
-			if stateHome := os.Getenv("XDG_STATE_HOME"); stateHome != "" {
-				allowedRoots = append(allowedRoots, filepath.Join(stateHome, "lynx/logs"))
-			}
-
-			var resolvedRoots []string
-			for _, root := range allowedRoots {
-				base := filepath.Clean(root)
-				if !filepath.IsAbs(base) {
-					continue
-				}
-				if r, err := filepath.EvalSymlinks(base); err == nil {
-					base = r
-				}
-				resolvedRoots = append(resolvedRoots, base)
-			}
-
-			candidate := clean
-			if !filepath.IsAbs(candidate) {
-				return "", fmt.Errorf("invalid log dir: must be absolute when running as root")
-			}
-
-			for _, root := range resolvedRoots {
-				if !withinRoot(root, candidate) {
-					continue
-				}
-
-				if candidateResolved, err := filepath.EvalSymlinks(candidate); err == nil {
-					if withinRoot(root, candidateResolved) {
-						return candidate, nil
-					}
-					continue
-				} else if os.IsNotExist(err) {
-					if withinRoot(root, candidate) && !pathContainsUnsafeSymlink(root, candidate) {
-						return candidate, nil
-					}
-				}
-			}
-
-			return "", fmt.Errorf("invalid log dir: outside allowed roots")
-		}
-
-		return clean, nil
+		return resolveConfiguredDir(configuredDir, euid)
 	}
+	return resolveDefaultDir(euid)
+}
+
+func resolveConfiguredDir(configuredDir string, euid int) (string, error) {
+	if len(configuredDir) > 4096 {
+		return "", errors.New("log dir too long")
+	}
+	clean := filepath.Clean(configuredDir)
+	if clean == ".." || strings.HasPrefix(clean, ".."+string(os.PathSeparator)) {
+		return "", errors.New("invalid log dir")
+	}
+
+	if euid == 0 {
+		return resolveRootLogDir(clean)
+	}
+
+	return clean, nil
+}
+
+func resolveRootLogDir(candidate string) (string, error) {
+	if !filepath.IsAbs(candidate) {
+		return "", errors.New("invalid log dir: must be absolute when running as root")
+	}
+
+	allowedRoots := []string{"/var/log/lynx"}
+	if stateHome := os.Getenv("XDG_STATE_HOME"); stateHome != "" {
+		allowedRoots = append(allowedRoots, filepath.Join(stateHome, "lynx/logs"))
+	}
+
+	resolvedRoots := make([]string, 0, len(allowedRoots))
+	for _, root := range allowedRoots {
+		base := filepath.Clean(root)
+		if !filepath.IsAbs(base) {
+			continue
+		}
+		if r, err := filepath.EvalSymlinks(base); err == nil {
+			base = r
+		}
+		resolvedRoots = append(resolvedRoots, base)
+	}
+
+	for _, root := range resolvedRoots {
+		if !withinRoot(root, candidate) {
+			continue
+		}
+
+		if matchResolvedRoot(root, candidate) {
+			return candidate, nil
+		}
+	}
+
+	return "", errors.New("invalid log dir: outside allowed roots")
+}
+
+func matchResolvedRoot(root, candidate string) bool {
+	if candidateResolved, err := filepath.EvalSymlinks(candidate); err == nil {
+		return withinRoot(root, candidateResolved)
+	} else if !os.IsNotExist(err) {
+		// Some error other than IsNotExist
+		return false
+	}
+
+	return withinRoot(root, candidate) && !pathContainsUnsafeSymlink(root, candidate)
+}
+
+func resolveDefaultDir(euid int) (string, error) {
 	if euid == 0 {
 		return "/var/log/lynx", nil
 	}
@@ -114,10 +127,7 @@ func pathContainsUnsafeSymlink(root, path string) bool {
 		current = filepath.Join(current, part)
 		info, err := os.Lstat(current)
 		if err != nil {
-			if os.IsNotExist(err) {
-				return false
-			}
-			return true
+			return !os.IsNotExist(err)
 		}
 		if info.Mode()&os.ModeSymlink != 0 {
 			resolved, err := filepath.EvalSymlinks(current)

@@ -7,7 +7,7 @@ Lynx is a lightweight, secure alternative to PM2 or Supervisor, designed specifi
 ## Prerequisites
 
 *   **OS**: Linux (Debian/Ubuntu recommended). Windows/macOS not supported.
-*   **Go**: Version 1.25.6+ (as defined in `go.mod`).
+*   **Go**: Version 1.26.0+ (as defined in `go.mod`).
 *   **Path**: The `lynx` binary must be in the system `PATH` for the daemon to function correctly (required for internal helpers).
 
 ## Quickstart
@@ -17,10 +17,10 @@ If you don't have Go installed, use the official tarball (replace version with l
 
 ```bash
 # Download Go
-wget https://go.dev/dl/go1.25.6.linux-amd64.tar.gz
+wget https://go.dev/dl/go1.26.0.linux-amd64.tar.gz
 
 # Install to /usr/local
-sudo rm -rf /usr/local/go && sudo tar -C /usr/local -xzf go1.25.6.linux-amd64.tar.gz
+sudo rm -rf /usr/local/go && sudo tar -C /usr/local -xzf go1.26.0.linux-amd64.tar.gz
 
 # Add to PATH
 export PATH=$PATH:/usr/local/go/bin
