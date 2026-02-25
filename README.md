@@ -59,6 +59,9 @@ sudo apt install ./lynx.deb
 sudo usermod -aG lynxadm $USER
 newgrp lynxadm
 sudo systemctl enable --now lynx.lynxd
+
+# Verify the daemon is running securely
+systemctl status lynx.lynxd
 ```
 
 ### 2. Deploy your application!
