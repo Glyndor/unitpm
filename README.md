@@ -55,6 +55,9 @@ curl -L -o lynx.deb https://github.com/Jaro-c/Lynx/releases/latest/download/lynx
 # Install it
 sudo apt install ./lynx.deb
 
+# Clean up the downloaded file
+rm lynx.deb
+
 # Add yourself to the lynx admin group & enable the backend engine
 sudo usermod -aG lynxadm $USER
 newgrp lynxadm
