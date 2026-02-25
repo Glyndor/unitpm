@@ -17,7 +17,10 @@ func TestNewProcess_CronScheduler(t *testing.T) { //nolint:testpackage
 			Command: "echo",
 			Args:    []string{"hello"},
 		},
-		Cron: "@every 1s",
+		Cron: "@every 60s",
+		Restart: &protocol.AppRestart{
+			Policy: "on-failure",
+		},
 	}
 
 	// 2. Initialize process
