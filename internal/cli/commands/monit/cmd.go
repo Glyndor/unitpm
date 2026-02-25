@@ -13,6 +13,7 @@ import (
 	"github.com/Jaro-c/Lynx/internal/types"
 )
 
+// Run executes the monit command to display live statistics for all running applications.
 func Run(client *transport.Client, args []string) error {
 	interval := time.Second * 2
 
@@ -32,6 +33,7 @@ func Run(client *transport.Client, args []string) error {
 	}
 }
 
+// GetSpec returns the command specification for the monit command.
 func GetSpec() help.CommandSpec {
 	return help.CommandSpec{
 		Name:        "monit",
@@ -40,6 +42,7 @@ func GetSpec() help.CommandSpec {
 	}
 }
 
+// PrintHelp prints the help information for the monit command.
 func PrintHelp() {
 	help.RenderCommandHelp(os.Stdout, GetSpec())
 }

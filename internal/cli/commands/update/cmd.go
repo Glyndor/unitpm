@@ -4,6 +4,7 @@
 package update
 
 import (
+	"context"
 	"errors"
 	"flag"
 	"fmt"
@@ -53,7 +54,7 @@ func Run(w io.Writer, args []string) error {
 	fmt.Fprintf(w, "Checking for updates...\n")
 
 	// 2. Check for updates
-	release, err := updater.Check()
+	release, err := updater.Check(context.Background())
 	if err != nil {
 		return fmt.Errorf("failed to check for updates: %w", err)
 	}
@@ -69,7 +70,7 @@ func Run(w io.Writer, args []string) error {
 	// 3. Apply update if requested
 	if *apply {
 		fmt.Fprintf(w, "Downloading and installing update...\n")
-		if err := updater.Apply(release); err != nil {
+		if err := updater.Apply(context.Background(), release); err != nil {
 			return fmt.Errorf("update failed: %w", err)
 		}
 		fmt.Fprintf(w, "%s Successfully updated to %s\n", term.GreenString("✓"), release.TagName)

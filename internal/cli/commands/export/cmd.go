@@ -13,6 +13,7 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
+// Run executes the export command to generate a Lynxfile from currently running applications.
 func Run(args []string) error {
 	if help.IsHelp(args) {
 		PrintHelp()
@@ -110,6 +111,7 @@ func Run(args []string) error {
 	return err
 }
 
+// GetSpec returns the command specification for the export command.
 func GetSpec() help.CommandSpec {
 	return help.CommandSpec{
 		Name:        "export",
@@ -118,6 +120,7 @@ func GetSpec() help.CommandSpec {
 	}
 }
 
+// PrintHelp prints the help information for the export command.
 func PrintHelp(w ...interface{}) {
 	help.RenderCommandHelp(os.Stdout, GetSpec())
 }

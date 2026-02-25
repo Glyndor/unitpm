@@ -10,6 +10,7 @@ type UsageError struct {
 	Message string
 }
 
+// Error returns the string representation of the UsageError.
 func (e *UsageError) Error() string {
 	return e.Message
 }

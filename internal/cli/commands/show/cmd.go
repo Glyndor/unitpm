@@ -31,6 +31,7 @@ type showResponse struct {
 	Spec any `json:"spec"`
 }
 
+// Run executes the show command to display detailed information about a specific application.
 func Run(client *transport.Client, args []string) error {
 	if len(args) == 0 {
 		return fmt.Errorf("missing process ID or name")
@@ -54,6 +55,7 @@ func Run(client *transport.Client, args []string) error {
 	return nil
 }
 
+// GetSpec returns the command specification for the show command.
 func GetSpec() help.CommandSpec {
 	return help.CommandSpec{
 		Name:        "show",
@@ -62,6 +64,7 @@ func GetSpec() help.CommandSpec {
 	}
 }
 
+// PrintHelp prints the help information for the show command.
 func PrintHelp() {
 	help.RenderCommandHelp(os.Stdout, GetSpec())
 }

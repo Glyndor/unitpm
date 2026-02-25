@@ -20,6 +20,7 @@ import (
 	"github.com/Jaro-c/Lynx/internal/term"
 )
 
+// Sleeper is a function type for pausing execution, usually for polling.
 type Sleeper func(time.Duration)
 
 // Run executes the logs command.

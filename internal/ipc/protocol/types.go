@@ -53,6 +53,7 @@ type StartError struct {
 	Message string `json:"message"`
 }
 
+// AppSpec contains the full specification of an application to be run.
 type AppSpec struct {
 	Version   int               `json:"version"`
 	ID        string            `json:"id"`

@@ -23,6 +23,7 @@ type MismatchData struct {
 	Received  int `json:"received"`
 }
 
+// Error returns the string representation of the RemoteError.
 func (e *RemoteError) Error() string {
 	return fmt.Sprintf("ipc error: [%s] %s", e.Code, e.Message)
 }

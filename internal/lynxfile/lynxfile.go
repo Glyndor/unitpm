@@ -10,12 +10,14 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
+// File represents the top-level structure of a Lynx configuration file (e.g., Lynxfile.yml).
 type File struct {
 	Version   string      `yaml:"version"`
 	Namespace string      `yaml:"namespace,omitempty"`
 	Apps      []AppConfig `yaml:"apps"`
 }
 
+// AppConfig defines the configuration for a single application within a Lynx file.
 type AppConfig struct {
 	Name      string `yaml:"name"`
 	Namespace string `yaml:"namespace,omitempty"`
@@ -32,6 +34,7 @@ type AppConfig struct {
 	Logs    LogsConfig    `yaml:"logs,omitempty"`
 }
 
+// RestartConfig specifies the restart policy and backoff parameters.
 type RestartConfig struct {
 	Policy      string `yaml:"policy"`
 	MaxRestarts int    `yaml:"max_restarts,omitempty"`
@@ -40,6 +43,7 @@ type RestartConfig struct {
 	StopOnExit  []int  `yaml:"stop_on_exit,omitempty"`
 }
 
+// LogsConfig defines the logging configuration for an application.
 type LogsConfig struct {
 	Dir       string `yaml:"dir,omitempty"`
 	Stdout    string `yaml:"stdout,omitempty"`
@@ -48,6 +52,7 @@ type LogsConfig struct {
 	Timestamp string `yaml:"timestamp,omitempty"`
 }
 
+// Parse reads a Lynx configuration from the provided reader and decodes it.
 func Parse(r io.Reader) (*File, error) {
 	data, err := io.ReadAll(r)
 	if err != nil {
@@ -78,6 +83,7 @@ func Parse(r io.Reader) (*File, error) {
 	return &f, nil
 }
 
+// ToAppSpecs converts the File definition into a list of application specifications.
 func (f *File) ToAppSpecs() ([]protocol.AppSpec, error) {
 	var specs []protocol.AppSpec
 
@@ -105,6 +111,7 @@ func tokenizeCommand(cmd string) []string {
 	return fields
 }
 
+// ToAppSpec converts a single application configuration to a protocol.AppSpec.
 func (app AppConfig) ToAppSpec(defaultNamespace string) (protocol.AppSpec, error) {
 	ns := app.Namespace
 	if ns == "" {

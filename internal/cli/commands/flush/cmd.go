@@ -11,6 +11,7 @@ import (
 	"github.com/Jaro-c/Lynx/internal/term"
 )
 
+// Run executes the flush command to clear logs for a specific application.
 func Run(client *transport.Client, args []string) error {
 	if len(args) == 0 {
 		return fmt.Errorf("missing process ID or name")
@@ -32,6 +33,7 @@ func Run(client *transport.Client, args []string) error {
 	return nil
 }
 
+// GetSpec returns the command specification for the flush command.
 func GetSpec() help.CommandSpec {
 	return help.CommandSpec{
 		Name:        "flush",
@@ -40,6 +42,7 @@ func GetSpec() help.CommandSpec {
 	}
 }
 
+// PrintHelp prints the help information for the flush command.
 func PrintHelp() {
 	help.RenderCommandHelp(os.Stdout, GetSpec())
 }

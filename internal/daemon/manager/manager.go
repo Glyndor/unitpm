@@ -175,6 +175,7 @@ func (m *Manager) Restart(id string) error {
 	return proc.Restart()
 }
 
+// Reload reloads a process configuration from its spec file and restarts the process.
 func (m *Manager) Reload(id string) error {
 	s, err := spec2.LoadSpec(id)
 	if err != nil {

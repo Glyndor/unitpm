@@ -16,6 +16,7 @@ import (
 	"github.com/Jaro-c/Lynx/internal/term"
 )
 
+// Run executes the apply command to load a Lynxfile and start the defined applications.
 func Run(client *transport.Client, args []string) error {
 	if help.IsHelp(args) {
 		PrintHelp()
@@ -82,6 +83,7 @@ func Run(client *transport.Client, args []string) error {
 	return nil
 }
 
+// GetSpec returns the command specification for the apply command.
 func GetSpec() help.CommandSpec {
 	return help.CommandSpec{
 		Name:        "apply",
@@ -90,6 +92,7 @@ func GetSpec() help.CommandSpec {
 	}
 }
 
+// PrintHelp prints the help information for the apply command.
 func PrintHelp(w ...interface{}) {
 	help.RenderCommandHelp(os.Stdout, GetSpec())
 }

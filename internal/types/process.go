@@ -19,6 +19,7 @@ const (
 	StateRestarting ProcessState = "restarting"
 )
 
+// ProcessInfo represents a summary of a process's state and configuration.
 type ProcessInfo struct {
 	ID        string       `json:"id"`
 	Name      string       `json:"name"`

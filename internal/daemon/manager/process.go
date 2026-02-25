@@ -24,6 +24,7 @@ import (
 	"github.com/robfig/cron/v3"
 )
 
+// Process represents a single managed application instance and its state.
 type Process struct {
 	mu            sync.Mutex
 	cmd           *exec.Cmd
@@ -147,6 +148,7 @@ func (p *Process) Start() error {
 	return nil
 }
 
+// Restart stops the process (if running) and starts it again.
 func (p *Process) Restart() error {
 	p.mu.Lock()
 	if p.noAutoRestart {
@@ -576,6 +578,7 @@ func (p *Process) handleRestart(exitCode int) {
 	}()
 }
 
+// Stop terminates the process. If byUser is true, automatic restarts are disabled.
 func (p *Process) Stop(byUser bool) error {
 	p.mu.Lock()
 
