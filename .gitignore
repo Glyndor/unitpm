@@ -68,7 +68,6 @@ obj-*/
 /lynx
 /lynxd
 lynx_*
-gosec*.json
-gosec*.txt
+gosec*
 *.out
 *.test
