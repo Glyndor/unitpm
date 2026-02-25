@@ -1,4 +1,10 @@
-lynx (0.3.0-1ubuntu1) UNRELEASED; urgency=medium
+lynx (0.3.1-1) unstable; urgency=medium
+
+  * Update CLI instructions for deb installations
+
+ -- Jaro-c <jaro-c@users.noreply.github.com>  Wed, 25 Feb 2026 12:26:18 +0000
+
+lynx (0.3.0-1) unstable; urgency=medium
 
 New release 0.3.0  * 
 
