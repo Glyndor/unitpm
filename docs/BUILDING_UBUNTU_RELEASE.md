@@ -107,7 +107,7 @@ As we said before, some users will use the `.deb` package via APT, but others si
 2. Make sure you are in your project folder (e.g., `cd J:\Lynx`).
 3. Run this exact command to tell Go to build a Linux (AMD64) executable for you:
    ```powershell
-   $env:GOOS="linux"; $env:GOARCH="amd64"; go build -o lynx_linux_amd64 ./cmd/lynx
+   $COMMIT=$(git rev-parse --short HEAD); $DATE=$(Get-Date -UFormat +"%Y-%m-%dT%H:%M:%SZ"); $env:GOOS="linux"; $env:GOARCH="amd64"; go build -ldflags="-X 'github.com/Jaro-c/Lynx/internal/version.Commit=$COMMIT' -X 'github.com/Jaro-c/Lynx/internal/version.BuildDate=$DATE'" -o lynx_linux_amd64 ./cmd/lynx
    ```
    *(Magic! You will now see a new file called `lynx_linux_amd64` in your project's `Lynx` folder).*
 

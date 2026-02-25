@@ -1,7 +1,7 @@
 Source: lynx
 Section: admin
 Priority: optional
-Maintainer: Lynx Maintainers <maintainers@example.com>
+Maintainer: Jaro-c <jaro-c@users.noreply.github.com>
 Build-Depends: debhelper-compat (= 13), golang-go
 Standards-Version: 4.6.2
 Homepage: https://github.com/Jaro-c/Lynx

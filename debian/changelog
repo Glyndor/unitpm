@@ -1,9 +1,29 @@
+lynx (0.3.0-1) unstable; urgency=medium
+
+  * Add self-updater with GitHub releases integration
+  * Add logs command with PM2-like output and log following
+  * Introduce namespace support for application isolation
+  * Add logrotate configuration integration
+  * Add GitHub Sponsors funding configuration
+  * Enhance security, ID validations, and system socket permissions
+  * Improve Linux tests and adopt go 1.26.0
+
+ -- Jaro-c <jaro-c@users.noreply.github.com>  Tue, 24 Feb 2026 21:37:42 -0500
+
+lynx (0.1.2-1) unstable; urgency=medium
+
+  * Add PM2-like flags for start command
+  * Implement restart policy and log file management
+  * Standardize command documentation
+
+ -- Jaro-c <jaro-c@users.noreply.github.com>  Thu, 29 Jan 2026 12:00:00 +0000
+
 lynx (0.1.1-1) unstable; urgency=medium
 
   * Fix metrics and Linux-only consistency
   * Improve CLI ID display and documentation
 
- -- Lynx Maintainers <maintainers@example.com>  Thu, 29 Jan 2026 12:00:00 +0000
+ -- Jaro-c <jaro-c@users.noreply.github.com>  Thu, 29 Jan 2026 12:00:00 +0000
 
 lynx (0.1.0-1) unstable; urgency=medium
 
@@ -12,10 +32,10 @@ lynx (0.1.0-1) unstable; urgency=medium
   * Improve Debian packaging and systemd unit
   * Allow root to manage system daemon
 
- -- Lynx Maintainers <maintainers@example.com>  Thu, 29 Jan 2026 12:00:00 +0000
+ -- Jaro-c <jaro-c@users.noreply.github.com>  Thu, 29 Jan 2026 12:00:00 +0000
 
 lynx (0.0.1-1) unstable; urgency=medium
 
   * Initial release.
 
- -- Lynx Maintainers <maintainers@example.com>  Thu, 29 Jan 2026 12:00:00 +0000
+ -- Jaro-c <jaro-c@users.noreply.github.com>  Thu, 29 Jan 2026 12:00:00 +0000
