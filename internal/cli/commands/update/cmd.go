@@ -48,7 +48,7 @@ func Run(w io.Writer, args []string) error {
 	// 1. Check if managed by system package manager
 	isManaged := updater.IsManagedByPackageSystem()
 	if isManaged && *apply && !*force {
-		return errors.New("lynx is managed by system package manager (apt/dpkg). Please use 'sudo apt upgrade lynx' instead. Use --force to override (not recommended)")
+		return errors.New("lynx is managed by system package manager (dpkg). Please download the latest .deb release and install it using 'sudo apt install ./lynx_<version>_amd64.deb'. Use --force to override (not recommended)")
 	}
 
 	fmt.Fprintf(w, "Checking for updates...\n")
@@ -77,7 +77,8 @@ func Run(w io.Writer, args []string) error {
 		fmt.Fprintf(w, "Please restart the daemon manually if needed: 'systemctl restart lynxd' or 'lynx reload'\n")
 	} else {
 		if isManaged {
-			fmt.Fprintf(w, "\nTo update, run:\n  sudo apt update && sudo apt install lynx\n")
+			fmt.Fprintf(w, "\nTo update, download the latest .deb release from %s\n", release.HTMLURL)
+			fmt.Fprintf(w, "and run:\n  sudo apt install ./<downloaded_deb_file>\n")
 		} else {
 			fmt.Fprintf(w, "\nTo update, run:\n  lynx update --apply\n")
 		}
