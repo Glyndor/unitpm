@@ -71,3 +71,5 @@ lynx_*
 gosec*
 *.out
 *.test
+*.txt
+*.debhelper
