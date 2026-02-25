@@ -64,7 +64,7 @@ func Run(w io.Writer, args []string) error {
 		return nil
 	}
 
-	fmt.Fprintf(w, "%s New version available: %s\n", term.YellowString("!"), term.BoldString(release.TagName))
+	fmt.Fprintf(w, "%s New version available: %s\n", term.YellowString("!"), term.BoldString("%s", release.TagName))
 	fmt.Fprintf(w, "  Release notes: %s\n", release.HTMLURL)
 
 	// 3. Apply update if requested
