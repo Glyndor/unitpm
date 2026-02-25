@@ -1,29 +1,31 @@
-# startup
+# 🦁 `lynx startup`
 
-## Synopsis
+> *Generate and install the system startup script for Lynx. This command configures `systemd` to start the Lynx daemon automatically on boot.*
+
+## 📖 Synopsis
 
 ```bash
 lynx startup [flags]
 ```
 
-## Usage
+## 💡 Usage
 
 Generate and install the system startup script for Lynx. This command configures `systemd` to start the Lynx daemon automatically on boot.
 
-## Flags
+## ⚙️ Flags
 
 | Flag | Type | Default | Description | Example |
 |------|------|---------|-------------|---------|
 | `-h`, `--help` | - | - | Show help message. | — |
 
-## Examples
+## 🚀 Examples
 
 Generate and install systemd unit (requires sudo/root if installing to /etc):
 ```bash
 lynx startup
 ```
 
-## Example output
+## 📋 Example Output
 
 Success:
 ```

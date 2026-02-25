@@ -1,6 +1,8 @@
-# flush
+# 🦁 `lynx flush`
 
-## Synopsis
+> *Documentation for the lynx command.*
+
+## 📖 Synopsis
 
 ```bash
 lynx flush <id|name>...
@@ -10,7 +12,7 @@ lynx flush <id|name>...
 
 Truncate the stdout/stderr log files for a process. Resolves and validates log paths before truncation to avoid unsafe operations.
 
-## Examples
+## 🚀 Examples
 
 Flush logs for one process:
 ```bash

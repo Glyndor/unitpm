@@ -1,6 +1,8 @@
-# show
+# 🦁 `lynx show`
 
-## Synopsis
+> *Documentation for the lynx command.*
+
+## 📖 Synopsis
 
 ```bash
 lynx show <id|name|namespace:name>
@@ -10,7 +12,7 @@ lynx show <id|name|namespace:name>
 
 Show detailed information about a process: ID, namespace, state, PID, uptime, CPU and memory usage, and user/mode metadata.
 
-## Examples
+## 🚀 Examples
 
 By ID:
 ```bash
@@ -27,7 +29,7 @@ Namespaced:
 lynx show default:my-api
 ```
 
-## Example output
+## 📋 Example Output
 
 ```
 Process my-api (e73a9f1b)

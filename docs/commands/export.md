@@ -1,6 +1,8 @@
-# export
+# 🦁 `lynx export`
 
-## Synopsis
+> *Documentation for the lynx command.*
+
+## 📖 Synopsis
 
 ```bash
 lynx export --namespace <name>
@@ -10,13 +12,13 @@ lynx export --namespace <name>
 
 Export all applications in a namespace to a Lynxfile YAML document printed to stdout. Useful for migrating or backing up configurations.
 
-## Flags
+## ⚙️ Flags
 
 | Flag | Type | Description |
 |------|------|-------------|
 | `--namespace`, `-n` | string | Namespace to export |
 
-## Examples
+## 🚀 Examples
 
 Export the `default` namespace:
 ```bash

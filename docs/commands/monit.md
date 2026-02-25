@@ -1,6 +1,8 @@
-# monit
+# 🦁 `lynx monit`
 
-## Synopsis
+> *Documentation for the lynx command.*
+
+## 📖 Synopsis
 
 ```bash
 lynx monit
@@ -10,7 +12,7 @@ lynx monit
 
 Display live statistics for all managed processes, refreshing periodically. Useful for quick monitoring without external tools.
 
-## Examples
+## 🚀 Examples
 
 Run live monitor:
 ```bash

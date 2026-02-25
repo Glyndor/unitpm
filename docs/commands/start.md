@@ -1,16 +1,18 @@
-# start
+# 🦁 `lynx start`
 
-## Synopsis
+> *Start a new process managed by Lynx. This command creates a new application specification and starts the process via the daemon.*
+
+## 📖 Synopsis
 
 ```bash
 lynx start <command|file> [flags] [-- <args...>]
 ```
 
-## Usage
+## 💡 Usage
 
 Start a new process managed by Lynx. This command creates a new application specification and starts the process via the daemon.
 
-## Flags
+## ⚙️ Flags
 
 | Flag | Type | Default | Description | Example |
 |------|------|---------|-------------|---------|
@@ -76,7 +78,7 @@ Start a new process managed by Lynx. This command creates a new application spec
 | **Node (script)** | `lynx start server.js` |
 | **Node (cmd)** | `lynx start -- node server.js` |
 
-## Examples
+## 🚀 Examples
 
 Start a Node.js script:
 ```bash
@@ -93,7 +95,7 @@ Start a scheduled task (runs every hour):
 lynx start cleanup.sh --schedule "@hourly" --restart never
 ```
 
-## Example output
+## 📋 Example Output
 
 Success:
 ```
@@ -213,5 +215,5 @@ When using `--isolation dynamic`, Lynx leverages `systemd-run` to create a trans
 3.  **Credential Safety**: Environment variables are NOT passed via command line (which is visible in `ps`). Instead, they are written to a `0600` file in a secure directory and passed via systemd's `LoadCredential` logic, ensuring only the target process can read them.
 4.  **No Privilege Escalation**: `NoNewPrivileges=yes` prevents the process from gaining new privileges (e.g., via setuid binaries).
 
-### Usage Recommendation
+### 💡 Usage Recommendation
 Use `--isolation dynamic` for network-facing services (e.g., web servers, APIs) to minimize the blast radius if the service is compromised.

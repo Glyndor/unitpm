@@ -1,22 +1,24 @@
-# help
+# 🦁 `lynx help`
 
-## Synopsis
+> *Display the help message for the specified command, or the general help message if no command is specified.*
+
+## 📖 Synopsis
 
 ```bash
 lynx help [command]
 ```
 
-## Usage
+## 💡 Usage
 
 Display the help message for the specified command, or the general help message if no command is specified.
 
-## Flags
+## ⚙️ Flags
 
 | Flag | Type | Default | Description | Example |
 |------|------|---------|-------------|---------|
 | `command` | string | - | The command to get help for. | `lynx help start` |
 
-## Examples
+## 🚀 Examples
 
 Show general help:
 ```bash
@@ -28,7 +30,7 @@ Show help for the `start` command:
 lynx help start
 ```
 
-## Example output
+## 📋 Example Output
 
 General help:
 ```

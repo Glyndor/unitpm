@@ -1,8 +1,10 @@
-# update
+# 🦁 `lynx update`
+
+> *Documentation for the lynx command.*
 
 Check for updates and apply them.
 
-## Synopsis
+## 📖 Synopsis
 
 ```bash
 lynx update [flags]
@@ -26,7 +28,7 @@ The `lynx update` command will detect this and warn you, unless you use `--force
 | `-f`, `--force` | Force update even if managed by system package manager. |
 | `-h`, `--help` | Show help for command. |
 
-## Examples
+## 🚀 Examples
 
 Check for updates:
 ```bash

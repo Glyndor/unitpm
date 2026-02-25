@@ -1,16 +1,18 @@
-# logs
+# 🦁 `lynx logs`
 
-## Synopsis
+> *View and follow process log files managed by Lynx. Resolves per‑app stdout/stderr paths and tails their contents.*
+
+## 📖 Synopsis
 
 ```bash
 lynx logs <id|name|namespace:name> [--lines N] [--follow] [--stdout] [--stderr]
 ```
 
-## Usage
+## 💡 Usage
 
 View and follow process log files managed by Lynx. Resolves per‑app stdout/stderr paths and tails their contents.
 
-## Flags
+## ⚙️ Flags
 
 | Flag | Type | Default | Description |
 |------|------|---------|-------------|
@@ -21,7 +23,7 @@ View and follow process log files managed by Lynx. Resolves per‑app stdout/std
 
 If neither `--stdout` nor `--stderr` is provided, both streams are shown.
 
-## Examples
+## 🚀 Examples
 
 Show last 200 lines of both streams:
 ```bash

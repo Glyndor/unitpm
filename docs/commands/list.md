@@ -1,16 +1,18 @@
-# list | ls | ps
+# 🦁 `lynx list | ls | ps`
 
-## Synopsis
+> *List all processes managed by Lynx. Displays status, uptime, and resource usage metrics.*
+
+## 📖 Synopsis
 
 ```bash
 lynx list|ls|ps [options]
 ```
 
-## Usage
+## 💡 Usage
 
 List all processes managed by Lynx. Displays status, uptime, and resource usage metrics.
 
-## Flags
+## ⚙️ Flags
 
 | Flag | Type | Default | Description | Example |
 |------|------|---------|-------------|---------|
@@ -19,7 +21,7 @@ List all processes managed by Lynx. Displays status, uptime, and resource usage 
 | `--sort` | string | - | Sort order (comma‑separated): fields `namespace`, `name`, `createdAt`, `id` with `asc|desc`. | `lynx list --sort "namespace:asc,name:asc,createdAt:desc"` |
 | `-h`, `--help` | - | - | Show help message. | — |
 
-## Examples
+## 🚀 Examples
 
 List all processes:
 ```bash
@@ -41,7 +43,7 @@ Custom sort:
 lynx list --sort "namespace:asc,name:asc,createdAt:desc"
 ```
 
-## Example output
+## 📋 Example Output
 
 Standard:
 ```

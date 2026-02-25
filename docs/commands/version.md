@@ -1,29 +1,31 @@
-# version
+# 🦁 `lynx version`
 
-## Synopsis
+> *Show Lynx version information for the CLI, Daemon, and IPC Protocol.*
+
+## 📖 Synopsis
 
 ```bash
 lynx version [flags]
 ```
 
-## Usage
+## 💡 Usage
 
 Show Lynx version information for the CLI, Daemon, and IPC Protocol.
 
-## Flags
+## ⚙️ Flags
 
 | Flag | Type | Default | Description | Example |
 |------|------|---------|-------------|---------|
 | `-h`, `--help` | - | - | Show help message. | — |
 
-## Examples
+## 🚀 Examples
 
 Show version:
 ```bash
 lynx version
 ```
 
-## Example output
+## 📋 Example Output
 
 ```
 Lynx CLI

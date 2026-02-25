@@ -1,8 +1,10 @@
-# stop
+# 🦁 `lynx stop`
+
+> *Documentation for the lynx command.*
 
 Stop one or more running processes.
 
-## Synopsis
+## 📖 Synopsis
 
 ```bash
 lynx stop <id|name>...
@@ -12,7 +14,7 @@ lynx stop <id|name>...
 
 Stops the specified processes. You can provide either the full ID, a short ID prefix (if unique), or the process name (if unique).
 
-## Examples
+## 🚀 Examples
 
 Stop a process by name:
 ```bash

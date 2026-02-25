@@ -1,8 +1,10 @@
-# delete | remove | rm
+# 🦁 `lynx delete | remove | rm`
+
+> *Documentation for the lynx command.*
 
 Delete one or more processes and their configurations.
 
-## Synopsis
+## 📖 Synopsis
 
 ```bash
 lynx delete|remove|rm [--purge] <id|name>...
@@ -12,11 +14,11 @@ lynx delete|remove|rm [--purge] <id|name>...
 
 Stops and removes the specified processes from management. By default, it removes the process from the list and deletes its spec file.
 
-## Flags
+## ⚙️ Flags
 
 - `--purge`: Also delete the log files and any runtime data associated with the process.
 
-## Examples
+## 🚀 Examples
 
 Delete a process (keep logs):
 ```bash

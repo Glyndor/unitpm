@@ -1,6 +1,8 @@
-# reload
+# 🦁 `lynx reload`
 
-## Synopsis
+> *Documentation for the lynx command.*
+
+## 📖 Synopsis
 
 ```bash
 lynx reload <id|name>...
@@ -10,7 +12,7 @@ lynx reload <id|name>...
 
 Reload a process configuration from its stored spec and restart it. Useful after editing a spec file or changing environment.
 
-## Examples
+## 🚀 Examples
 
 Reload by name:
 ```bash

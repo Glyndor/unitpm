@@ -1,6 +1,8 @@
-# apply
+# 🦁 `lynx apply`
 
-## Synopsis
+> *Documentation for the lynx command.*
+
+## 📖 Synopsis
 
 ```bash
 lynx apply <Lynxfile.yml>
@@ -32,7 +34,7 @@ apps:
       backoff: "expo"
 ```
 
-## Examples
+## 🚀 Examples
 
 Apply a Lynxfile:
 ```bash

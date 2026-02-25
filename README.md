@@ -1,88 +1,63 @@
-# Lynx
+# 🦁 Lynx
 
-**The Secure, Systemd-Native Process Manager for Linux.**
+<div align="center">
+  <h3>The Secure, Systemd-Native Process Manager for Linux</h3>
+  <p>A lightning-fast, highly secure alternative to PM2 or Supervisor—built specifically for modern Debian/Ubuntu servers.</p>
 
-Lynx is a lightweight, secure alternative to PM2 or Supervisor, designed specifically for Debian/Ubuntu systems. It leverages `systemd` for robust process supervision while providing a developer-friendly CLI for easy management.
+  <img src="https://img.shields.io/badge/OS-Linux%20Only-informational?style=for-the-badge&logo=linux&color=2ecc71" alt="Linux Only" />
+  <img src="https://img.shields.io/badge/Go-1.26+-00ADD8?style=for-the-badge&logo=go" alt="Go Version" />
+  <img src="https://img.shields.io/github/v/release/Jaro-c/Lynx?style=for-the-badge&color=ff69b4" alt="Release" />
+</div>
 
-## Prerequisites
+---
 
-*   **OS**: Linux (Debian/Ubuntu recommended). Windows/macOS not supported.
-*   **Go**: Version 1.26.0+ (as defined in `go.mod`).
-*   **Path**: The `lynx` binary must be in the system `PATH` for the daemon to function correctly (required for internal helpers).
+## ✨ Why You Need Lynx
 
-## Quickstart
+Stop wrestling with complex configurations and insecure wrappers. Lynx gives you superpowers by natively combining the rock-solid reliability of `systemd` with a beautiful, modern, and incredibly easy-to-use CLI.
 
-### 1. Install Go (Debian/Ubuntu)
-If you don't have Go installed, use the official tarball (replace version with latest stable if needed):
+- **🛡️ Secure by Default**: No implicit `sudo`. Zero path-traversal vulnerabilities. Spec files are locked down (`0600`), protecting your production servers.
+- **⚙️ Native `systemd` Power**: It doesn't reinvent the wheel. It orchestrates processes natively using Linux's most robust init system.
+- **📊 Real-time Metrics**: Get instant insight into CPU and Memory for entire process trees using Cgroups V2 with zero overhead.
+- **📦 Declarative & GitOps Ready**: Formulate your deployments using simple `Lynxfile.yml` definitions.
 
-```bash
-# Download Go
-wget https://go.dev/dl/go1.26.0.linux-amd64.tar.gz
+---
 
-# Install to /usr/local
-sudo rm -rf /usr/local/go && sudo tar -C /usr/local -xzf go1.26.0.linux-amd64.tar.gz
+## ⚡ 1-Minute Quickstart
 
-# Add to PATH
-export PATH=$PATH:/usr/local/go/bin
+Getting your app running has never been this easy.
 
-# Verify
-go version
-```
-
-### 2. Build from Source
-```bash
-# Clone repository
-git clone https://github.com/Jaro-c/Lynx.git
-cd Lynx
-
-# Build binaries
-go build -v ./cmd/lynx ./cmd/lynxd
-```
-
-### 3. Build & Install Debian Package (Recommended)
-This creates a native `.deb` package and integrates with systemd.
+### 1. Install the Pre-built Package
+Forget about compiling source code. Just download the Debian package!
 
 ```bash
-# 1. Install build dependencies
-sudo apt-get update
-sudo apt-get install -y build-essential debhelper
+# Download the package (check the Releases tab for the latest version)
+curl -L -o lynx.deb https://github.com/Jaro-c/Lynx/releases/latest/download/lynx_0.0.1-1_amd64.deb
 
-# 2. Build the package
-dpkg-buildpackage -us -uc -b
+# Install it
+sudo apt install ./lynx.deb
 
-# 3. Install the generated package
-sudo dpkg -i ../lynx_*.deb
-
-# 4. Enable and start the daemon
+# Add yourself to the lynx admin group & enable the backend engine
+sudo usermod -aG lynxadm $USER
+newgrp lynxadm
 sudo systemctl enable --now lynx.lynxd
 ```
 
-### 4. Usage
+### 2. Deploy your application!
+That's it! Let's bring your app to life in seconds:
+
 ```bash
-# Start an application
-lynx start app.js --name my-api --restart always
+# Start your program and keep it running 24/7 forever
+lynx start "node server.js" --name ultra-api --restart always
 
-# Start with DynamicUser isolation (Secure)
-lynx start app.js --isolation dynamic
-
-# List running processes
+# Watch the magic happen with real-time stats
 lynx list
 
-# Stop a process
-lynx stop my-api
-
-# Check daemon logs
-journalctl -u lynx.lynxd -f
+# Check your application logs in real-time
+lynx logs ultra-api --follow
 ```
 
-## Why Lynx?
-
-*   **Systemd-First**: Doesn't reinvent the wheel. The daemon integrates natively with Linux init systems for robust reliability.
-*   **Secure Defaults**: Strictly controls permissions. Spec files are 0600, no implicit `sudo`, and rigorous path validation prevents traversal attacks.
-*   **Declarative Specs**: Every process is defined by a JSON specification stored in `~/.config/lynx/apps`, making it GitOps-friendly.
-*   **Accurate Metrics**: Aggregates CPU and Memory usage for entire process trees by scanning `/proc` (Proctree) or Cgroups V2.
-
-## Access Model
+---
+## 🔒 Access Model
 
 Lynx supports two modes of operation:
 
@@ -106,8 +81,7 @@ Lynx supports two modes of operation:
 - **Permissions**: Restricted to the owner (`0600`).
 - **Environment**: Inherits the full user environment.
 - **Use Case**: Development environments or per-user service management.
-
-## Commands
+## 🛠️ Commands
 
 | Command | Description | Documentation |
 |---------|-------------|---------------|
@@ -127,43 +101,22 @@ Lynx supports two modes of operation:
 | `update` | Check for updates and apply them. | [Docs](docs/commands/update.md) |
 | `help` | Show help for any command. | [Docs](docs/commands/help.md) |
 
-## Releases
+## ⚙️ Advanced Installation & Build from Source
 
-Pre-built `.deb` packages for Debian/Ubuntu are available on the [GitHub Releases](https://github.com/Jaro-c/Lynx/releases) page.
+If you prefer modifying the source code or building the binaries yourself:
 
-## Installation (Debian/Ubuntu)
-
-### Option A: Install Prebuilt .deb
 ```bash
-# Download from Releases and install
-sudo dpkg -i lynx_<version>_amd64.deb
+# 1. Clone repository
+git clone https://github.com/Jaro-c/Lynx.git
+cd Lynx
 
-# Add your user to the admin group for CLI access to the system daemon
-sudo usermod -aG lynxadm $USER
-newgrp lynxadm
+# 2. Build binaries manually
+$env:GOOS="linux"; $env:GOARCH="amd64"; go build -v -o lynx_linux_amd64 ./cmd/lynx
 
-# Enable and start the system daemon
-sudo systemctl enable --now lynx.lynxd
-
-# Verify the service and socket
-systemctl status lynx.lynxd
-ls -l /run/lynx/lynx.sock
-```
-
-### Option B: Build and Install from Source
-```bash
-# Dependencies
-sudo apt-get update
-sudo apt-get install -y build-essential debhelper
-
-# Build package
+# 3. Build & Install Debian Package locally
+sudo apt-get update && sudo apt-get install -y build-essential debhelper
 dpkg-buildpackage -us -uc -b
-
-# Install
 sudo dpkg -i ../lynx_*.deb
-
-# Enable daemon
-sudo systemctl enable --now lynx.lynxd
 ```
 
 ### User Mode (Optional)
@@ -175,7 +128,7 @@ systemd --user &
 lynx list
 ```
 
-## Deployment Guide (Debian/Ubuntu)
+## 🚀 Deployment Guide (Debian/Ubuntu)
 
 1. Install Lynx using either Option A or B above.
 2. Add your user to `lynxadm` (system mode) and re-login or run `newgrp lynxadm`.
@@ -205,7 +158,7 @@ lynx list
    lynx delete --purge my-api
    ```
 
-## Getting Started Tutorial
+## 📚 Getting Started Tutorial
 
 ### 1. Install Lynx
 Use the prebuilt `.deb` and enable `lynx.lynxd` as shown in the Installation section.
@@ -239,7 +192,7 @@ lynx export --namespace default > Lynxfile.yml
 lynx apply Lynxfile.yml
 ```
 
-## Development
+## 👨‍💻 Development
 
 **Note for Windows Developers**:
 Since Lynx is Linux-only, we recommend using **VS Code Remote-WSL**.
@@ -247,6 +200,6 @@ If you are editing on Windows, you may see false positive errors (e.g., "build c
 To fix this in your editor settings, set the environment variable:
 `GOOS=linux`
 
-## Packaging
+## 📦 Packaging
 
-Lynx is designed to be installed as a native Debian package. See the **Quickstart** section above for build instructions.
+Lynx is designed to be installed as a native Debian package. See `docs/BUILDING_UBUNTU_RELEASE.md` for full instructions.

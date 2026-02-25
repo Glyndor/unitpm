@@ -1,8 +1,10 @@
-# restart
+# 🦁 `lynx restart`
+
+> *Documentation for the lynx command.*
 
 Restart one or more processes.
 
-## Synopsis
+## 📖 Synopsis
 
 ```bash
 lynx restart <id|name>...
@@ -12,7 +14,7 @@ lynx restart <id|name>...
 
 Restarts the specified processes. This sends a stop signal followed by starting the process again with the same configuration.
 
-## Examples
+## 🚀 Examples
 
 Restart a process:
 ```bash
