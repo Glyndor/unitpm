@@ -8,7 +8,7 @@ ExecStart=/usr/sbin/lynxd
 Restart=on-failure
 User=lynx
 Group=lynx
-RuntimeDirectory=lynx
+RuntimeDirectory=lynxd
 StateDirectory=lynx
 LogsDirectory=lynx
 # Hardening
