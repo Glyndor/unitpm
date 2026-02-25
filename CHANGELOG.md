@@ -2,6 +2,38 @@
 
 All notable changes to this project will be documented in this file.
 
+## [Unreleased]
+
+## [0.3.0] - 2026-02-24
+
+### Features
+- **update**: Add `lynx update` command to check for and apply self-updates with GitHub releases integration.
+- **logs**: Add `lynx logs` command with PM2-like output, log following, and centralized log paths.
+- **namespaces**: Introduce namespace support to isolate applications.
+- **config**: Add logrotate configuration integration for Lynx application logs.
+- **community**: Add GitHub Sponsors funding configuration (`.github/FUNDING.yml`).
+- **core**: Introduce new modules for log path resolution and application specification management.
+
+### Security & Reliability
+- **daemon**: Reset PID and ensure state consistency when processes are manually stopped out-of-band.
+- **daemon**: Make `lynx stop` authoritative over automatic restart policies.
+- **daemon**: Add robust state persistence and restore on startup.
+- **security**: Improve environment handling, harden ID validations, and tighten system socket directory permissions.
+- **build**: Resolve Linux build/test failures by heavily isolating lifecycle tests and removing Windows regressions.
+
+### Refactor
+- Update Go to 1.26.0 and adopt `yaml.v3`.
+- Consolidate ignore patterns, fix extensive `golangci-lint` issues, and adopt best-practice `gosec` rules.
+
+### Documentation
+- Add comprehensive Godoc comments for all exported funcs and types.
+- Add detailed CLI command manuals and update the `README.md` with PM2/Supervisor comparisons.
+- Add comprehensive guide for building and releasing Ubuntu/Debian `.deb` packages via WSL.
+
+## [0.2.0] - 2026-02-05
+
+*(Internal unreleased bump or lost history, merging into 0.3.0)*
+
 ## [0.1.2] - 2026-01-29
 
 ### Features
