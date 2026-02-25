@@ -26,8 +26,8 @@ func listen(path string) (net.Listener, error) {
 	defer syscall.Umask(oldMask)
 
 	// Determine if this is the system socket
-	// We assume system socket is at /run/lynx/lynx.sock
-	isSystem := path == "/run/lynx/lynx.sock"
+	// We assume system socket is at /run/lynxd/lynx.sock
+	isSystem := path == "/run/lynxd/lynx.sock"
 
 	if isSystem {
 		dir := filepath.Dir(path)

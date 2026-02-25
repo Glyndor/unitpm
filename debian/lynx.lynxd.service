@@ -16,7 +16,7 @@ NoNewPrivileges=yes
 PrivateTmp=yes
 ProtectSystem=strict
 ProtectHome=read-only
-ReadWritePaths=/var/lib/lynx /var/log/lynx /run/lynx
+ReadWritePaths=/var/lib/lynx /var/log/lynx /run/lynxd
 
 [Install]
 WantedBy=multi-user.target

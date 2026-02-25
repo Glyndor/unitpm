@@ -29,7 +29,7 @@ Lynx follows standard Linux filesystem hierarchies:
 - **System Config**: `/etc/lynx`
 - **State/Data**: `/var/lib/lynx`
 - **Logs**: `/var/log/lynx`
-- **Runtime**: `/run/lynx` (managed by systemd `RuntimeDirectory`)
+- **Runtime**: `/run/lynxd` (managed by systemd `RuntimeDirectory`)
 
 ## 5. Coding Standards
 - **Formatting**: `gofmt -s -w .` and `goimports`.

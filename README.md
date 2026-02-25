@@ -89,7 +89,7 @@ Lynx supports two modes of operation:
 ### 1. System Mode (Default)
 - **Daemon**: Runs as a system service (`lynxd`), managed by `systemd`.
 - **User**: `lynx` (system user).
-- **Socket**: `/run/lynx/lynx.sock`.
+- **Socket**: `/run/lynxd/lynx.sock`.
 - **Permissions**: Restricted to `root` and members of the `lynxadm` group (mode `0660`).
 - **Environment**: Does **not** inherit system environment variables (to prevent leaking secrets). Whitelists safe variables (`PATH`, `LANG`, `XDG_*`, `LC_*`).
 - **Use Case**: Production servers where a central daemon manages services.

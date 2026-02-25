@@ -23,9 +23,9 @@ func GetSocketPath() (string, error) {
 	}
 
 	// 2. System Daemon (root or 'lynx' user)
-	// If we are 'lynx' user (system service) or 'root' (admin), default to /run/lynx/lynx.sock
+	// If we are 'lynx' user (system service) or 'root' (admin), default to /run/lynxd/lynx.sock
 	if u.Username == "lynx" || u.Uid == "0" {
-		return "/run/lynx/lynx.sock", nil
+		return "/run/lynxd/lynx.sock", nil
 	}
 
 	// 3. Rootless / User Daemon
