@@ -11,14 +11,33 @@
 
 ---
 
-## ✨ Why You Need Lynx
+## ✨ Why Lynx? (vs PM2 & Supervisor)
 
-Stop wrestling with complex configurations and insecure wrappers. Lynx gives you superpowers by natively combining the rock-solid reliability of `systemd` with a beautiful, modern, and incredibly easy-to-use CLI.
+Stop wrestling with complex configurations, high RAM overhead, and insecure wrappers. Lynx gives you superpowers by natively combining the rock-solid reliability of `systemd` with a beautiful, modern CLI.
 
-- **🛡️ Secure by Default**: No implicit `sudo`. Zero path-traversal vulnerabilities. Spec files are locked down (`0600`), protecting your production servers.
-- **⚙️ Native `systemd` Power**: It doesn't reinvent the wheel. It orchestrates processes natively using Linux's most robust init system.
-- **📊 Real-time Metrics**: Get instant insight into CPU and Memory for entire process trees using Cgroups V2 with zero overhead.
-- **📦 Declarative & GitOps Ready**: Formulate your deployments using simple `Lynxfile.yml` definitions.
+| Feature | 🦁 Lynx | 🐢 PM2 | 🦖 Supervisor |
+| :--- | :--- | :--- | :--- |
+| **Technology** | `Compiled Go` (Native) | `Node.js` (V8 Engine) | `Python` (Interpreted) |
+| **Base RAM Overhead** | **~10 MB** ⚡ | ~60-100+ MB 🐌 | ~50+ MB 🐢 |
+| **Daemon Engine** | **Native OS (`systemd`)** 🛡️ | Custom (PM2 Daemon) ❌ | Custom (supervisord) ❌ |
+| **Crash Resilience** | Perfect (Apps outlive CLI) | Poor (Apps die with PM2) | Poor (Apps die with daemon) |
+| **Sandboxing & Security**| **DynamicUser isolation** 🔒 | Root / User-space ⚠️ | Root / User-space ⚠️ |
+| **Config Format** | `CLI` / `Lynxfile.yml` | `Ecosystem.config.js` | `ini` files |
+
+---
+
+## 🔒 The "Zero-Privilege" Deploy
+
+The most powerful feature of Lynx. Start an API fully isolated: **no access to `/home`**, **no new privileges**, and secrets are passed securely via systemd without writing them to global disk variables.
+
+```bash
+lynx start api.js \
+  --name max-security-api \
+  --isolation dynamic \
+  --env-file .env.production
+```
+
+It is impossible to achieve this level of security with one command in other managers.
 
 ---
 
