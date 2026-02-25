@@ -61,7 +61,7 @@ newgrp lynxadm
 sudo systemctl enable --now lynx.lynxd
 
 # Verify the daemon is running securely
-systemctl status lynx.lynxd
+sudo systemctl status lynx.lynxd
 ```
 
 ### 2. Deploy your application!
