@@ -1,3 +1,9 @@
+lynx (0.3.4-1) unstable; urgency=medium
+
+  * Fix IPC socket ownership validation to permit daemon execute user instead of strictly requiring root
+
+ -- Jaro-c <jaro-c@users.noreply.github.com>  Wed, 25 Feb 2026 19:08:04 +0000
+
 lynx (0.3.3-1) unstable; urgency=medium
 
   * Fix systemd RuntimeDirectory not mounting /run/lynxd correctly
