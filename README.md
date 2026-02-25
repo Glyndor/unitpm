@@ -58,10 +58,10 @@ sudo apt install ./lynx.deb
 # Add yourself to the lynx admin group & enable the backend engine
 sudo usermod -aG lynxadm $USER
 newgrp lynxadm
-sudo systemctl enable --now lynx.lynxd
+sudo systemctl enable --now lynxd
 
 # Verify the daemon is running securely
-sudo systemctl status lynx.lynxd
+sudo systemctl status lynxd
 ```
 
 ### 2. Deploy your application!
@@ -84,7 +84,7 @@ lynx logs ultra-api --follow
 Lynx supports two modes of operation:
 
 ### 1. System Mode (Default)
-- **Daemon**: Runs as a system service (`lynx.lynxd`), managed by `systemd`.
+- **Daemon**: Runs as a system service (`lynxd`), managed by `systemd`.
 - **User**: `lynx` (system user).
 - **Socket**: `/run/lynx/lynx.sock`.
 - **Permissions**: Restricted to `root` and members of the `lynxadm` group (mode `0660`).
@@ -156,7 +156,7 @@ lynx list
 2. Add your user to `lynxadm` (system mode) and re-login or run `newgrp lynxadm`.
 3. Verify daemon logs:
    ```bash
-   journalctl -u lynx.lynxd -f
+   journalctl -u lynxd -f
    ```
 4. Start your application:
    ```bash
@@ -183,7 +183,7 @@ lynx list
 ## 📚 Getting Started Tutorial
 
 ### 1. Install Lynx
-Use the prebuilt `.deb` and enable `lynx.lynxd` as shown in the Installation section.
+Use the prebuilt `.deb` and enable `lynxd` as shown in the Installation section.
 
 ### 2. Start a simple app
 ```bash
