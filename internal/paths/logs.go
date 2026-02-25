@@ -125,7 +125,7 @@ func pathContainsUnsafeSymlink(root, path string) bool {
 			continue
 		}
 		current = filepath.Join(current, part)
-		//nolint:gosec // path is fully sanitized component by component during resolution
+		// #nosec G703 // path is fully sanitized component by component during resolution
 		info, err := os.Lstat(current)
 		if err != nil {
 			return !os.IsNotExist(err)
