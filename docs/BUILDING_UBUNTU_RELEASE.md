@@ -14,127 +14,127 @@ You could simply upload this executable file (like `lynx_linux_amd64`) directly 
 Why? Because creating a `.deb` package has huge advantages for the user:
 1. It automatically places the `lynx` program in their system, ready to use from anywhere.
 2. It can automatically install system services (like `lynxd.service`).
-3. It allows users to manage it using their native package manager (`sudo apt install ./lynx.deb` y `sudo apt remove lynx`).
+3. It allows users to manage it using their native package manager (`sudo apt install ./lynx.deb` and `sudo apt remove lynx`).
 
 ---
 
 ## Step-by-Step Guide for Beginners (Windows Users)
 
-Dado que estás usando Windows, no puedes crear un archivo `.deb` de Linux nativamente en PowerShell. ¡Pero no te preocupes! La forma más fácil de hacerlo es usando **WSL** (Windows Subsystem for Linux), que básicamente es tener un Ubuntu completo y real escondido dentro de tu Windows.
+Since you are using Windows, you cannot create a native Linux `.deb` file directly in PowerShell. But don't worry! The easiest way to do this is by using **WSL** (Windows Subsystem for Linux), which is basically having a complete, real Ubuntu system hidden inside your Windows install.
 
-### Paso 0: Abrir y configurar WSL (Ubuntu) en Windows
+### Step 0: Open and configure WSL (Ubuntu) on Windows
 
-1. Si nunca has usado Linux en tu PC, abre **PowerShell como Administrador** y ejecuta este comando, luego reinicia la PC:
+1. If you have never used Linux on your PC, open **PowerShell as Administrator** and run this command, then restart your PC:
    ```powershell
    wsl --install
    ```
-2. Una vez instalado (o si ya lo tenías), abre el **Menú Inicio** de Windows.
-3. Escribe **`wsl`** o **`Ubuntu`** y presiona Enter.
-   *(Se abrirá una terminal negra. ¡Felicidades! Ahora estás dentro de un sistema Linux real, dentro de tu Windows).*
+2. Once installed (or if you already had it), open the Windows **Start Menu**.
+3. Type **`wsl`** or **`Ubuntu`** and press Enter.
+   *(A black terminal will open. Congratulations! You are now inside a real Linux system, right inside Windows).*
 
-### Paso 1: Instalar los "Constructores" (Solo se hace una vez)
+### Step 1: Install the "Builders" (Do this only once)
 
-Dentro de esa terminal negra de Linux/Ubuntu, necesitas instalar los programas que saben cómo construir paquetes `.deb`.
+Inside that black Linux/Ubuntu terminal, you need to install the programs that know how to build `.deb` packages.
 
-1. Escribe esto y presiona Enter (te pedirá tu contraseña de Linux):
+1. Type this and press Enter (it will ask for your Linux password):
    ```bash
    sudo apt-get update
    ```
-2. Luego escribe esto y presiona Enter (escribe `Y` si te pregunta si deseas continuar):
+2. Then type this and press Enter (type `Y` if it asks if you want to continue):
    ```bash
    sudo apt-get install devscripts debhelper build-essential
    ```
 
 ---
 
-### Paso 2: Entrar a tu proyecto que está en Windows
+### Step 2: Enter your project folder from Linux
 
-Por increíble que parezca, desde esa terminal de Ubuntu puedes ver y entrar a todos los discos duros de tu Windows (tu disco C:, tu disco J:, etc.). Todos los discos de Windows están montados dentro de una carpeta llamada `/mnt/` en Linux.
+Believe it or not, from that Ubuntu terminal you can see and access all your Windows hard drives (your C: drive, your J: drive, etc.). All Windows drives are mounted inside a folder called `/mnt/` in Linux.
 
-1. Como tu proyecto de Lynx está en el disco `J:`, escribe este comando para entrar a la carpeta de tu proyecto:
+1. Since your Lynx project is on the `J:` drive, type this command to enter your project folder:
    ```bash
    cd /mnt/j/Lynx
    ```
-   *(Nota importante: ¡Fíjate que las diagonales ahora son hacia adelante `/` porque estamos en Linux, no en Windows!)*
+   *(Important note: Notice that the slashes are now forward slashes `/` because we are in Linux, not Windows!)*
 
 ---
 
-### Paso 3: Actualizar la Versión
+### Step 3: Update the Version
 
-Cada vez que vayas a subir una versión nueva a GitHub, debes decirle al paquete `.deb` que el número de versión cambió (para que la computadora del usuario sepa que tiene que actualizarse).
+Every time you are going to upload a new version to GitHub, you must tell the `.deb` package that the version number changed (so the user's computer knows it has to update).
 
-1. Escribe este comando:
+1. Type this command:
    ```bash
    dch -i
    ```
-   *(Esto abrirá un editor de texto muy viejito en la consola. Hasta arriba, verás que ya preparó un número de versión nuevo. Simplemente baja con las flechas del teclado, escribe un mensajito corto como "New release", luego presiona `Ctrl+O` y `Enter` para guardar, y finalmente `Ctrl+X` para salir).*
+   *(This will open a very old-school text editor in the console. At the very top, you will see it has already prepared a new version number. Just go down with the keyboard arrows, type a short message like "New release", then press `Ctrl+O` and `Enter` to save, and finally `Ctrl+X` to exit).*
 
 ---
 
-### Paso 4: ¡Construir el Paquete!
+### Step 4: Build the Package!
 
-Ahora viene la magia real. Le diremos a Linux que use la información de la carpeta `debian/` que ya tienes configurada en tu proyecto para construir el paquete.
+Now comes the real magic. We will tell Linux to use the information in the `debian/` folder (which is already configured in your project) to build the package.
 
-1. Escribe este comando exacto:
+1. Type this exact command:
    ```bash
    dpkg-buildpackage -us -uc -b
    ```
 
-   **¿Qué significa ese comando feo?**
-   - `-us -uc`: Le dice a Ubuntu "no me pidas llaves criptográficas súper avanzadas para firmar el paquete, solo constrúyelo y ya" (mantiene las cosas simples).
-   - `-b`: Le dice "solo constrúyeme el archivo .deb".
+   **What does this ugly command mean?**
+   - `-us -uc`: Tells Ubuntu "don't ask me for super advanced cryptographic keys to sign the package, just build it" (keeps things simple).
+   - `-b`: Tells it "only build the .deb file for me".
 
-2. **Espera a que termine.** Verás que la pantalla se llena de texto, está compilando tu código en Go y empacándolo.
-
----
-
-### Paso 5: ¿Dónde quedó mi archivo `.deb`?
-
-Esto es súper importante y confunde a muchos principiantes: cuando Ubuntu termina de construir el paquete `.deb`, **no lo guarda dentro de la carpeta `Lynx`**. Lo guarda un nivel atrás, es decir, **afuera de la carpeta `Lynx`**.
-
-1. Cierra la terminal negra de Linux.
-2. Abre el **Explorador de Archivos** normal de Windows.
-3. Ve a tu disco **J:**.
-4. Así es, búscalo justo al lado (o afuera) de tu carpeta `Lynx`, ahí en tu disco J:. Verás un archivo llamado algo como `lynx_0.0.1-1_amd64.deb`.
+2. **Wait for it to finish.** You will see the screen fill with text; it is compiling your Go code and packaging it.
 
 ---
 
-### Paso 5.5: Construir también el Ejecutable Normal (¡Súper importante!)
+### Step 5: Where did my `.deb` file go?
 
-Como dijimos antes, hay usuarios que van a usar el paquete `.deb`, pero hay otros que simplemente quieren el programa rápido o que usan la actualización automática interna que tú programaste (`updater.go`). Para ellos, **tienes que subir también el ejecutable normal compilado**.
+This is super important and confuses many beginners: when Ubuntu finishes building the `.deb` package, **it does not save it inside the `Lynx` folder**. It saves it one level back, that is, **outside the `Lynx` folder**.
 
-1. Abre una terminal normal de **PowerShell** en tu Windows (o abre una nueva pestaña en tu terminal).
-2. Asegúrate de estar en la carpeta de tu proyecto (ej. `cd J:\Lynx`).
-3. Ejecuta este comando exacto para decirle a Go que te construya un ejecutable para Linux (AMD64):
+1. Close the black Linux terminal.
+2. Open the normal Windows **File Explorer**.
+3. Go to your **J:** drive.
+4. Look for it right next to (or outside of) your `Lynx` folder, right there on your J: drive. You will see a file named something like `lynx_0.0.1-1_amd64.deb`.
+
+---
+
+### Step 5.5: Build the Standard Executable too (Super important!)
+
+As we said before, some users will use the `.deb` package via APT, but others simply want the fast program or they rely on the internal automatic update you programmed (`updater.go`). For them, **you must also upload the standard compiled executable**.
+
+1. Open a normal **PowerShell** terminal on your Windows (or open a new tab in your terminal).
+2. Make sure you are in your project folder (e.g., `cd J:\Lynx`).
+3. Run this exact command to tell Go to build a Linux (AMD64) executable for you:
    ```powershell
    $env:GOOS="linux"; $env:GOARCH="amd64"; go build -o lynx_linux_amd64 ./cmd/lynx
    ```
-   *(¡Magia! Ahora verás un archivo nuevo llamado `lynx_linux_amd64` en la carpeta `Lynx` de tu proyecto).*
+   *(Magic! You will now see a new file called `lynx_linux_amd64` in your project's `Lynx` folder).*
 
 ---
 
-### Paso 6: Crear el Tag y el Release en GitHub
+### Step 6: Create the Tag and Release on GitHub
 
-Cuando los dos archivos de arriba estén creados y brillando en tu disco duro, solo sigue la siguiente lista para sacar el Release oficial:
+When the two files above are created and shining on your hard drive, just follow this list to push the official Release:
 
-1. **Abre tu repositorio `Lynx`** en el navegador de GitHub.
-2. En la parte derecha, busca la sección **"Releases"** y haz clic allí.
-3. Haz clic arriba y a la derecha en el botón verde/gris **"Draft a new release"**.
-4. Haz clic en el recuadro gris **"Choose a tag"**. Escribe la versión nueva (ej. `v0.0.1` o `v1.0.0`) y haz clic donde dice **"+ Create new tag on publish"**.
-5. Ponle un título increíble a tu actualización, como "*Versión 1.0 - ¡Nuevas animaciones!*".
-6. Opcionalmente, puedes escribir de qué trató este parche nuevo. Si no quieres escribir, dale clic al botón mágico **"Generate release notes"** y GitHub pondrá un resumen de tus últimos cambios automáticamente.
-7. Al final donde dice grandes letras *"Attach binaries by dropping them here..."*, **Arrastra y suelta** hacia esa caja **TUS DOS ARCHIVOS**:
-   - `lynx_0.0.1-1_amd64.deb` (El que buscaste en tu disco `J:` en el Paso 5).
-   - `lynx_linux_amd64` (El ejecutable normal que acabas de crear en tu carpeta `J:\Lynx` en el Paso 5.5).
-8. ¡Dale clic al botón verde de **"Publish release"**!
+1. **Open your `Lynx` repository** in your GitHub browser.
+2. On the right side, look for the **"Releases"** section and click there.
+3. Click the green/grey **"Draft a new release"** button on the top right.
+4. Click on the grey **"Choose a tag"** box. Type the new version (e.g., `v0.0.1` or `v1.0.0`) and click where it says **"+ Create new tag on publish"**.
+5. Give your update an awesome title, like "*Version 1.0 - New animations!*".
+6. Optionally, you can write what this new patch was about. If you don't want to type, click the magical **"Generate release notes"** button and GitHub will automatically put a summary of your latest commits.
+7. At the very bottom where it says in large letters *"Attach binaries by dropping them here..."*, **Drag and drop** into that box **YOUR TWO FILES**:
+   - `lynx_0.0.1-1_amd64.deb` (The one you found on your `J:` drive in Step 5).
+   - `lynx_linux_amd64` (The normal executable you just created in your `J:\Lynx` folder in Step 5.5).
+8. Click the green **"Publish release"** button!
 
-¡Terminaste! 
-- Los profesionales instalarán tu sistema bajando el `.deb` y usando APT.
-- El resto bajará el ejecutable y usará la actualización automática que tú construiste (`updater.go`). ¡Ambos funcionarán a la perfección!
+You're done! 
+- Professionals will install your system by downloading the `.deb` and using APT.
+- The rest will download the executable and use the automatic update tool you built (`updater.go`). Both will work perfectly!
 
 ---
 
-### FAQ Rápido
+### Quick FAQ
 
-**¿Hacer esto publica información personal mía o de mi computadora?**
-**¡No, tranquilo!** Cuando construyes estos binarios utilizando Go y `dpkg-buildpackage`, tu código fuente simplemente se compila y se convierte en lenguaje máquina que la computadora entiende. Las únicas cosas que se guardan adentro del ejecutable son tu código, las librerías que usas, y tal vez rutas estáticas e internas del compilador que usa Go bajo el capó (rutas genéricas del lenguaje que son completamente seguras). Ni tus contraseñas, ni tus archivos personales, ni nada externo a tu proyecto se filtra.
+**Does doing this publish my personal information or computer data?**
+**No, don't worry!** When you build these binaries using Go and `dpkg-buildpackage`, your source code is simply compiled into machine language that the computer understands. The only things saved inside the executable are your code, the libraries you use, and perhaps static internal paths from the compiler that Go uses under the hood (generic language paths that are completely safe). Neither your passwords, nor your personal files, nor anything external to your project is ever leaked.
