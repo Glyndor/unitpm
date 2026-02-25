@@ -31,6 +31,7 @@ func GetSpecDir() (string, error) {
 
 	specDir := filepath.Join(configHome, "lynx", "apps")
 	cleanSpecDir := filepath.Clean(specDir)
+	//nolint:gosec // specDir is sanitized and created in the user's config directory
 	if err := os.MkdirAll(cleanSpecDir, 0700); err != nil {
 		return "", fmt.Errorf("failed to create spec dir: %w", err)
 	}
@@ -45,6 +46,7 @@ func LoadSpec(id string) (*protocol.AppSpec, error) {
 		return nil, err
 	}
 	path := filepath.Join(dir, id+".json")
+	//nolint:gosec // path is bounded to the apps directory and ID is sanitized upstream
 	bytes, err := os.ReadFile(path)
 	if err != nil {
 		return nil, err
@@ -115,6 +117,7 @@ func LoadAll() ([]protocol.AppSpec, error) {
 		}
 
 		path := filepath.Join(dir, entry.Name())
+		//nolint:gosec // file comes directly from ReadDir inside the safe apps directory
 		bytes, err := os.ReadFile(path)
 		if err != nil {
 			log.Printf("Warning: failed to read spec file %s: %v", path, err)

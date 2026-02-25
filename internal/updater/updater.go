@@ -47,6 +47,7 @@ func Check(ctx context.Context) (*Release, error) {
 		return nil, fmt.Errorf("failed to create request: %w", err)
 	}
 
+	//nolint:gosec // URL is hardcoded with constants repoOwner and repoName
 	resp, err := client.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("failed to check for updates: %w", err)
@@ -125,24 +126,25 @@ func downloadAndReplace(ctx context.Context, assetURL, exePath string) error {
 	// Download
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, assetURL, nil)
 	if err != nil {
-		tmpFile.Close()
+		_ = tmpFile.Close()
 		return fmt.Errorf("failed to create download request: %w", err)
 	}
 
+	//nolint:gosec // assetURL comes from the Github API response
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
-		tmpFile.Close()
+		_ = tmpFile.Close()
 		return fmt.Errorf("failed to download update: %w", err)
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		tmpFile.Close()
+		_ = tmpFile.Close()
 		return fmt.Errorf("download failed with status: %s", resp.Status)
 	}
 
 	_, err = io.Copy(tmpFile, resp.Body)
-	tmpFile.Close() // Close before chmod/rename
+	_ = tmpFile.Close() // Close before chmod/rename
 	if err != nil {
 		return fmt.Errorf("failed to write update file: %w", err)
 	}
@@ -155,6 +157,7 @@ func downloadAndReplace(ctx context.Context, assetURL, exePath string) error {
 	// Replace binary
 	// On Linux, we can rename over a running binary (it stays open for the running process, new process gets new file)
 	cleanExePath := filepath.Clean(exePath)
+	//nolint:gosec // cleanExePath is derived from os.Executable() and sanitized
 	if err := os.Rename(tmpFile.Name(), cleanExePath); err != nil {
 		return fmt.Errorf("failed to replace binary: %w", err)
 	}
@@ -178,6 +181,7 @@ func IsManagedByPackageSystem() bool {
 		// Check if dpkg knows about it
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
+		//nolint:gosec // exePath is safely derived from os.Executable
 		cmd := exec.CommandContext(ctx, "dpkg", "-S", exePath)
 		if err := cmd.Run(); err == nil {
 			return true

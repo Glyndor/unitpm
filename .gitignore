@@ -63,7 +63,12 @@ debian/*.debhelper.log
 obj-*/
 
 # =====================
-# Lynx Binaries (Linux)
+# Lynx Binaries & Reports
 # =====================
 /lynx
 /lynxd
+lynx_*
+gosec*.json
+gosec*.txt
+*.out
+*.test
