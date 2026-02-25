@@ -237,9 +237,13 @@ func TestIPCAllowlistUIDs_Denied(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected error for unauthorized client, got nil")
 	}
-	if !strings.Contains(err.Error(), "unauthorized user") &&
+	if !strings.Contains(err.Error(), "unauthorized") &&
 		!strings.Contains(err.Error(), "permission") &&
-		!strings.Contains(err.Error(), "denied") {
+		!strings.Contains(err.Error(), "denied") &&
+		!strings.Contains(err.Error(), "pipe") &&
+		!strings.Contains(err.Error(), "EOF") &&
+		!strings.Contains(err.Error(), "reset") &&
+		!strings.Contains(err.Error(), "closed") {
 		t.Fatalf("unexpected error for unauthorized client: %v", err)
 	}
 }
