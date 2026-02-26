@@ -10,8 +10,8 @@ export LDFLAGS := -s -w -X 'github.com/Jaro-c/Lynx/internal/version.Version=v$(V
 	dh $@
 
 override_dh_auto_build:
-	go build -v -trimpath -ldflags="$(LDFLAGS)" -o lynx ./cmd/lynx
-	go build -v -trimpath -ldflags="$(LDFLAGS)" -o lynxd ./cmd/lynxd
+	go build -v -trimpath -buildvcs=false -ldflags="$(LDFLAGS)" -o lynx ./cmd/lynx
+	go build -v -trimpath -buildvcs=false -ldflags="$(LDFLAGS)" -o lynxd ./cmd/lynxd
 
 override_dh_auto_test:
 	go test -v ./...
