@@ -1,11 +1,17 @@
 #!/usr/bin/make -f
 
+export VERSION := $(shell dpkg-parsechangelog -S Version | cut -d- -f1)
+export COMMIT := $(shell git rev-parse --short HEAD 2>/dev/null || echo unknown)
+export LC_ALL := C
+export BUILD_DATE := $(shell date -u +'%Y-%m-%dT%H:%M:%SZ')
+export LDFLAGS := -s -w -X 'github.com/Jaro-c/Lynx/internal/version.Version=v$(VERSION)' -X 'github.com/Jaro-c/Lynx/internal/version.Commit=$(COMMIT)' -X 'github.com/Jaro-c/Lynx/internal/version.BuildDate=$(BUILD_DATE)'
+
 %:
 	dh $@
 
 override_dh_auto_build:
-	go build -v -o lynx ./cmd/lynx
-	go build -v -o lynxd ./cmd/lynxd
+	go build -v -trimpath -ldflags="$(LDFLAGS)" -o lynx ./cmd/lynx
+	go build -v -trimpath -ldflags="$(LDFLAGS)" -o lynxd ./cmd/lynxd
 
 override_dh_auto_test:
 	go test -v ./...
