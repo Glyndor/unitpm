@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"net"
 	"os"
+	"os/user"
 	"strconv"
 	"strings"
 	"syscall"
@@ -61,9 +62,19 @@ func validateIdentity(conn net.Conn) (*Identity, error) {
 		}
 	}
 
-	// If daemon is root (0), we rely on socket permissions (0660 group lynxadm).
-	// If daemon is user, we require exact UID match.
-	if daemonUID != 0 && clientUID != daemonUID {
+	// Determine if we are running as the system daemon
+	isSystemDaemon := daemonUID == 0
+	if !isSystemDaemon {
+		if u, err := user.LookupId(strconv.Itoa(daemonUID)); err == nil && u.Username == "lynx" {
+			isSystemDaemon = true
+		}
+	}
+
+	// If we are NOT the system daemon (i.e. we are a rootless user daemon),
+	// we firmly require the client UID to match the daemon UID.
+	// If we are the system daemon, we rely on the filesystem permissions of the socket
+	// (0660 group lynxadm) to protect access.
+	if !isSystemDaemon && clientUID != daemonUID {
 		return nil, fmt.Errorf("unauthorized user: %d (daemon uid: %d)", clientUID, daemonUID)
 	}
 

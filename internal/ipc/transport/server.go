@@ -134,6 +134,7 @@ func (s *Server) handleConnection(conn net.Conn) {
 
 	identity, err := validateIdentity(conn)
 	if err != nil {
+		log.Printf("IPC connection rejected: validateIdentity failed: %v", err)
 		return
 	}
 
