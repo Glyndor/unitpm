@@ -31,6 +31,15 @@ Write-Host "============================================="
 $env:GOOS = "linux"
 $env:GOARCH = "amd64"
 
-go build -trimpath -ldflags=$LDFLAGS -o lynx_linux_amd64 ./cmd/lynx
+# Use Start-Process or invoke with an array to avoid quoting hell in PowerShell
+$args = @(
+    "build",
+    "-trimpath",
+    "-ldflags=`"$LDFLAGS`"",
+    "-o", "lynx_linux_amd64",
+    "./cmd/lynx"
+)
+
+& go $args
 
 Write-Host "`n✅ Done! Binary saved as .\lynx_linux_amd64"
