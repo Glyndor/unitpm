@@ -28,6 +28,19 @@ func GetSocketPath() (string, error) {
 		return "/run/lynxd/lynx.sock", nil
 	}
 
+	// If the user belongs to the 'lynxadm' group, they are administering the system daemon
+	gids, err := u.GroupIds()
+	if err == nil {
+		lynxadmGroup, err := user.LookupGroup("lynxadm")
+		if err == nil {
+			for _, gid := range gids {
+				if gid == lynxadmGroup.Gid {
+					return "/run/lynxd/lynx.sock", nil
+				}
+			}
+		}
+	}
+
 	// 3. Rootless / User Daemon
 	// Unix
 	baseDir := os.Getenv("XDG_RUNTIME_DIR")

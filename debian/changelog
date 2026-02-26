@@ -1,3 +1,9 @@
+lynx (0.3.5-1) unstable; urgency=medium
+
+  * Fix CLI client socket resolution. Users within the 'lynxadm' group will now successfully connect to the System Daemon (/run/lynxd/lynx.sock) by default instead of falling back to isolated user daemons.
+
+ -- Jaro-c <jaro-c@users.noreply.github.com>  Wed, 25 Feb 2026 20:55:00 +0000
+
 lynx (0.3.4-1) unstable; urgency=medium
 
   * Fix IPC socket ownership validation to permit daemon execute user instead of strictly requiring root
