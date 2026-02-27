@@ -13,7 +13,7 @@ You could simply upload this executable file (like `lynx_linux_amd64`) directly 
 **However**, creating a `.deb` package (which is what we will do below) is the **"professional"** way to do it.
 Why? Because creating a `.deb` package has huge advantages for the user:
 1. It automatically places the `lynx` program in their system, ready to use from anywhere.
-2. It can automatically install system services (like `lynxd.service`).
+2. It can automatically install system services (like `lynx.lynxd.service`).
 3. It allows users to manage it using their native package manager (`sudo apt install ./lynx.deb` and `sudo apt remove lynx`).
 
 ---
