@@ -1,3 +1,13 @@
+lynx (0.3.7-1) unstable; urgency=medium
+
+  * feat(isolation): enhance dynamic mode with ProtectProc=invisible
+  * fix(daemon): correctly detect privileged mode for handlers
+  * fix(ipc): allow non-root users in admin group to connect to daemon
+  * fix(build): disable git vcs stamping during debian rules compilation
+  * docs: update flag documentation
+
+ -- Jaro-c <jaro-c@users.noreply.github.com>  Thu, 27 Feb 2026 10:00:00 +0000
+
 lynx (0.3.5-1) unstable; urgency=medium
 
   * Fix CLI client socket resolution. Users within the 'lynxadm' group will now successfully connect to the System Daemon (/run/lynxd/lynx.sock) by default instead of falling back to isolated user daemons.

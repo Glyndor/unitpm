@@ -4,6 +4,30 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.3.7] - 2026-02-27
+
+### Features
+- **isolation**: enhance dynamic mode with ProtectProc=invisible.
+
+### Bug Fixes
+- **daemon**: correctly detect privileged mode for handlers.
+
+### Documentation
+- **start**: add missing flags to help and documentation.
+- **delete**: improve flag documentation format.
+
+## [0.3.6] - 2026-02-25
+
+### Bug Fixes
+- **ipc**: allow non-root users in admin group to connect to daemon.
+- **build**: disable git vcs stamping during debian rules compilation.
+
+### Chore
+- **build**: dynamically resolve wsl output directory in powershell script.
+
+### Documentation
+- **install**: rename downloaded deb file to lynxd.deb to prevent collisions.
+
 ## [0.3.0] - 2026-02-24
 
 ### Features
@@ -62,5 +86,5 @@ All notable changes to this project will be documented in this file.
 
 ### Documentation
 - Added command documentation in `docs/commands/`.
-- Updated `AGENTS.md` with project workflow rules.
+- Updated `AGENTS.md` with enhanced agent guidelines and project context.
 - Updated `README.md` with Commands and Packaging sections.

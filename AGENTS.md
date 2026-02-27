@@ -1,70 +1,86 @@
-# Lynx Contributor Guide
+# Lynx Agent Guidelines & Project Context
 
-## 1. Project Overview
-Lynx is a process manager for Debian/Ubuntu systems, designed as a secure, systemd-friendly alternative to PM2 or Supervisor. It consists of:
-- **`lynx`**: CLI tool for user interaction.
-- **`lynxd`**: Background daemon managing processes.
+This document provides critical context and operational rules for AI agents and developers working on the Lynx codebase.
 
-**Scope**: Linux-only (Debian/Ubuntu). Windows and macOS are not supported.
+## 1. System Context
 
-## 2. Architecture
-- **Entry Points**: `cmd/lynx` (CLI), `cmd/lynxd` (Daemon).
-- **IPC**: Communication uses Unix domain sockets (`AF_UNIX`).
-- **State**:
-  - **Specs**: Stored in `$XDG_CONFIG_HOME/lynx/apps` (or `~/.config/lynx/apps`).
-  - **Socket**: Stored in `$XDG_RUNTIME_DIR/lynx-<uid>/lynx.sock`.
+**Lynx** is a secure, systemd-native process manager for Linux (Debian/Ubuntu).
+It replaces PM2/Supervisor by leveraging `systemd` for process supervision while providing a modern CLI.
 
-## 3. Security Rules
-- **No Sudo**: The application logic must never invoke `sudo`. Privileged operations (e.g., service installation) are handled by package managers or systemd.
-- **Shell Execution**: Must be opt-in via `--shell`. Default execution is direct (`execve`).
-- **Path Validation**: All user-provided paths must be validated to prevent traversal.
-- **Secrets**: Do not persist full environment variables by default. Use `envFile` with restricted permissions (0600).
-- **Permissions**:
-  - Directories: `0700` (User only).
-  - Files (Specs/Secrets): `0600` (User only).
+### Core Components
+- **CLI (`cmd/lynx`)**: User interface. Communicates with daemon via Unix Socket.
+- **Daemon (`cmd/lynxd`)**: Background service. Manages processes, logs, and monitoring.
+- **IPC (`internal/ipc`)**: Custom JSON-over-Unix-Socket protocol.
+- **State (`internal/spec`)**: JSON-based application specifications.
 
-## 4. Filesystem Conventions
-Lynx follows standard Linux filesystem hierarchies:
-- **User Config**: `~/.config/lynx`
-- **System Config**: `/etc/lynx`
-- **State/Data**: `/var/lib/lynx`
-- **Logs**: `/var/log/lynx`
-- **Runtime**: `/run/lynxd` (managed by systemd `RuntimeDirectory`)
+### Target Environment
+- **OS**: Linux ONLY (Debian/Ubuntu focus).
+- **No Windows/macOS Support**: Code using `syscall` or `golang.org/x/sys/unix` must be build-tagged `//go:build linux`.
 
-## 5. Coding Standards
-- **Formatting**: `gofmt -s -w .` and `goimports`.
-- **Linting**: Must pass `golangci-lint run`.
-- **Build Tags**: Use `//go:build linux` for platform-specific code.
-- **Errors**: Use explicit error wrapping (`fmt.Errorf("...: %w", err)`).
-- **Logging**: Use structured logging.
+## 2. Architectural Invariants
 
-## 6. Testing
-- Run unit tests: `go test ./...`
-- Run linter: `golangci-lint run`
+Agents must STRICTLY ADHERE to these rules. Violations will cause build failures or security breaches.
 
-## 7. PR Checklist
-- [ ] Code compiles on Linux (`GOOS=linux go build ./...`).
-- [ ] `go test ./...` passes.
-- [ ] `golangci-lint run` passes.
-- [ ] No security regressions (check Security Rules).
-- [ ] Documentation updated if behavior changes.
+1.  **Zero-Sudo Policy**:
+    - The `lynx` CLI and `lynxd` daemon logic must NEVER invoke `sudo` internally.
+    - Privileged setup is handled by external package managers (`apt`, `dpkg`) or systemd units.
 
-## 8. Versioning Policy
-- **SemVer**: We follow Semantic Versioning (vX.Y.Z).
-- **Source**: Version is defined in `internal/version/version.go`.
+2.  **Filesystem Hierarchy**:
+    - **User Config**: `$XDG_CONFIG_HOME/lynx` (`~/.config/lynx`)
+    - **System Config**: `/etc/lynx`
+    - **Runtime (Socket)**: `$XDG_RUNTIME_DIR/lynx-<uid>/` (User) or `/run/lynxd/` (System).
+    - **Logs**: `$XDG_DATA_HOME/lynx/logs` or `/var/log/lynx`.
 
-## 9. Commit Conventions
-- **Format**: Conventional Commits (type(scope): description).
-- **Types**: `feat`, `fix`, `chore`, `docs`, `refactor`, `test`, `build`, `ci`.
-- **Scopes**: `ipc`, `spec`, `debian`, `cli`, `daemon`, `deps`.
+3.  **Security Model**:
+    - **Permissions**: All config/spec files MUST be `0600` (User Read/Write only).
+    - **Socket**: `0600` (User) or `0660` (System/Group).
+    - **Isolation**: Use `systemd-run --scope` or `DynamicUser=yes` for process isolation.
 
-## 10. Release Process
-1. Update version in `internal/version/version.go`.
-2. Update `CHANGELOG.md` with a summary of changes.
-3. Create git tag `vX.Y.Z`.
-4. (Optional) Create GitHub release if tooling is configured.
+## 3. Codebase Map
 
-## 11. Documentation Rules
-- **Commands**: Any new CLI command must be added to `README.md` under "Commands".
-- **Doc Files**: Each command must have its own doc file in `docs/commands/<command>.md` with synopsis, flags, and examples.
-- **Linking**: `README.md` must link to these doc files.
+| Path | Purpose | Key Packages |
+|------|---------|--------------|
+| `cmd/` | Entry points | `main` |
+| `internal/cli/commands/` | CLI logic | `start`, `stop`, `list` |
+| `internal/daemon/` | Daemon logic | `manager`, `handlers` |
+| `internal/ipc/` | Communication | `transport`, `protocol` |
+| `internal/spec/` | Data models | `AppSpec`, `JobSpec` |
+| `debian/` | Packaging | `control`, `rules` |
+
+## 4. Development Standards
+
+### Code Style
+- **Language**: Go 1.26+
+- **Formatting**: Standard `gofmt`.
+- **Errors**: Use `fmt.Errorf("context: %w", err)` for wrapping.
+- **Logging**: Use structured logging (no `fmt.Println` in daemon).
+
+### Testing
+- **Unit Tests**: `go test ./...`
+- **Integration**: Requires Linux environment. Mock `syscall` where possible.
+- **Linting**: `golangci-lint` must pass.
+
+## 5. Task Protocols
+
+### Adding a CLI Command
+1.  Create `internal/cli/commands/<name>/cmd.go`.
+2.  Implement `cobra.Command`.
+3.  Register in `internal/cli/root/root.go`.
+4.  Add documentation in `docs/commands/<name>.md`.
+5.  Update `README.md` command list.
+
+### Modifying IPC
+1.  Update `internal/ipc/protocol/types.go` with new request/response structs.
+2.  Implement handler in `internal/daemon/handlers/`.
+3.  Implement client method in `internal/ipc/transport/client.go`.
+
+### Packaging
+- Version is authoritative in `internal/version/version.go`.
+- `debian/changelog` must match the version tag.
+
+## 6. Agent Operational Constraints
+
+- **Do NOT** suggest Windows-specific code.
+- **Do NOT** modify `go.mod` unless explicitly requested.
+- **ALWAYS** check for existing functions in `internal/` before writing helpers.
+- **ALWAYS** run `go build ./...` (if environment permits) to verify syntax.
