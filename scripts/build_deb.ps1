@@ -10,6 +10,7 @@ $wslPath = wsl wslpath -u "'$winPath'"
 # Remove trailing newlines from output
 $wslPath = $wslPath.Trim()
 
-wsl bash -c "rm -rf /tmp/lynx-build; cp -r . /tmp/lynx-build; cd /tmp/lynx-build; chmod -R u=rwX,go=rX .; chmod -R 0755 debian; dpkg-buildpackage -us -uc -b; cp ../lynx-pm_*.deb '$wslPath/'"
+# Clean previous builds in /tmp to avoid copying old debs
+wsl bash -c "rm -rf /tmp/lynx-build /tmp/lynx-pm_*.deb /tmp/lynx-pm_*.buildinfo /tmp/lynx-pm_*.changes; cp -r . /tmp/lynx-build; cd /tmp/lynx-build; chmod -R u=rwX,go=rX .; chmod -R 0755 debian; dpkg-buildpackage -us -uc -b; cp ../lynx-pm_*.deb '$wslPath/'"
 
 Write-Host "`nDone! Debian package has been exported to the project root."
