@@ -380,6 +380,7 @@ func (p *Process) prepareIsolation(ctx context.Context, cmd *exec.Cmd) (*exec.Cm
 			"-p", "PrivateTmp=yes",
 			"-p", "ProtectSystem=strict",
 			"-p", "ProtectHome=yes",
+			"-p", "ProtectProc=invisible",
 			"-p", "LoadCredential=env:" + envPath, // Expose env as credential
 			"--pipe",
 			"--wait",
