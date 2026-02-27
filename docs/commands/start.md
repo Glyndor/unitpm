@@ -33,6 +33,7 @@ Start a new process managed by Lynx. This command creates a new application spec
 | `--runtime` | string | - | Runtime for entry file (e.g., node, python). | `--runtime python3` |
 | `--env-file` | string | - | Path to a file containing environment variables. | `--env-file .env` |
 | `--isolation` | string | self | Isolation mode (`self`, `dynamic`). | `--isolation dynamic` |
+| `--scale`, `--instances` | int | 1 | Number of instances to start. | `--scale 4` |
 | `-h`, `--help` | - | - | Show help message. | — |
 
 ## Mode Explanations

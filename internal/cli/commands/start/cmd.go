@@ -454,6 +454,8 @@ func GetSpec() help.CommandSpec {
 			{Short: "", Long: "--log-timestamp <fmt>", Description: "Log timestamp (rfc3339, unix, none)"},
 			{Short: "", Long: "--runtime <rt>", Description: "Runtime for entry file (e.g., node, python)"},
 			{Short: "", Long: "--env-file <file>", Description: "Path to environment file"},
+			{Short: "", Long: "--isolation <mode>", Description: "Isolation mode (self, dynamic)"},
+			{Short: "", Long: "--scale <N>", Description: "Number of instances to start"},
 		},
 	}
 }
