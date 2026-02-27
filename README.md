@@ -234,5 +234,8 @@ Lynx is designed to be installed as a native Debian package. See `docs/BUILDING_
 ### Dynamic Isolation & Systemd Permissions
 When using `--isolation dynamic`, Lynx uses `systemd-run` to spawn transient services. The `lynxd` daemon runs as the `lynx` user.
 
-- **Standard Setup**: The Debian package (`lynx-pm`) automatically installs a Polkit rule (`/usr/share/polkit-1/rules.d/lynx-pm.polkit.rules`) that authorizes the `lynx` user to manage systemd units.
-- **No Action Required**: You do not need to configure anything manually. The installation script handles permissions for you.
+- **Standard Setup**: The Debian package (`lynx-pm`) automatically installs a restrictive Polkit rule (`/usr/share/polkit-1/rules.d/lynx-pm.polkit.rules`).
+- **Security**: This rule **ONLY** allows the `lynx` user to manage units whose names start with `lynx-`.
+    - ✅ **Allowed**: `systemctl stop lynx-app-123.service`
+    - ❌ **Blocked**: `systemctl stop sshd.service`, `systemctl stop docker.service`
+- **No Action Required**: You do not need to configure anything manually. The installation script handles permissions for you securely.

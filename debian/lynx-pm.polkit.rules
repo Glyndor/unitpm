@@ -10,7 +10,10 @@ polkit.addRule(function(action, subject) {
         }
         
         // Allow systemd-run to start transient units
-        // Note: systemd-run checks manage-units, but might check other details.
-        // We strictly enforce the unit name check above for safety.
+        // Systemd-run checks manage-units permission.
+        // The above check restricts modifications to existing units,
+        // but for creating NEW transient units via systemd-run, specific checks apply.
+        // We trust systemd to enforce User= restrictions for transient units 
+        // unless explicit privileges are granted.
     }
 });
