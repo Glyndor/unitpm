@@ -74,7 +74,7 @@ func Run(w io.Writer, args []string) error {
 			return fmt.Errorf("update failed: %w", err)
 		}
 		fmt.Fprintf(w, "%s Successfully updated to %s\n", term.GreenString("✓"), release.TagName)
-		fmt.Fprintf(w, "Please restart the daemon manually if needed: 'systemctl restart lynxd' or 'lynx reload'\n")
+		fmt.Fprintf(w, "Please restart the daemon manually if needed: 'systemctl restart lynx.lynxd' or 'lynx reload'\n")
 	} else {
 		if isManaged {
 			fmt.Fprintf(w, "\nTo update, download the latest .deb release from %s\n", release.HTMLURL)
