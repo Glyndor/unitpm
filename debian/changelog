@@ -1,3 +1,10 @@
+lynx-pm (0.3.9-1) unstable; urgency=medium
+
+  * Fix systemd service name mismatch (lynx.lynxd.service)
+  * Ensure systemd service is correctly installed by debhelper
+
+ -- Jaro-c <jaro-c@users.noreply.github.com>  Fri, 27 Feb 2026 12:30:00 +0000
+
 lynx-pm (0.3.8-1) unstable; urgency=medium
 
   * chore: rename system paths to /var/lib/lynx-pm and /var/log/lynx-pm

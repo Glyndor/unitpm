@@ -17,7 +17,7 @@ override_dh_auto_test:
 	go test -v ./...
 
 override_dh_installsystemd:
-	dh_installsystemd --name=lynxd
+	dh_installsystemd --name=lynx.lynxd
 
 override_dh_dwz:
 	# Skip dwz compression
