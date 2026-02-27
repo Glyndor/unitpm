@@ -4,6 +4,22 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-02-27
+
+### Bug Fixes
+- **cli**: use correct systemd service name 'lynx.lynxd.service' in startup command.
+
+## [0.3.9] - 2026-02-27
+
+### Bug Fixes
+- **systemd**: Fix service name mismatch (lynx.lynxd.service).
+- **debian**: Ensure systemd service is correctly installed by debhelper.
+
+## [0.3.8] - 2026-02-27
+
+### Chore
+- **paths**: rename system paths to /var/lib/lynx-pm and /var/log/lynx-pm to avoid conflicts with lynx browser package.
+
 ## [0.3.7] - 2026-02-27
 
 ### Features
