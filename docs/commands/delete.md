@@ -16,7 +16,9 @@ Stops and removes the specified processes from management. By default, it remove
 
 ## ⚙️ Flags
 
-- `--purge`: Also delete the log files and any runtime data associated with the process.
+| Flag | Type | Default | Description |
+|------|------|---------|-------------|
+| `--purge` | boolean | false | Also delete the log files and any runtime data associated with the process. |
 
 ## 🚀 Examples
 
