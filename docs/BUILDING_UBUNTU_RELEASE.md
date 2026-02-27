@@ -95,7 +95,7 @@ This is super important and confuses many beginners: when Ubuntu finishes buildi
 1. Close the black Linux terminal.
 2. Open the normal Windows **File Explorer**.
 3. Go to the drive where your project is located.
-4. Look for it right next to (or outside of) your `Lynx` folder. You will see a file named something like `lynx_0.0.1-1_amd64.deb`.
+4. Look for it right next to (or outside of) your `Lynx` folder. You will see a file named something like `lynx-pm_0.0.1-1_amd64.deb`.
 
 ---
 
@@ -124,7 +124,7 @@ When the two files above are created and shining on your hard drive, just follow
 5. Give your update an awesome title, like "*Version 1.0 - New animations!*".
 6. Optionally, you can write what this new patch was about. If you don't want to type, click the magical **"Generate release notes"** button and GitHub will automatically put a summary of your latest commits.
 7. At the very bottom where it says in large letters *"Attach binaries by dropping them here..."*, **Drag and drop** into that box **YOUR TWO FILES**:
-   - `lynx_0.0.1-1_amd64.deb` (The one you found in Step 5).
+   - `lynx-pm_0.0.1-1_amd64.deb` (The one you found in Step 5).
    - `lynx_linux_amd64` (The normal executable you just created in your `Lynx` folder in Step 5.5).
 8. Click the green **"Publish release"** button!
 

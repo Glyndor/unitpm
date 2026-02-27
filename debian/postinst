@@ -16,9 +16,9 @@ if [ "$1" = "configure" ]; then
     adduser lynx lynxadm
 
     # Ensure directories exist with correct permissions
-    mkdir -p /var/lib/lynx /var/log/lynx
-    chown lynx:lynx /var/lib/lynx /var/log/lynx
-    chmod 0700 /var/lib/lynx /var/log/lynx
+    mkdir -p /var/lib/lynx /var/log/lynx-pm
+    chown lynx:lynx /var/lib/lynx /var/log/lynx-pm
+    chmod 0700 /var/lib/lynx /var/log/lynx-pm
 fi
 
 #DEBHELPER#

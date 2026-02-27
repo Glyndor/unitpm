@@ -50,7 +50,7 @@ Forget about compiling source code. Just download the Debian package!
 
 ```bash
 # Download the package (check the Releases tab for the latest version)
-curl -L -o lynxd.deb https://github.com/Jaro-c/Lynx/releases/latest/download/lynx_0.3.7-1_amd64.deb
+curl -L -o lynxd.deb https://github.com/Jaro-c/Lynx/releases/latest/download/lynx-pm_0.3.7-1_amd64.deb
 
 # Install it
 sudo apt install ./lynxd.deb
@@ -141,7 +141,7 @@ $env:GOOS="linux"; $env:GOARCH="amd64"; go build -v -o lynx_linux_amd64 ./cmd/ly
 # 3. Build & Install Debian Package locally
 sudo apt-get update && sudo apt-get install -y build-essential debhelper
 dpkg-buildpackage -us -uc -b
-sudo dpkg -i ../lynx_*.deb
+sudo dpkg -i ../lynx-pm_*.deb
 ```
 
 ### User Mode (Optional)

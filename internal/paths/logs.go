@@ -10,6 +10,11 @@ import (
 	"github.com/Jaro-c/Lynx/internal/ipc/protocol"
 )
 
+const LogRoot = "/var/log/lynx-pm"
+const RunDir = "/run/lynxd"
+const CredsDir = "/var/lib/lynx/creds"
+const DataDir = "/var/lib/lynx"
+
 var getEuid = os.Geteuid
 
 // GetLogDir resolves the root log directory.
@@ -43,7 +48,7 @@ func resolveRootLogDir(candidate string) (string, error) {
 		return "", errors.New("invalid log dir: must be absolute when running as root")
 	}
 
-	allowedRoots := []string{"/var/log/lynx"}
+	allowedRoots := []string{LogRoot}
 	if stateHome := os.Getenv("XDG_STATE_HOME"); stateHome != "" {
 		allowedRoots = append(allowedRoots, filepath.Join(stateHome, "lynx/logs"))
 	}
@@ -86,7 +91,7 @@ func matchResolvedRoot(root, candidate string) bool {
 
 func resolveDefaultDir(euid int) (string, error) {
 	if euid == 0 {
-		return "/var/log/lynx", nil
+		return LogRoot, nil
 	}
 	stateHome := os.Getenv("XDG_STATE_HOME")
 	if stateHome != "" {

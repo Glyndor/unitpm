@@ -1,4 +1,4 @@
-lynx (0.3.7-1) unstable; urgency=medium
+lynx-pm (0.3.7-1) unstable; urgency=medium
 
   * feat(isolation): enhance dynamic mode with ProtectProc=invisible
   * fix(daemon): correctly detect privileged mode for handlers

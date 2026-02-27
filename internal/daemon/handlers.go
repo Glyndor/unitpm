@@ -21,6 +21,9 @@ import (
 	"github.com/Jaro-c/Lynx/internal/version"
 )
 
+// On Linux, the standard data directory is /var/lib/lynx
+const DataDir = paths.DataDir
+
 // RegisterHandlers registers all daemon IPC handlers.
 func RegisterHandlers(server *transport.Server, mgr *manager.Manager, privileged bool) {
 	// Register ping handler
@@ -112,7 +115,7 @@ func RegisterHandlers(server *transport.Server, mgr *manager.Manager, privileged
 				if configuredDir != "" {
 					baseLogDir = configuredDir
 				} else if os.Geteuid() == 0 {
-					baseLogDir = "/var/log/lynx"
+					baseLogDir = paths.LogRoot
 				} else if stateHome := os.Getenv("XDG_STATE_HOME"); stateHome != "" {
 					baseLogDir = filepath.Join(stateHome, "lynx/logs")
 				} else if home, err := os.UserHomeDir(); err == nil {
@@ -151,7 +154,7 @@ func RegisterHandlers(server *transport.Server, mgr *manager.Manager, privileged
 		}
 
 		// Delete credentials if dynamic user
-		credsDir := filepath.Join("/var/lib/lynx/creds", id)
+		credsDir := filepath.Join(paths.DataDir, "creds", id)
 		_ = os.RemoveAll(credsDir)
 
 		return jsonx.Marshal(map[string]string{"status": "deleted", "id": id})

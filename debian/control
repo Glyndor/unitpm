@@ -1,4 +1,4 @@
-Source: lynx
+Source: lynx-pm
 Section: admin
 Priority: optional
 Maintainer: Jaro-c <jaro-c@users.noreply.github.com>
@@ -7,7 +7,10 @@ Standards-Version: 4.6.2
 Homepage: https://github.com/Jaro-c/Lynx
 Rules-Requires-Root: no
 
-Package: lynx
+Package: lynx-pm
+Conflicts: lynx
+Replaces: lynx
+Provides: lynx
 Architecture: any
 Depends: ${shlibs:Depends}, ${misc:Depends}, systemd
 Description: Process manager for Debian/Ubuntu

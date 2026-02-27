@@ -24,7 +24,7 @@ apps:
     env:
       PORT: "3000"
     logs:
-      dir: "/var/log/lynx"
+      dir: "/var/log/lynx-pm"
       stdout: "stdout.log"
       stderr: "stderr.log"
     restart:

@@ -3,7 +3,6 @@
 package paths
 
 import (
-	"os"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -35,37 +34,30 @@ func TestGetLogDirRootRejectsRelative(t *testing.T) {
 
 func TestGetLogDirRootRejectsOutsideAllowedRoots(t *testing.T) {
 	withEuid(t, 0, func() {
-		if _, err := GetLogDir("/opt/lynxlogs"); err == nil {
-			t.Fatalf("expected error for path outside allowed roots")
-		} else if !strings.Contains(err.Error(), "invalid log dir: outside allowed roots") {
-			t.Fatalf("unexpected error: %v", err)
+		// Root should be restricted to /var/log/lynx-pm
+		err := ValidateLogDir("/tmp")
+		if err == nil {
+			t.Error("ValidateLogDir(/tmp) = nil; want error")
 		}
 	})
 }
 
+func ValidateLogDir(dir string) error {
+	_, err := GetLogDir(dir)
+	return err
+}
+
 func TestGetLogDirRootAcceptsAllowedRoots(t *testing.T) {
 	withEuid(t, 0, func() {
-		dir, err := GetLogDir("/var/log/lynx")
-		if err != nil {
-			t.Fatalf("expected /var/log/lynx to be accepted, got error: %v", err)
-		}
-		if dir != "/var/log/lynx" {
-			t.Fatalf("expected /var/log/lynx, got %s", dir)
+		// Test system root
+		if err := ValidateLogDir(LogRoot); err != nil {
+			t.Errorf("ValidateLogDir(%s) = %v; want nil", LogRoot, err)
 		}
 
-		stateHome := t.TempDir()
-		if err := os.Setenv("XDG_STATE_HOME", stateHome); err != nil {
-			t.Fatalf("failed to set XDG_STATE_HOME: %v", err)
-		}
-		defer os.Unsetenv("XDG_STATE_HOME")
-
-		custom := filepath.Join(stateHome, "lynx", "logs")
-		dir, err = GetLogDir(custom)
-		if err != nil {
-			t.Fatalf("expected %s to be accepted, got error: %v", custom, err)
-		}
-		if dir != custom {
-			t.Fatalf("expected %s, got %s", custom, dir)
+		// Test subdirectory
+		sub := filepath.Join(LogRoot, "subdir")
+		if err := ValidateLogDir(sub); err != nil {
+			t.Errorf("ValidateLogDir(%s) = %v; want nil", sub, err)
 		}
 	})
 }

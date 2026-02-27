@@ -2,7 +2,7 @@ $ErrorActionPreference = "Stop"
 
 # Get version from debian/changelog
 $changelogLine = Get-Content .\debian\changelog -TotalCount 1
-if ($changelogLine -match 'lynx \((.+?)-\d+\)') {
+if ($changelogLine -match 'lynx-pm \((.+?)-\d+\)') {
     $VERSION = "v" + $Matches[1]
 } else {
     $VERSION = "unknown"

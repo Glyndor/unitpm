@@ -358,7 +358,7 @@ func (p *Process) prepareIsolation(ctx context.Context, cmd *exec.Cmd) (*exec.Cm
 
 	if runAs.Mode == "dynamic" {
 		// Secure Environment via Credentials
-		credsDir := filepath.Join("/var/lib/lynx/creds", p.info.ID)
+		credsDir := filepath.Join(paths.DataDir, "creds", p.info.ID)
 		if err := os.MkdirAll(credsDir, 0700); err != nil {
 			return nil, fmt.Errorf("failed to create creds dir: %w", err)
 		}

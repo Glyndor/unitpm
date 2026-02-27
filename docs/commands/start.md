@@ -213,7 +213,7 @@ When using `--isolation dynamic`, Lynx leverages `systemd-run` to create a trans
     - `PrivateTmp=yes`: The process sees a private `/tmp` and `/var/tmp`.
     - `ProtectHome=yes`: `/home`, `/root`, and `/run/user` are inaccessible.
     - **Note**: `HOME` environment variable is NOT inherited or injected in this mode to ensure compliance with `ProtectHome`.
-3.  **Credential Safety**: Environment variables are NOT passed via command line (which is visible in `ps`). Instead, they are written to a `0600` file in a secure directory and passed via systemd's `LoadCredential` logic, ensuring only the target process can read them.
+  - **Credentials:** Secrets are passed via systemd credentials in `/var/lib/lynx/creds`.
 4.  **No Privilege Escalation**: `NoNewPrivileges=yes` prevents the process from gaining new privileges (e.g., via setuid binaries).
 
 ### 💡 Usage Recommendation
