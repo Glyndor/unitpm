@@ -61,10 +61,10 @@ rm lynxd.deb
 # Add yourself to the lynx admin group & enable the backend engine
 sudo usermod -aG lynxadm $USER
 newgrp lynxadm
-sudo systemctl enable --now lynxd
+sudo systemctl enable --now lynx.lynxd
 
 # Verify the daemon is running securely
-sudo systemctl status lynxd
+sudo systemctl status lynx.lynxd
 ```
 
 ### 2. Deploy your application!
@@ -159,7 +159,7 @@ lynx list
 2. Add your user to `lynxadm` (system mode) and re-login or run `newgrp lynxadm`.
 3. Verify daemon logs:
    ```bash
-   journalctl -u lynxd -f
+   journalctl -u lynx.lynxd -f
    ```
 4. Start your application:
    ```bash
