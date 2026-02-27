@@ -49,11 +49,11 @@ Inside that black Linux/Ubuntu terminal, you need to install the programs that k
 
 ### Step 2: Enter your project folder from Linux
 
-Believe it or not, from that Ubuntu terminal you can see and access all your Windows hard drives (your C: drive, your J: drive, etc.). All Windows drives are mounted inside a folder called `/mnt/` in Linux.
+Believe it or not, from that Ubuntu terminal you can see and access all your Windows hard drives (your C: drive, your D: drive, etc.). All Windows drives are mounted inside a folder called `/mnt/` in Linux.
 
-1. Since your Lynx project is on the `J:` drive, type this command to enter your project folder:
+1. Navigate to your project folder (e.g., if it's in `C:\Users\YourName\Lynx`):
    ```bash
-   cd /mnt/j/Lynx
+   cd /mnt/c/Users/YourName/Lynx
    ```
    *(Important note: Notice that the slashes are now forward slashes `/` because we are in Linux, not Windows!)*
 
@@ -94,8 +94,8 @@ This is super important and confuses many beginners: when Ubuntu finishes buildi
 
 1. Close the black Linux terminal.
 2. Open the normal Windows **File Explorer**.
-3. Go to your **J:** drive.
-4. Look for it right next to (or outside of) your `Lynx` folder, right there on your J: drive. You will see a file named something like `lynx_0.0.1-1_amd64.deb`.
+3. Go to the drive where your project is located.
+4. Look for it right next to (or outside of) your `Lynx` folder. You will see a file named something like `lynx_0.0.1-1_amd64.deb`.
 
 ---
 
@@ -104,7 +104,7 @@ This is super important and confuses many beginners: when Ubuntu finishes buildi
 As we said before, some users will use the `.deb` package via APT, but others simply want the fast program or they rely on the internal automatic update you programmed (`updater.go`). For them, **you must also upload the standard compiled executable**.
 
 1. Open a normal **PowerShell** terminal on your Windows (or open a new tab in your terminal).
-2. Make sure you are in your project folder (e.g., `cd J:\Lynx`).
+2. Make sure you are in your project folder (e.g., `cd C:\Users\YourName\Lynx`).
 3. Run this exact command to tell Go to build a Linux (AMD64) executable for you:
    ```powershell
    $COMMIT=$(git rev-parse --short HEAD); $DATE=$(Get-Date -UFormat +"%Y-%m-%dT%H:%M:%SZ"); $env:GOOS="linux"; $env:GOARCH="amd64"; go build -ldflags="-X 'github.com/Jaro-c/Lynx/internal/version.Commit=$COMMIT' -X 'github.com/Jaro-c/Lynx/internal/version.BuildDate=$DATE'" -o lynx_linux_amd64 ./cmd/lynx
@@ -124,8 +124,8 @@ When the two files above are created and shining on your hard drive, just follow
 5. Give your update an awesome title, like "*Version 1.0 - New animations!*".
 6. Optionally, you can write what this new patch was about. If you don't want to type, click the magical **"Generate release notes"** button and GitHub will automatically put a summary of your latest commits.
 7. At the very bottom where it says in large letters *"Attach binaries by dropping them here..."*, **Drag and drop** into that box **YOUR TWO FILES**:
-   - `lynx_0.0.1-1_amd64.deb` (The one you found on your `J:` drive in Step 5).
-   - `lynx_linux_amd64` (The normal executable you just created in your `J:\Lynx` folder in Step 5.5).
+   - `lynx_0.0.1-1_amd64.deb` (The one you found in Step 5).
+   - `lynx_linux_amd64` (The normal executable you just created in your `Lynx` folder in Step 5.5).
 8. Click the green **"Publish release"** button!
 
 You're done! 
