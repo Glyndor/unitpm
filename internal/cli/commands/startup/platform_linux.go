@@ -42,13 +42,13 @@ func runPlatformStartup(runner Runner) error {
 		return fmt.Errorf("failed to reload daemon: %w\n%s", err, stderr)
 	}
 
-	// 2) systemctl enable --now lynxd.service
-	if _, stderr, _, err := runner.Run("systemctl", "enable", "--now", "lynxd.service"); err != nil {
+	// 2) systemctl enable --now lynx.lynxd.service
+	if _, stderr, _, err := runner.Run("systemctl", "enable", "--now", "lynx.lynxd.service"); err != nil {
 		return fmt.Errorf("failed to enable lynxd: %w\n%s", err, stderr)
 	}
 
-	// 3) systemctl is-active lynxd.service
-	stdout, stderr, _, err := runner.Run("systemctl", "is-active", "lynxd.service")
+	// 3) systemctl is-active lynx.lynxd.service
+	stdout, stderr, _, err := runner.Run("systemctl", "is-active", "lynx.lynxd.service")
 	if err != nil {
 		// is-active returns exit code 3 if inactive, check output
 		return fmt.Errorf("lynxd service check failed: %w\n%s", err, stderr)
