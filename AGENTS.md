@@ -29,6 +29,7 @@ Agents must STRICTLY ADHERE to these rules. Violations will cause build failures
     - **User Config**: `$XDG_CONFIG_HOME/lynx` (`~/.config/lynx`)
     - **System Config**: `/etc/lynx`
     - **Runtime (Socket)**: `$XDG_RUNTIME_DIR/lynx-<uid>/` (User) or `/run/lynxd/` (System).
+    - **Data**: `/var/lib/lynx-pm`
     - **Logs**: `$XDG_DATA_HOME/lynx/logs` or `/var/log/lynx-pm`.
 
 3.  **Security Model**:

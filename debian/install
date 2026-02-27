@@ -1,3 +1,4 @@
 #!/bin/sh
 echo "lynx usr/bin"
 echo "lynxd usr/sbin"
+echo "debian/lynx-pm.polkit.rules usr/share/polkit-1/rules.d"

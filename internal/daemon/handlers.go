@@ -21,7 +21,7 @@ import (
 	"github.com/Jaro-c/Lynx/internal/version"
 )
 
-// On Linux, the standard data directory is /var/lib/lynx
+// On Linux, the standard data directory is /var/lib/lynx-pm
 const DataDir = paths.DataDir
 
 // RegisterHandlers registers all daemon IPC handlers.

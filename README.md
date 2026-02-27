@@ -228,3 +228,11 @@ To fix this in your editor settings, set the environment variable:
 ## 📦 Packaging
 
 Lynx is designed to be installed as a native Debian package. See `docs/BUILDING_UBUNTU_RELEASE.md` for full instructions.
+
+## ⚠️ Troubleshooting
+
+### Dynamic Isolation & Systemd Permissions
+When using `--isolation dynamic`, Lynx uses `systemd-run` to spawn transient services. The `lynxd` daemon runs as the `lynx` user.
+
+- **Standard Setup**: The Debian package (`lynx-pm`) automatically installs a Polkit rule (`/usr/share/polkit-1/rules.d/lynx-pm.polkit.rules`) that authorizes the `lynx` user to manage systemd units.
+- **No Action Required**: You do not need to configure anything manually. The installation script handles permissions for you.

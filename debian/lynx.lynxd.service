@@ -9,14 +9,14 @@ Restart=on-failure
 User=lynx
 Group=lynx
 RuntimeDirectory=lynxd
-StateDirectory=lynx
+StateDirectory=lynx-pm
 LogsDirectory=lynx-pm
 # Hardening
 NoNewPrivileges=yes
 PrivateTmp=yes
 ProtectSystem=strict
 ProtectHome=read-only
-ReadWritePaths=/var/lib/lynx /var/log/lynx-pm /run/lynxd
+ReadWritePaths=/var/lib/lynx-pm /var/log/lynx-pm /run/lynxd
 
 [Install]
 WantedBy=multi-user.target

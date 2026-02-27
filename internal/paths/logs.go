@@ -12,8 +12,8 @@ import (
 
 const LogRoot = "/var/log/lynx-pm"
 const RunDir = "/run/lynxd"
-const CredsDir = "/var/lib/lynx/creds"
-const DataDir = "/var/lib/lynx"
+const CredsDir = "/var/lib/lynx-pm/creds"
+const DataDir = "/var/lib/lynx-pm"
 
 var getEuid = os.Geteuid
 

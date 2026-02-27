@@ -174,7 +174,7 @@ When using `--isolation dynamic` combined with `--env-file`, Lynx bridges the en
 
 **How it works:**
 1. Lynx reads the env file.
-2. Writes it to a secure, daemon-owned file (`/var/lib/lynx/creds/<id>/env`) with `0600` permissions.
+2. Writes it to a secure, daemon-owned file (`/var/lib/lynx-pm/creds/<id>/env`) with `0600` permissions.
 3. Uses `systemd-run --property=LoadCredential=...` to expose it to the process.
 4. An internal wrapper (`_exec-env`) reads the credential and exports variables before executing your application.
 
@@ -213,7 +213,7 @@ When using `--isolation dynamic`, Lynx leverages `systemd-run` to create a trans
     - `PrivateTmp=yes`: The process sees a private `/tmp` and `/var/tmp`.
     - `ProtectHome=yes`: `/home`, `/root`, and `/run/user` are inaccessible.
     - **Note**: `HOME` environment variable is NOT inherited or injected in this mode to ensure compliance with `ProtectHome`.
-  - **Credentials:** Secrets are passed via systemd credentials in `/var/lib/lynx/creds`.
+  - **Credentials:** Secrets are passed via systemd credentials in `/var/lib/lynx-pm/creds`.
 4.  **No Privilege Escalation**: `NoNewPrivileges=yes` prevents the process from gaining new privileges (e.g., via setuid binaries).
 
 ### 💡 Usage Recommendation
