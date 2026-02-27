@@ -21,7 +21,8 @@ func main() {
 	server := transport.NewServer()
 
 	// Register all handlers
-	daemon.RegisterHandlers(server, mgr, false)
+	privileged := os.Geteuid() == 0
+	daemon.RegisterHandlers(server, mgr, privileged)
 
 	// Restore state
 	log.Println("Restoring processes...")
