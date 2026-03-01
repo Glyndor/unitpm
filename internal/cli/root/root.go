@@ -14,6 +14,7 @@ import (
 	"github.com/Jaro-c/Lynx/internal/cli/commands/execenv"
 	"github.com/Jaro-c/Lynx/internal/cli/commands/export"
 	"github.com/Jaro-c/Lynx/internal/cli/commands/flush"
+	"github.com/Jaro-c/Lynx/internal/cli/commands/installtools"
 	"github.com/Jaro-c/Lynx/internal/cli/commands/list"
 	"github.com/Jaro-c/Lynx/internal/cli/commands/logs"
 	"github.com/Jaro-c/Lynx/internal/cli/commands/monit"
@@ -47,8 +48,9 @@ const (
 	cmdMonit   = "monit"
 	cmdReload  = "reload"
 	cmdFlush   = "flush"
-	cmdUpdate  = "update"
-	cmdExecEnv = "_exec-env"
+	cmdUpdate      = "update"
+	cmdInstallTools = "install-tools"
+	cmdExecEnv     = "_exec-env"
 	cmdHelp    = "help"
 	flagHelp   = "--help"
 )
@@ -128,6 +130,8 @@ func runCommand(name string, args []string) error {
 		return version.Run(os.Stdout, args)
 	case cmdUpdate:
 		return update.Run(os.Stdout, args)
+	case cmdInstallTools:
+		return installtools.Run(args)
 	case cmdExport:
 		return export.Run(args)
 	case cmdExecEnv:
@@ -200,6 +204,8 @@ func printCommandHelp(name string) int {
 		version.PrintHelp()
 	case cmdUpdate:
 		update.PrintHelp()
+	case cmdInstallTools:
+		installtools.PrintHelp()
 	case cmdApply:
 		apply.PrintHelp()
 	case cmdExport:
@@ -250,6 +256,7 @@ func registerCommands() {
 	registry.Register(startup.GetSpec())
 	registry.Register(version.GetSpec())
 	registry.Register(update.GetSpec())
+	registry.Register(installtools.GetSpec())
 	registry.Register(execenv.GetSpec())
 	registry.Register(apply.GetSpec())
 	registry.Register(export.GetSpec())

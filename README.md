@@ -63,6 +63,9 @@ sudo usermod -aG lynxadm $USER
 newgrp lynxadm
 sudo systemctl enable --now lynx.lynxd
 
+# (Optional) Make your dev tools (bun, node, go) visible to Lynx
+sudo lynx install-tools
+
 # Verify the daemon is running securely
 sudo systemctl status lynx.lynxd
 ```
@@ -124,6 +127,7 @@ Lynx supports two modes of operation:
 | `startup` | Enable system startup for the daemon (systemd). | [Docs](docs/commands/startup.md) |
 | `version` | Display CLI, Daemon, and Protocol version information. | [Docs](docs/commands/version.md) |
 | `update` | Check for updates and apply them. | [Docs](docs/commands/update.md) |
+| `install-tools` | Automatically link dev tools (bun, node, etc) to system path. | [Docs](docs/commands/install-tools.md) |
 | `help` | Show help for any command. | [Docs](docs/commands/help.md) |
 
 ## ⚙️ Advanced Installation & Build from Source
