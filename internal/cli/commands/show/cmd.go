@@ -1,5 +1,3 @@
-//go:build linux
-
 package show
 
 import (
@@ -32,7 +30,7 @@ type showResponse struct {
 }
 
 // Run executes the show command to display detailed information about a specific application.
-func Run(client *transport.Client, args []string) error {
+func Run(client transport.IPCClient, args []string) error {
 	if len(args) == 0 {
 		return fmt.Errorf("missing process ID or name")
 	}

@@ -1,5 +1,3 @@
-//go:build linux
-
 package apply
 
 import (
@@ -17,7 +15,7 @@ import (
 )
 
 // Run executes the apply command to load a Lynxfile and start the defined applications.
-func Run(client *transport.Client, args []string) error {
+func Run(client transport.IPCClient, args []string) error {
 	if help.IsHelp(args) {
 		PrintHelp()
 		return nil

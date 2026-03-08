@@ -1,5 +1,3 @@
-//go:build linux
-
 package monit
 
 import (
@@ -14,7 +12,7 @@ import (
 )
 
 // Run executes the monit command to display live statistics for all running applications.
-func Run(client *transport.Client, args []string) error {
+func Run(client transport.IPCClient, args []string) error {
 	interval := time.Second * 2
 
 	for {

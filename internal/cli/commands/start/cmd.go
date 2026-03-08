@@ -1,6 +1,3 @@
-// Package start implements the start command.
-//go:build linux
-
 package start
 
 import (
@@ -21,7 +18,7 @@ import (
 )
 
 // Run executes the start command.
-func Run(client *transport.Client, args []string) error {
+func Run(client transport.IPCClient, args []string) error {
 	if help.IsHelp(args) {
 		PrintHelp()
 		return nil

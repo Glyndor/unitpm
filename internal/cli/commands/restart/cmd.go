@@ -1,5 +1,3 @@
-//go:build linux
-
 package restart
 
 import (
@@ -12,7 +10,7 @@ import (
 )
 
 // Run executes the restart command.
-func Run(client *transport.Client, args []string) error {
+func Run(client transport.IPCClient, args []string) error {
 	if len(args) == 0 {
 		return fmt.Errorf("missing process ID or name")
 	}

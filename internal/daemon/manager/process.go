@@ -1,6 +1,3 @@
-//go:build linux
-
-// Package manager implements the core process management logic.
 package manager
 
 import (
@@ -11,6 +8,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"sync"
 	"time"
@@ -260,10 +258,13 @@ func (p *Process) resolveCommand() (string, []string, error) {
 
 func (p *Process) prepareEnv() ([]string, error) {
 	var env []string
-	uid := os.Geteuid()
+	isRoot := false
+	if runtime.GOOS != "windows" {
+		isRoot = os.Geteuid() == 0
+	}
 
 	// 1. Base Environment
-	if uid == 0 {
+	if isRoot {
 		// System Mode: Whitelist to prevent leaking secrets (e.g. AWS_KEYS)
 		allowed := []string{
 			"PATH", "LANG", "TERM", "TZ", "TMPDIR",
@@ -434,7 +435,14 @@ func (p *Process) setupLogs(cmd *exec.Cmd) error {
 	}
 
 	// Determine Log Directory
-	stdoutPath, stderrPath, err := paths.ResolveLogPaths(&p.spec)
+	var logsDir, stdout, stderr string
+	if logs := p.spec.Logs; logs != nil {
+		logsDir = logs.Dir
+		stdout = logs.Stdout
+		stderr = logs.Stderr
+	}
+
+	stdoutPath, stderrPath, err := paths.ResolveLogPaths(p.info.ID, logsDir, stdout, stderr)
 	if err != nil {
 		return err
 	}

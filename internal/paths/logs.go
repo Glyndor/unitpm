@@ -6,8 +6,6 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-
-	"github.com/Jaro-c/Lynx/internal/ipc/protocol"
 )
 
 const LogRoot = "/var/log/lynx-pm"
@@ -15,11 +13,11 @@ const RunDir = "/run/lynxd"
 const CredsDir = "/var/lib/lynx-pm/creds"
 const DataDir = "/var/lib/lynx-pm"
 
-var getEuid = os.Geteuid
+var currentEuid = getEuid
 
 // GetLogDir resolves the root log directory.
 func GetLogDir(configuredDir string) (string, error) {
-	euid := getEuid()
+	euid := currentEuid()
 
 	if configuredDir != "" {
 		return resolveConfiguredDir(configuredDir, euid)
@@ -149,22 +147,17 @@ func pathContainsUnsafeSymlink(root, path string) bool {
 }
 
 // ResolveLogPaths returns the absolute paths for stdout and stderr logs for a given spec.
-func ResolveLogPaths(spec *protocol.AppSpec) (string, string, error) {
-	logs := spec.Logs
-	if logs == nil {
-		logs = &protocol.AppLogs{}
-	}
-
-	logDir, err := GetLogDir(logs.Dir)
+func ResolveLogPaths(specID, logsDir, stdout, stderr string) (string, string, error) {
+	logDir, err := GetLogDir(logsDir)
 	if err != nil {
 		return "", "", err
 	}
 
 	// Per-app log directory
-	appLogDir := filepath.Join(logDir, spec.ID)
+	appLogDir := filepath.Join(logDir, specID)
 
 	// Stdout
-	stdoutPath := logs.Stdout
+	stdoutPath := stdout
 	if stdoutPath == "" {
 		stdoutPath = "stdout.log"
 	}
@@ -173,7 +166,7 @@ func ResolveLogPaths(spec *protocol.AppSpec) (string, string, error) {
 	}
 
 	// Stderr
-	stderrPath := logs.Stderr
+	stderrPath := stderr
 	if stderrPath == "" {
 		stderrPath = "stderr.log"
 	}

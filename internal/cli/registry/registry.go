@@ -1,6 +1,4 @@
 // Package registry provides a central command registry for the CLI.
-//go:build linux
-
 package registry
 
 import (

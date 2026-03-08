@@ -1,5 +1,3 @@
-//go:build linux
-
 package logs
 
 import (
@@ -107,7 +105,14 @@ func runWithContext(ctx context.Context, args []string) error {
 		return fmt.Errorf("process '%s' not found", target)
 	}
 
-	stdoutPath, stderrPath, err := paths.ResolveLogPaths(match)
+	var logsDir, stdout, stderr string
+	if match.Logs != nil {
+		logsDir = match.Logs.Dir
+		stdout = match.Logs.Stdout
+		stderr = match.Logs.Stderr
+	}
+
+	stdoutPath, stderrPath, err := paths.ResolveLogPaths(match.ID, logsDir, stdout, stderr)
 	if err != nil {
 		return fmt.Errorf("failed to resolve log paths: %w", err)
 	}

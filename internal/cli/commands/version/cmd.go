@@ -1,6 +1,3 @@
-// Package version implements the version command.
-//go:build linux
-
 package version
 
 import (
@@ -20,7 +17,8 @@ import (
 )
 
 // Run executes the version command.
-func Run(w io.Writer, args []string) error {
+// client is optional; if nil, it attempts to connect to the daemon.
+func Run(client transport.IPCClient, w io.Writer, args []string) error {
 	fs := flag.NewFlagSet("version", flag.ContinueOnError)
 	fs.SetOutput(io.Discard)
 
@@ -48,8 +46,10 @@ func Run(w io.Writer, args []string) error {
 	printVersionInfo(w, local)
 
 	// 2. Attempt to connect to daemon
-	// We handle the connection manually here because failure is not an error for this command.
-	client, err := transport.NewClient()
+	var err error
+	if client == nil {
+		client, err = transport.NewClient()
+	}
 	if err != nil {
 		// Daemon not running or unreachable.
 		// Print only Protocol section and exit 0.

@@ -1,6 +1,4 @@
 // Package update implements the update command.
-//go:build linux
-
 package update
 
 import (

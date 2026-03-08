@@ -1,5 +1,3 @@
-//go:build linux
-
 // Package list implements the list command.
 package list
 

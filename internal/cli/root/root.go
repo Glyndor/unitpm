@@ -1,6 +1,4 @@
 // Package root implements the root command.
-//go:build linux
-
 package root
 
 import (
@@ -127,7 +125,7 @@ func resolveCommand(name string) string {
 func runCommand(name string, args []string) error {
 	switch name {
 	case cmdVersion:
-		return version.Run(os.Stdout, args)
+		return version.Run(nil, os.Stdout, args)
 	case cmdUpdate:
 		return update.Run(os.Stdout, args)
 	case cmdInstallTools:

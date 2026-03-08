@@ -1,5 +1,3 @@
-//go:build linux
-
 package delete
 
 import (
@@ -12,7 +10,7 @@ import (
 )
 
 // Run executes the delete command.
-func Run(client *transport.Client, args []string) error {
+func Run(client transport.IPCClient, args []string) error {
 	purge := false
 	ids := []string{}
 

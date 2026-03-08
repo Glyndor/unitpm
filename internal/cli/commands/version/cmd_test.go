@@ -1,34 +1,28 @@
-//go:build linux
-
-package version
+package version_test
 
 import (
 	"bytes"
 	"strings"
 	"testing"
 
-	"github.com/Jaro-c/Lynx/internal/cli/errs"
+	"github.com/Jaro-c/Lynx/internal/cli/commands/version"
 )
 
 func TestRun(t *testing.T) {
-	// Since Run connects to the daemon, we can only easily test the offline part (CLI version)
-	// or mock the transport (which is harder here as it uses transport.NewClient internally).
-	// However, we can test flag parsing and basic output structure when daemon is offline.
-	
-	// Note: Run() returns nil when daemon is offline, just prints what it can.
-
-	buf := new(bytes.Buffer)
-	err := Run(buf, []string{})
+	// Test basic execution without daemon connection
+	var buf bytes.Buffer
+	err := version.Run(nil, &buf, []string{})
 	if err != nil {
-		t.Fatalf("Run failed: %v", err)
+		t.Errorf("Run() error = %v", err)
 	}
 
 	output := buf.String()
 	if !strings.Contains(output, "Lynx CLI") {
-		t.Error("Output should contain 'Lynx CLI'")
+		t.Error("Output missing 'Lynx CLI'")
 	}
-	if !strings.Contains(output, "Version") {
-		t.Error("Output should contain 'Version'")
+	// It should print Protocol section even if daemon fails
+	if !strings.Contains(output, "Protocol") {
+		t.Error("Output missing 'Protocol'")
 	}
 }
 
@@ -39,7 +33,7 @@ func TestRunHelp(t *testing.T) {
 	// so we can't capture it easily without redirecting os.Stdout.
 	// But we can check that it returns nil.
 	
-	err := Run(buf, []string{"--help"})
+	err := version.Run(nil, buf, []string{"--help"})
 	if err != nil {
 		t.Fatalf("Run --help failed: %v", err)
 	}
@@ -47,12 +41,11 @@ func TestRunHelp(t *testing.T) {
 
 func TestRunInvalidFlag(t *testing.T) {
 	buf := new(bytes.Buffer)
-	err := Run(buf, []string{"--invalid"})
+	err := version.Run(nil, buf, []string{"--invalid"})
 	if err == nil {
 		t.Fatal("Expected error for invalid flag")
 	}
 
-	var usageErr *errs.UsageError
 	if !strings.Contains(err.Error(), "Unknown flag") {
 		t.Errorf("Expected Unknown flag error, got %v", err)
 	}
@@ -60,7 +53,7 @@ func TestRunInvalidFlag(t *testing.T) {
 
 func TestRunUnexpectedArgs(t *testing.T) {
 	buf := new(bytes.Buffer)
-	err := Run(buf, []string{"arg1"})
+	err := version.Run(nil, buf, []string{"arg1"})
 	if err == nil {
 		t.Fatal("Expected error for unexpected args")
 	}

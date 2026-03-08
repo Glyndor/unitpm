@@ -1,6 +1,3 @@
-//go:build linux
-
-// Package daemon provides the core daemon logic and initialization.
 package daemon
 
 import (
@@ -9,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 
 	"github.com/Jaro-c/Lynx/internal/daemon/handlers"
@@ -114,7 +112,7 @@ func RegisterHandlers(server *transport.Server, mgr *manager.Manager, privileged
 				var baseLogDir string
 				if configuredDir != "" {
 					baseLogDir = configuredDir
-				} else if os.Geteuid() == 0 {
+				} else if runtime.GOOS != "windows" && os.Geteuid() == 0 {
 					baseLogDir = paths.LogRoot
 				} else if stateHome := os.Getenv("XDG_STATE_HOME"); stateHome != "" {
 					baseLogDir = filepath.Join(stateHome, "lynx/logs")
@@ -245,7 +243,14 @@ func RegisterHandlers(server *transport.Server, mgr *manager.Manager, privileged
 			}
 		}
 
-		stdoutPath, stderrPath, err := paths.ResolveLogPaths(s)
+		var logsDir, stdout, stderr string
+		if s.Logs != nil {
+			logsDir = s.Logs.Dir
+			stdout = s.Logs.Stdout
+			stderr = s.Logs.Stderr
+		}
+
+		stdoutPath, stderrPath, err := paths.ResolveLogPaths(s.ID, logsDir, stdout, stderr)
 		if err != nil {
 			return nil, fmt.Errorf("failed to resolve log paths: %w", err)
 		}

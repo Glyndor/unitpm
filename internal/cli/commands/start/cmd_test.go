@@ -1,5 +1,3 @@
-//go:build linux
-
 package start_test
 
 import (
@@ -236,5 +234,15 @@ func TestTokenize(t *testing.T) {
 				t.Errorf("Tokenize() = %v, want %v", got, tt.want)
 			}
 		})
+	}
+}
+
+func TestParseAppSpec_Validation(t *testing.T) {
+	_, _, err := start.ParseAppSpec([]string{})
+	if err == nil {
+		t.Error("Expected error for empty args, got nil")
+	}
+	if !strings.Contains(err.Error(), "missing command") {
+		t.Errorf("Expected 'missing command', got %v", err)
 	}
 }
