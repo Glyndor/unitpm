@@ -1,8 +1,6 @@
 # 🦁 `lynx restart`
 
-> *Documentation for the lynx command.*
-
-Restart one or more processes.
+> *Restart one or more processes.*
 
 ## 📖 Synopsis
 
@@ -13,6 +11,12 @@ lynx restart <id|name>...
 ## Description
 
 Restarts the specified processes. This sends a stop signal followed by starting the process again with the same configuration.
+
+## ⚙️ Flags
+
+| Flag | Type | Default | Description |
+|------|------|---------|-------------|
+| `-h`, `--help` | - | - | Show help message. |
 
 ## 🚀 Examples
 

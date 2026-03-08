@@ -1,6 +1,6 @@
 # 🦁 `lynx startup`
 
-> *Generate and install the system startup script for Lynx. This command configures `systemd` to start the Lynx daemon automatically on boot.*
+> *Generate and install the system startup script for Lynx.*
 
 ## 📖 Synopsis
 
@@ -8,15 +8,15 @@
 lynx startup [flags]
 ```
 
-## 💡 Usage
+## Description
 
 Generate and install the system startup script for Lynx. This command configures `systemd` to start the Lynx daemon automatically on boot.
 
 ## ⚙️ Flags
 
-| Flag | Type | Default | Description | Example |
-|------|------|---------|-------------|---------|
-| `-h`, `--help` | - | - | Show help message. | — |
+| Flag | Type | Default | Description |
+|------|------|---------|-------------|
+| `-h`, `--help` | - | - | Show help message. |
 
 ## 🚀 Examples
 
@@ -45,5 +45,5 @@ ERR_UNSUPPORTED: Lynx requires Linux with systemd
 
 ## Notes
 
-*   **Requirements**: This command requires a Linux system with `systemd` as the init system.
-*   **Permissions**: Root or sudo privileges are typically required to write to `/etc/systemd/system` and enable services.
+- **Requirements**: This command requires a Linux system with `systemd` as the init system.
+- **Permissions**: Root or sudo privileges are typically required to write to `/etc/systemd/system` and enable services.

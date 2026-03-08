@@ -1,6 +1,6 @@
 # 🦁 `lynx start`
 
-> *Start a new process managed by Lynx. This command creates a new application specification and starts the process via the daemon.*
+> *Start a new process managed by Lynx.*
 
 ## 📖 Synopsis
 
@@ -8,7 +8,7 @@
 lynx start <command|file> [flags] [-- <args...>]
 ```
 
-## 💡 Usage
+## Description
 
 Start a new process managed by Lynx. This command creates a new application specification and starts the process via the daemon.
 
@@ -35,6 +35,39 @@ Start a new process managed by Lynx. This command creates a new application spec
 | `--isolation` | string | self | Isolation mode (`self`, `dynamic`). | `--isolation dynamic` |
 | `--scale`, `--instances` | int | 1 | Number of instances to start. | `--scale 4` |
 | `-h`, `--help` | - | - | Show help message. | — |
+
+## 🚀 Examples
+
+Start a Node.js script:
+```bash
+lynx start main.js
+```
+
+Start with DynamicUser isolation (secure):
+```bash
+lynx start main.js --isolation dynamic
+```
+
+Start a scheduled task (runs every hour):
+```bash
+lynx start cleanup.sh --schedule "@hourly" --restart never
+```
+
+## 📋 Example Output
+
+Success:
+```
+Spec saved to /home/user/.config/lynx/apps/my-api.json
+Started my-api
+  ID: e73a9f1b
+  PID: 12345
+  Status: online
+```
+
+Error (invalid path):
+```
+Error: ERR_BAD_REQUEST: invalid cwd: stat /invalid/path: no such file or directory (BAD_REQUEST)
+```
 
 ## Mode Explanations
 
@@ -78,39 +111,6 @@ Start a new process managed by Lynx. This command creates a new application spec
 | **Astro (dev)** | `lynx start --name astro -- npm run dev` |
 | **Node (script)** | `lynx start server.js` |
 | **Node (cmd)** | `lynx start -- node server.js` |
-
-## 🚀 Examples
-
-Start a Node.js script:
-```bash
-lynx start main.js
-```
-
-Start with DynamicUser isolation (secure):
-```bash
-lynx start main.js --isolation dynamic
-```
-
-Start a scheduled task (runs every hour):
-```bash
-lynx start cleanup.sh --schedule "@hourly" --restart never
-```
-
-## 📋 Example Output
-
-Success:
-```
-Spec saved to /home/user/.config/lynx/apps/my-api.json
-Started my-api
-  ID: e73a9f1b
-  PID: 12345
-  Status: online
-```
-
-Error (invalid path):
-```
-Error: ERR_BAD_REQUEST: invalid cwd: stat /invalid/path: no such file or directory (BAD_REQUEST)
-```
 
 ## Scaling and Load Balancing
 

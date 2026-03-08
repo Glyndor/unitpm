@@ -1,6 +1,6 @@
 # 🦁 `lynx install-tools`
 
-> *Documentation for the lynx command.*
+> *Automatically symlink common development tools to `/usr/local/bin`.*
 
 ## 📖 Synopsis
 

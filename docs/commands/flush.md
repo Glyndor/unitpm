@@ -1,6 +1,6 @@
 # 🦁 `lynx flush`
 
-> *Documentation for the lynx command.*
+> *Truncate the stdout/stderr log files for a process.*
 
 ## 📖 Synopsis
 
@@ -11,6 +11,12 @@ lynx flush <id|name>...
 ## Description
 
 Truncate the stdout/stderr log files for a process. Resolves and validates log paths before truncation to avoid unsafe operations.
+
+## ⚙️ Flags
+
+| Flag | Type | Default | Description |
+|------|------|---------|-------------|
+| `-h`, `--help` | - | - | Show help message. |
 
 ## 🚀 Examples
 

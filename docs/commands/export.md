@@ -1,6 +1,6 @@
 # 🦁 `lynx export`
 
-> *Documentation for the lynx command.*
+> *Export all applications in a namespace to a Lynxfile YAML document.*
 
 ## 📖 Synopsis
 
@@ -14,9 +14,10 @@ Export all applications in a namespace to a Lynxfile YAML document printed to st
 
 ## ⚙️ Flags
 
-| Flag | Type | Description |
-|------|------|-------------|
-| `--namespace`, `-n` | string | Namespace to export |
+| Flag | Type | Default | Description |
+|------|------|---------|-------------|
+| `-n`, `--namespace` | string | default | Namespace to export. |
+| `-h`, `--help` | - | - | Show help message. |
 
 ## 🚀 Examples
 

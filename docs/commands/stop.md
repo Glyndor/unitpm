@@ -1,8 +1,6 @@
 # 🦁 `lynx stop`
 
-> *Documentation for the lynx command.*
-
-Stop one or more running processes.
+> *Stop one or more running processes.*
 
 ## 📖 Synopsis
 
@@ -13,6 +11,12 @@ lynx stop <id|name>...
 ## Description
 
 Stops the specified processes. You can provide either the full ID, a short ID prefix (if unique), or the process name (if unique).
+
+## ⚙️ Flags
+
+| Flag | Type | Default | Description |
+|------|------|---------|-------------|
+| `-h`, `--help` | - | - | Show help message. |
 
 ## 🚀 Examples
 

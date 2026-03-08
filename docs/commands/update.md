@@ -19,12 +19,12 @@ The `lynx update` command will detect this and warn you, unless you use `--force
 
 ## ⚙️ Flags
 
-| Flag | Type | Default | Description | Example |
-|------|------|---------|-------------|---------|
-| `-a`, `--apply` | boolean | false | Download and apply the update if available. | `lynx update --apply` |
-| `-c`, `--check` | boolean | true | Check for updates without applying. | `lynx update` |
-| `-f`, `--force` | boolean | false | Force update even if managed by system package manager. | `lynx update --force` |
-| `-h`, `--help` | - | - | Show help message. | — |
+| Flag | Type | Default | Description |
+|------|------|---------|-------------|
+| `-a`, `--apply` | boolean | false | Download and apply the update if available. |
+| `-c`, `--check` | boolean | true | Check for updates without applying. |
+| `-f`, `--force` | boolean | false | Force update even if managed by system package manager. |
+| `-h`, `--help` | - | - | Show help message. |
 
 ## 🚀 Examples
 

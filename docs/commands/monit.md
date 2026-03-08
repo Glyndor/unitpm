@@ -1,6 +1,6 @@
 # 🦁 `lynx monit`
 
-> *Documentation for the lynx command.*
+> *Display live statistics for all managed processes.*
 
 ## 📖 Synopsis
 
@@ -11,6 +11,12 @@ lynx monit
 ## Description
 
 Display live statistics for all managed processes, refreshing periodically. Useful for quick monitoring without external tools.
+
+## ⚙️ Flags
+
+| Flag | Type | Default | Description |
+|------|------|---------|-------------|
+| `-h`, `--help` | - | - | Show help message. |
 
 ## 🚀 Examples
 

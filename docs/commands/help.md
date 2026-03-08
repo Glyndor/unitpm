@@ -1,6 +1,6 @@
 # 🦁 `lynx help`
 
-> *Display the help message for the specified command, or the general help message if no command is specified.*
+> *Display help information about Lynx commands.*
 
 ## 📖 Synopsis
 
@@ -8,15 +8,16 @@
 lynx help [command]
 ```
 
-## 💡 Usage
+## Description
 
 Display the help message for the specified command, or the general help message if no command is specified.
 
 ## ⚙️ Flags
 
-| Flag | Type | Default | Description | Example |
-|------|------|---------|-------------|---------|
-| `command` | string | - | The command to get help for. | `lynx help start` |
+| Flag | Type | Default | Description |
+|------|------|---------|-------------|
+| `command` | string | - | The command to get help for. |
+| `-h`, `--help` | - | - | Show help message. |
 
 ## 🚀 Examples
 
@@ -32,7 +33,6 @@ lynx help start
 
 ## 📋 Example Output
 
-General help:
 ```
 Lynx - Process Manager for Linux
 

@@ -1,6 +1,6 @@
 # 🦁 `lynx reload`
 
-> *Documentation for the lynx command.*
+> *Reload a process configuration from its stored spec and restart it.*
 
 ## 📖 Synopsis
 
@@ -11,6 +11,12 @@ lynx reload <id|name>...
 ## Description
 
 Reload a process configuration from its stored spec and restart it. Useful after editing a spec file or changing environment.
+
+## ⚙️ Flags
+
+| Flag | Type | Default | Description |
+|------|------|---------|-------------|
+| `-h`, `--help` | - | - | Show help message. |
 
 ## 🚀 Examples
 

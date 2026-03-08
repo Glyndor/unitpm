@@ -1,6 +1,6 @@
 # 🦁 `lynx show`
 
-> *Documentation for the lynx command.*
+> *Show detailed information about a process.*
 
 ## 📖 Synopsis
 
@@ -11,6 +11,12 @@ lynx show <id|name|namespace:name>
 ## Description
 
 Show detailed information about a process: ID, namespace, state, PID, uptime, CPU and memory usage, and user/mode metadata.
+
+## ⚙️ Flags
+
+| Flag | Type | Default | Description |
+|------|------|---------|-------------|
+| `-h`, `--help` | - | - | Show help message. |
 
 ## 🚀 Examples
 

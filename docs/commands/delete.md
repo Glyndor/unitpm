@@ -1,8 +1,6 @@
 # 🦁 `lynx delete | remove | rm`
 
-> *Documentation for the lynx command.*
-
-Delete one or more processes and their configurations.
+> *Delete one or more processes and their configurations.*
 
 ## 📖 Synopsis
 
@@ -19,6 +17,7 @@ Stops and removes the specified processes from management. By default, it remove
 | Flag | Type | Default | Description |
 |------|------|---------|-------------|
 | `--purge` | boolean | false | Also delete the log files and any runtime data associated with the process. |
+| `-h`, `--help` | - | - | Show help message. |
 
 ## 🚀 Examples
 

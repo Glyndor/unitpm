@@ -1,6 +1,6 @@
 # 🦁 `lynx logs`
 
-> *View and follow process log files managed by Lynx. Resolves per‑app stdout/stderr paths and tails their contents.*
+> *View and follow process log files managed by Lynx.*
 
 ## 📖 Synopsis
 
@@ -8,7 +8,7 @@
 lynx logs <id|name|namespace:name> [--lines N] [--follow] [--stdout] [--stderr]
 ```
 
-## 💡 Usage
+## Description
 
 View and follow process log files managed by Lynx. Resolves per‑app stdout/stderr paths and tails their contents.
 
@@ -16,12 +16,11 @@ View and follow process log files managed by Lynx. Resolves per‑app stdout/std
 
 | Flag | Type | Default | Description |
 |------|------|---------|-------------|
-| `--lines`, `-n` | int | 200 | Number of lines to show initially |
-| `--follow`, `-f` | boolean | false | Stream new log lines (tail -f) |
-| `--stdout`, `-o` | boolean | auto | Show stdout only (if set) |
-| `--stderr`, `-e` | boolean | auto | Show stderr only (if set) |
-
-If neither `--stdout` nor `--stderr` is provided, both streams are shown.
+| `-n`, `--lines` | int | 200 | Number of lines to show initially. |
+| `-f`, `--follow` | boolean | false | Stream new log lines (tail -f). |
+| `-o`, `--stdout` | boolean | auto | Show stdout only (if set). |
+| `-e`, `--stderr` | boolean | auto | Show stderr only (if set). |
+| `-h`, `--help` | - | - | Show help message. |
 
 ## 🚀 Examples
 

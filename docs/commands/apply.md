@@ -1,6 +1,6 @@
 # 🦁 `lynx apply`
 
-> *Documentation for the lynx command.*
+> *Apply a declarative Lynxfile to create and start one or more applications.*
 
 ## 📖 Synopsis
 
