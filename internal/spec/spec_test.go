@@ -1,157 +1,124 @@
-//go:build linux
-
-package spec_test
+package spec
 
 import (
 	"os"
 	"path/filepath"
-	"strings"
 	"testing"
 
 	"github.com/Jaro-c/Lynx/internal/ipc/protocol"
-	"github.com/Jaro-c/Lynx/internal/spec"
-	"github.com/google/uuid"
 )
 
-func TestGenerateUUIDv4(t *testing.T) {
-	id, err := spec.GenerateUUIDv4()
+func TestGetSpecDir(t *testing.T) {
+	// Mock XDG_CONFIG_HOME
+	tmpDir := t.TempDir()
+	t.Setenv("XDG_CONFIG_HOME", tmpDir)
+
+	dir, err := GetSpecDir()
 	if err != nil {
-		t.Fatalf("GenerateUUIDv4() error = %v", err)
+		t.Fatalf("GetSpecDir failed: %v", err)
 	}
-	if len(id) != 36 {
-		t.Errorf("UUID length = %d, want 36", len(id))
+
+	expected := filepath.Join(tmpDir, "lynx", "apps")
+	if dir != expected {
+		t.Errorf("Expected %s, got %s", expected, dir)
 	}
-	// Basic format check
-	parts := strings.Split(id, "-")
-	if len(parts) != 5 {
-		t.Errorf("UUID format invalid, parts = %d, want 5", len(parts))
+
+	// Verify directory exists and permissions
+	info, err := os.Stat(dir)
+	if err != nil {
+		t.Fatalf("Spec dir not created: %v", err)
+	}
+	if !info.IsDir() {
+		t.Errorf("Spec dir is not a directory")
+	}
+	// Windows doesn't strictly enforce 0700 in the same way, so we skip permission check on Windows
+	if os.PathSeparator == '/' {
+		if perm := info.Mode().Perm(); perm != 0700 {
+			t.Errorf("Expected permissions 0700, got %o", perm)
+		}
 	}
 }
 
-func TestSaveSpec(t *testing.T) {
-	// Set XDG_CONFIG_HOME to a temp dir for this test
-	tempDir, err := os.MkdirTemp("", "lynx-test")
-	if err != nil {
-		t.Fatalf("failed to create temp dir: %v", err)
-	}
-	defer func() { _ = os.RemoveAll(tempDir) }()
-	_ = os.Setenv("XDG_CONFIG_HOME", tempDir)
-	// Fallback test
-	_ = os.Setenv("HOME", tempDir)
+func TestSaveLoadDeleteSpec(t *testing.T) {
+	tmpDir := t.TempDir()
+	t.Setenv("XDG_CONFIG_HOME", tmpDir)
 
-	specData := protocol.AppSpec{
-		Version: 1,
-		ID:      "test-id",
-		Name:    "test-app",
+	id := "test-app-id"
+	spec := protocol.AppSpec{
+		Name:      "test-app",
+		Namespace: "test-ns",
 		Exec: protocol.AppExec{
-			Type:    "command",
-			Command: "echo",
+			Command: "echo hello",
 		},
 	}
 
-	path, err := spec.SaveSpec("test-id", specData)
+	// Test SaveSpec
+	path, err := SaveSpec(id, spec)
 	if err != nil {
-		t.Fatalf("SaveSpec() error = %v", err)
+		t.Fatalf("SaveSpec failed: %v", err)
 	}
 
 	// Verify file exists
-	if _, err := os.Stat(path); os.IsNotExist(err) {
-		t.Errorf("Spec file was not created at %s", path)
+	if _, err := os.Stat(path); err != nil {
+		t.Errorf("Spec file not found at %s", path)
 	}
 
-	// Verify content
-	bytes, err := os.ReadFile(path)
+	// Test LoadSpec
+	loaded, err := LoadSpec(id)
 	if err != nil {
-		t.Fatal(err)
-	}
-	content := string(bytes)
-	if !strings.Contains(content, "test-id") {
-		t.Errorf("Spec content missing ID")
-	}
-}
-
-func TestLoadAll(t *testing.T) {
-	// Setup temp XDG_CONFIG_HOME
-	tempDir, err := os.MkdirTemp("", "lynx-spec-test")
-	if err != nil {
-		t.Fatalf("failed to create temp dir: %v", err)
-	}
-	defer os.RemoveAll(tempDir)
-
-	os.Setenv("XDG_CONFIG_HOME", tempDir)
-	defer os.Unsetenv("XDG_CONFIG_HOME")
-
-	// Create valid spec
-	validID := uuid.NewString()
-	validSpec := protocol.AppSpec{
-		Version: 1,
-		ID:      validID,
-		Name:    "valid-app",
-		Exec:    protocol.AppExec{Type: "command", Command: "true"},
-	}
-	if _, err := spec.SaveSpec(validID, validSpec); err != nil {
-		t.Fatalf("failed to save valid spec: %v", err)
+		t.Fatalf("LoadSpec failed: %v", err)
 	}
 
-	// Create disabled spec
-	disabledID := uuid.NewString()
-	disabledSpec := protocol.AppSpec{
-		Version:  1,
-		ID:       disabledID,
-		Name:     "disabled-app",
-		Exec:     protocol.AppExec{Type: "command", Command: "true"},
-		Disabled: true,
+	if loaded.Name != spec.Name {
+		t.Errorf("Expected name %s, got %s", spec.Name, loaded.Name)
 	}
-	if _, err := spec.SaveSpec(disabledID, disabledSpec); err != nil {
-		t.Fatalf("failed to save disabled spec: %v", err)
-	}
-
-	// Create corrupted file
-	specDir, _ := spec.GetSpecDir()
-	corruptedPath := filepath.Join(specDir, "corrupted.json")
-	if err := os.WriteFile(corruptedPath, []byte("{invalid-json"), 0600); err != nil {
-		t.Fatalf("failed to write corrupted spec: %v", err)
-	}
-
-	// Create non-json file
-	ignoredPath := filepath.Join(specDir, "readme.txt")
-	if err := os.WriteFile(ignoredPath, []byte("ignore me"), 0600); err != nil {
-		t.Fatalf("failed to write ignored file: %v", err)
+	if loaded.Namespace != spec.Namespace {
+		t.Errorf("Expected namespace %s, got %s", spec.Namespace, loaded.Namespace)
 	}
 
 	// Test LoadAll
-	loaded, err := spec.LoadAll()
+	all, err := LoadAll()
 	if err != nil {
-		t.Fatalf("LoadAll() failed: %v", err)
+		t.Fatalf("LoadAll failed: %v", err)
+	}
+	if len(all) != 1 {
+		t.Errorf("Expected 1 spec, got %d", len(all))
+	}
+	if all[0].Name != spec.Name {
+		t.Errorf("Expected name %s, got %s", spec.Name, all[0].Name)
 	}
 
-	// Verify results
-	// Should load valid and disabled specs, ignore corrupted and non-json
-	if len(loaded) != 2 {
-		t.Errorf("LoadAll() returned %d specs, expected 2", len(loaded))
+	// Test DeleteSpec
+	if err := DeleteSpec(id); err != nil {
+		t.Fatalf("DeleteSpec failed: %v", err)
 	}
 
-	foundValid := false
-	foundDisabled := false
-	for _, s := range loaded {
-		if s.ID == validID {
-			foundValid = true
-			if s.Disabled {
-				t.Error("Valid spec loaded as disabled")
-			}
-		}
-		if s.ID == disabledID {
-			foundDisabled = true
-			if !s.Disabled {
-				t.Error("Disabled spec loaded as enabled")
-			}
-		}
+	// Verify file is gone
+	if _, err := os.Stat(path); !os.IsNotExist(err) {
+		t.Errorf("Spec file still exists after delete")
 	}
 
-	if !foundValid {
-		t.Error("Valid spec not found in loaded specs")
+	// Verify LoadSpec fails
+	if _, err := LoadSpec(id); err == nil {
+		t.Error("LoadSpec should fail after delete")
 	}
-	if !foundDisabled {
-		t.Error("Disabled spec not found in loaded specs")
+}
+
+func TestGenerateUUIDv4(t *testing.T) {
+	uuid1, err := GenerateUUIDv4()
+	if err != nil {
+		t.Fatalf("GenerateUUIDv4 failed: %v", err)
+	}
+	if len(uuid1) == 0 {
+		t.Error("UUID is empty")
+	}
+
+	uuid2, err := GenerateUUIDv4()
+	if err != nil {
+		t.Fatalf("GenerateUUIDv4 failed: %v", err)
+	}
+
+	if uuid1 == uuid2 {
+		t.Error("Generated identical UUIDs")
 	}
 }

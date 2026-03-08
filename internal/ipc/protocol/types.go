@@ -1,6 +1,12 @@
+// Package protocol defines the IPC protocol types.
 package protocol
 
 import "github.com/Jaro-c/Lynx/internal/jsonx"
+
+const (
+	StatusError   = "error"
+	StatusSuccess = "success"
+)
 
 // Request represents a standard IPC request.
 type Request struct {
