@@ -13,11 +13,11 @@ func TestAuthorizeStart(t *testing.T) {
 	identity := &transport.Identity{UID: "1000", GID: "1000", PID: 1234}
 
 	tests := []struct {
-		name      string
-		spec      protocol.AppSpec
+		name       string
+		spec       protocol.AppSpec
 		privileged bool
-		wantErr   bool
-		errCode   string
+		wantErr    bool
+		errCode    string
 	}{
 		{
 			name: "Simple self run allowed",

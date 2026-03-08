@@ -1,26 +1,26 @@
+//nolint:testpackage
 package errs
 
 import (
+	"errors"
 	"testing"
 )
 
-func TestUsageError(t *testing.T) {
-	msg := "invalid argument"
-	err := NewUsageError(msg)
-
-	// Check type assertion
-	uErr, ok := err.(*UsageError)
-	if !ok {
-		t.Errorf("NewUsageError() did not return *UsageError, got %T", err)
+func TestIsUsageError(t *testing.T) {
+	err := &UsageError{Message: "test"}
+	var usageErr *UsageError
+	if !errors.As(err, &usageErr) {
+		t.Error("Expected errors.As to match UsageError")
 	}
 
-	// Check message
-	if uErr.Message != msg {
-		t.Errorf("Expected message %q, got %q", msg, uErr.Message)
+	if errors.As(errors.New("test"), &usageErr) {
+		t.Error("Expected errors.As to NOT match generic error")
 	}
+}
 
-	// Check Error() method
-	if err.Error() != msg {
-		t.Errorf("Error() = %q, want %q", err.Error(), msg)
+func TestUsageError_Error(t *testing.T) {
+	err := &UsageError{Message: "test"}
+	if err.Error() != "test" {
+		t.Errorf("Expected 'test', got '%s'", err.Error())
 	}
 }

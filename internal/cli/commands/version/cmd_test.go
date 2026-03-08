@@ -28,11 +28,11 @@ func TestRun(t *testing.T) {
 
 func TestRunHelp(t *testing.T) {
 	buf := new(bytes.Buffer)
-	// Mock stdout for help printing? 
+	// Mock stdout for help printing?
 	// The current implementation prints help to os.Stdout directly in PrintHelp(),
 	// so we can't capture it easily without redirecting os.Stdout.
 	// But we can check that it returns nil.
-	
+
 	err := version.Run(nil, buf, []string{"--help"})
 	if err != nil {
 		t.Fatalf("Run --help failed: %v", err)

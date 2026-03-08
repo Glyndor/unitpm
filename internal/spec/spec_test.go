@@ -1,4 +1,4 @@
-package spec
+package spec_test
 
 import (
 	"os"
@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/Jaro-c/Lynx/internal/ipc/protocol"
+	"github.com/Jaro-c/Lynx/internal/spec"
 )
 
 func TestGetSpecDir(t *testing.T) {
@@ -13,7 +14,7 @@ func TestGetSpecDir(t *testing.T) {
 	tmpDir := t.TempDir()
 	t.Setenv("XDG_CONFIG_HOME", tmpDir)
 
-	dir, err := GetSpecDir()
+	dir, err := spec.GetSpecDir()
 	if err != nil {
 		t.Fatalf("GetSpecDir failed: %v", err)
 	}
@@ -44,7 +45,7 @@ func TestSaveLoadDeleteSpec(t *testing.T) {
 	t.Setenv("XDG_CONFIG_HOME", tmpDir)
 
 	id := "test-app-id"
-	spec := protocol.AppSpec{
+	s := protocol.AppSpec{
 		Name:      "test-app",
 		Namespace: "test-ns",
 		Exec: protocol.AppExec{
@@ -53,7 +54,7 @@ func TestSaveLoadDeleteSpec(t *testing.T) {
 	}
 
 	// Test SaveSpec
-	path, err := SaveSpec(id, spec)
+	path, err := spec.SaveSpec(id, s)
 	if err != nil {
 		t.Fatalf("SaveSpec failed: %v", err)
 	}
@@ -64,32 +65,32 @@ func TestSaveLoadDeleteSpec(t *testing.T) {
 	}
 
 	// Test LoadSpec
-	loaded, err := LoadSpec(id)
+	loaded, err := spec.LoadSpec(id)
 	if err != nil {
 		t.Fatalf("LoadSpec failed: %v", err)
 	}
 
-	if loaded.Name != spec.Name {
-		t.Errorf("Expected name %s, got %s", spec.Name, loaded.Name)
+	if loaded.Name != s.Name {
+		t.Errorf("Expected name %s, got %s", s.Name, loaded.Name)
 	}
-	if loaded.Namespace != spec.Namespace {
-		t.Errorf("Expected namespace %s, got %s", spec.Namespace, loaded.Namespace)
+	if loaded.Namespace != s.Namespace {
+		t.Errorf("Expected namespace %s, got %s", s.Namespace, loaded.Namespace)
 	}
 
 	// Test LoadAll
-	all, err := LoadAll()
+	all, err := spec.LoadAll()
 	if err != nil {
 		t.Fatalf("LoadAll failed: %v", err)
 	}
 	if len(all) != 1 {
 		t.Errorf("Expected 1 spec, got %d", len(all))
 	}
-	if all[0].Name != spec.Name {
-		t.Errorf("Expected name %s, got %s", spec.Name, all[0].Name)
+	if all[0].Name != s.Name {
+		t.Errorf("Expected name %s, got %s", s.Name, all[0].Name)
 	}
 
 	// Test DeleteSpec
-	if err := DeleteSpec(id); err != nil {
+	if err := spec.DeleteSpec(id); err != nil {
 		t.Fatalf("DeleteSpec failed: %v", err)
 	}
 
@@ -99,13 +100,13 @@ func TestSaveLoadDeleteSpec(t *testing.T) {
 	}
 
 	// Verify LoadSpec fails
-	if _, err := LoadSpec(id); err == nil {
+	if _, err := spec.LoadSpec(id); err == nil {
 		t.Error("LoadSpec should fail after delete")
 	}
 }
 
 func TestGenerateID(t *testing.T) {
-	uuid1, err := GenerateID()
+	uuid1, err := spec.GenerateID()
 	if err != nil {
 		t.Fatalf("GenerateID failed: %v", err)
 	}
@@ -113,7 +114,7 @@ func TestGenerateID(t *testing.T) {
 		t.Error("UUID is empty")
 	}
 
-	uuid2, err := GenerateID()
+	uuid2, err := spec.GenerateID()
 	if err != nil {
 		t.Fatalf("GenerateID failed: %v", err)
 	}
