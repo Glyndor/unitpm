@@ -44,7 +44,7 @@ func Run(client transport.IPCClient, args []string) error {
 	}
 
 	for _, s := range specs {
-		id, err := spec.GenerateUUIDv4()
+		id, err := spec.GenerateID()
 		if err != nil {
 			return fmt.Errorf("failed to generate ID: %w", err)
 		}
