@@ -1,14 +1,14 @@
-package delete_test
+package deletecmd_test
 
 import (
 	"strings"
 	"testing"
 
-	"github.com/Jaro-c/Lynx/internal/cli/commands/delete"
+	deletecmd "github.com/Jaro-c/Lynx/internal/cli/commands/delete"
 )
 
 func TestRun_Validation(t *testing.T) {
-	err := delete.Run(nil, []string{})
+	err := deletecmd.Run(nil, []string{})
 	if err == nil {
 		t.Error("Expected error for empty args, got nil")
 	}
@@ -17,7 +17,7 @@ func TestRun_Validation(t *testing.T) {
 	}
 
 	// Test with only flags
-	err = delete.Run(nil, []string{"--purge"})
+	err = deletecmd.Run(nil, []string{"--purge"})
 	if err == nil {
 		t.Error("Expected error for args with only flags, got nil")
 	}

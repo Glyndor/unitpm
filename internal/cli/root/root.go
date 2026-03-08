@@ -8,7 +8,7 @@ import (
 	"os"
 
 	"github.com/Jaro-c/Lynx/internal/cli/commands/apply"
-	"github.com/Jaro-c/Lynx/internal/cli/commands/delete"
+	deletecmd "github.com/Jaro-c/Lynx/internal/cli/commands/delete"
 	"github.com/Jaro-c/Lynx/internal/cli/commands/execenv"
 	"github.com/Jaro-c/Lynx/internal/cli/commands/export"
 	"github.com/Jaro-c/Lynx/internal/cli/commands/flush"
@@ -171,7 +171,7 @@ func runCommand(name string, args []string) error {
 		case cmdRestart:
 			return restart.Run(client, args)
 		case cmdDelete:
-			return delete.Run(client, args)
+			return deletecmd.Run(client, args)
 		case cmdReload:
 			return reload.Run(client, args)
 		case cmdFlush:
@@ -195,7 +195,7 @@ func printCommandHelp(name string) int {
 	case cmdRestart:
 		restart.PrintHelp()
 	case cmdDelete:
-		delete.PrintHelp()
+		deletecmd.PrintHelp()
 	case cmdStartup:
 		startup.PrintHelp()
 	case cmdVersion:
@@ -250,7 +250,7 @@ func registerCommands() {
 	registry.Register(start.GetSpec())
 	registry.Register(stop.GetSpec())
 	registry.Register(restart.GetSpec())
-	registry.Register(delete.GetSpec())
+	registry.Register(deletecmd.GetSpec())
 	registry.Register(startup.GetSpec())
 	registry.Register(version.GetSpec())
 	registry.Register(update.GetSpec())
