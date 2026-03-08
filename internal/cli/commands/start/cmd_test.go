@@ -11,7 +11,10 @@ import (
 )
 
 func TestParseAppSpec(t *testing.T) {
-	cwd, _ := os.Getwd()
+	cwd, err := os.Getwd()
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	defaultLogs := &protocol.AppLogs{
 		Mode:      "inherit",

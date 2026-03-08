@@ -131,7 +131,7 @@ func RegisterHandlers(server *transport.Server, mgr *manager.Manager, privileged
 		}
 
 		// Delete spec
-		_ = spec.DeleteSpec(id) // Ignore error if spec missing
+		_ = spec.DeleteSpec(id) //nolint:errcheck // Ignore error if spec missing
 
 		// Delete logs if requested
 		if args.Purge && appLogDir != "" {
@@ -145,7 +145,7 @@ func RegisterHandlers(server *transport.Server, mgr *manager.Manager, privileged
 				if err == nil {
 					rel, relErr := filepath.Rel(baseResolved, targetResolved)
 					if relErr == nil && rel != ".." && !strings.HasPrefix(rel, ".."+string(os.PathSeparator)) {
-						_ = os.RemoveAll(targetResolved)
+						_ = os.RemoveAll(targetResolved) //nolint:errcheck,gosec // path is validated to be within allowed log root
 					}
 				}
 			}
@@ -153,7 +153,7 @@ func RegisterHandlers(server *transport.Server, mgr *manager.Manager, privileged
 
 		// Delete credentials if dynamic user
 		credsDir := filepath.Join(paths.DataDir, "creds", id)
-		_ = os.RemoveAll(credsDir)
+		_ = os.RemoveAll(credsDir) //nolint:errcheck // best effort cleanup
 
 		return jsonx.Marshal(map[string]string{"status": "deleted", "id": id})
 	})

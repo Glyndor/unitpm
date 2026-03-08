@@ -185,7 +185,7 @@ func tailFile(ctx context.Context, path, label string, n int, follow bool, sleep
 		return
 	}
 
-	_, _ = f.Seek(0, io.SeekEnd)
+	_, _ = f.Seek(0, io.SeekEnd) //nolint:errcheck
 
 	reader := bufio.NewReader(f)
 	for {
@@ -222,7 +222,7 @@ func printLastNLines(f *os.File, label string, n int) {
 		offset = 0
 	}
 
-	_, _ = f.Seek(offset, io.SeekStart)
+	_, _ = f.Seek(offset, io.SeekStart) //nolint:errcheck
 
 	scanner := bufio.NewScanner(f)
 	// If we seeked, discard first partial line
