@@ -23,7 +23,7 @@ import (
 )
 
 // Run executes the list command.
-func Run(client *transport.Client, args []string) error {
+func Run(client transport.IPCClient, args []string) error {
 	fs := flag.NewFlagSet("list", flag.ContinueOnError)
 	fs.SetOutput(io.Discard)
 
@@ -70,13 +70,13 @@ func Run(client *transport.Client, args []string) error {
 		processes = filtered
 	}
 
-	fields, err := parseSortSpec(sortSpec)
+	fields, err := ParseSortSpec(sortSpec)
 	if err != nil {
 		return err
 	}
 
 	if len(fields) == 0 {
-		fields = []sortField{
+		fields = []SortField{
 			{Field: "namespace", Asc: true},
 			{Field: "name", Asc: true},
 			{Field: "createdAt", Asc: false},
@@ -254,43 +254,7 @@ func GetSpec() help.CommandSpec {
 	}
 }
 
-type sortField struct {
-	Field string
-	Asc   bool
-}
 
-func parseSortSpec(spec string) ([]sortField, error) {
-	if spec == "" {
-		return nil, nil
-	}
-
-	parts := strings.Split(spec, ",")
-	fields := make([]sortField, 0, len(parts))
-	for _, part := range parts {
-		part = strings.TrimSpace(part)
-		if part == "" {
-			continue
-		}
-		field := part
-		asc := true
-		if idx := strings.Index(part, ":"); idx != -1 {
-			field = strings.TrimSpace(part[:idx])
-			dir := strings.ToLower(strings.TrimSpace(part[idx+1:]))
-			if dir == "desc" {
-				asc = false
-			} else if dir != "" && dir != "asc" {
-				return nil, &errs.UsageError{Message: fmt.Sprintf("invalid sort direction: %s", dir)}
-			}
-		}
-		switch field {
-		case "namespace", "name", "createdAt", "id":
-		default:
-			return nil, &errs.UsageError{Message: fmt.Sprintf("invalid sort field: %s", field)}
-		}
-		fields = append(fields, sortField{Field: field, Asc: asc})
-	}
-	return fields, nil
-}
 
 // PrintHelp prints the help message for the list command.
 func PrintHelp() {
