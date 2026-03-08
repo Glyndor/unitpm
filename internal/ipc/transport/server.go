@@ -1,5 +1,3 @@
-//go:build linux
-
 // Package transport implements the Inter-Process Communication transport layer.
 package transport
 

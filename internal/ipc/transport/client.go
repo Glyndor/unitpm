@@ -1,5 +1,3 @@
-//go:build linux
-
 // Package transport implements the Inter-Process Communication transport layer.
 package transport
 
@@ -23,7 +21,7 @@ type Client struct {
 }
 
 // NewClient establishes a connection to the daemon.
-func NewClient() (*Client, error) {
+func NewClient() (IPCClient, error) {
 	path, err := GetSocketPath()
 	if err != nil {
 		return nil, err
@@ -39,9 +37,7 @@ func NewClient() (*Client, error) {
 	scanner.Buffer(make([]byte, 4096), MaxMsgSize)
 
 	return &Client{
-		conn:    conn,
-		scanner: scanner,
-		encoder: jsonx.NewEncoder(conn),
+		conn: conn,
 	}, nil
 }
 
