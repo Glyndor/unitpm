@@ -127,7 +127,7 @@ func (c *Client) readResponse(reqID string, result any) error {
 }
 
 func (c *Client) checkStatus(resp *protocol.Response) error {
-	if resp.Status != statusError {
+	if resp.Status != protocol.StatusError {
 		return nil
 	}
 

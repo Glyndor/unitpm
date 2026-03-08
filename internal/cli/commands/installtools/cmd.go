@@ -4,6 +4,7 @@
 package installtools
 
 import (
+	"bufio"
 	"fmt"
 	"os"
 	"os/exec"
@@ -29,6 +30,14 @@ func Run(args []string) error {
 		return nil
 	}
 
+	// Check for auto-yes flag
+	autoYes := false
+	for _, arg := range args {
+		if arg == "-y" || arg == "--yes" {
+			autoYes = true
+		}
+	}
+
 	// Must be root
 	if os.Geteuid() != 0 {
 		return fmt.Errorf("this command requires root privileges (run with sudo)")
@@ -48,7 +57,13 @@ func Run(args []string) error {
 	// 2. If not, try to find it in the user's likely paths or asking `which` as the user.
 
 	fmt.Println("Scanning for development tools to link globally...")
-	count := 0
+
+	type plannedLink struct {
+		Tool string
+		Src  string
+		Dest string
+	}
+	var plan []plannedLink
 
 	for _, tool := range commonTools {
 		// 1. Check if already global
@@ -68,21 +83,51 @@ func Run(args []string) error {
 			continue
 		}
 
-		// 3. Create symlink
-		fmt.Printf("Linking %s -> %s\n", tool, userPath)
-		if err := os.Symlink(userPath, globalPath); err != nil {
-			fmt.Printf(term.RedString("  Failed to link %s: %v\n", tool, err))
+		plan = append(plan, plannedLink{
+			Tool: tool,
+			Src:  userPath,
+			Dest: globalPath,
+		})
+	}
+
+	if len(plan) == 0 {
+		fmt.Println("No new tools found to link. Everything seems up to date.")
+		return nil
+	}
+
+	// Display plan
+	fmt.Println(term.BoldString("\nPlan of execution:"))
+	for _, p := range plan {
+		fmt.Printf("  %s %s -> %s\n", term.GreenString("+"), term.CyanString(p.Tool), p.Src)
+	}
+	fmt.Println()
+
+	// Confirm
+	if !autoYes {
+		fmt.Printf("Do you want to proceed with linking %d tools? [y/N] ", len(plan))
+		reader := bufio.NewReader(os.Stdin)
+		response, _ := reader.ReadString('\n')
+		response = strings.TrimSpace(strings.ToLower(response))
+
+		if response != "y" && response != "yes" {
+			fmt.Println("Operation aborted by user.")
+			return nil
+		}
+	}
+
+	// Execute
+	count := 0
+	for _, p := range plan {
+		fmt.Printf("Linking %s... ", p.Tool)
+		if err := os.Symlink(p.Src, p.Dest); err != nil {
+			fmt.Printf(term.RedString("Failed: %v\n", err))
 			continue
 		}
+		fmt.Println("Done")
 		count++
 	}
 
-	if count == 0 {
-		fmt.Println("No new tools linked. Everything seems up to date or not found.")
-	} else {
-		fmt.Printf(term.GreenString("Successfully linked %d tools to /usr/local/bin\n"), count)
-	}
-
+	fmt.Printf(term.GreenString("\nSuccessfully linked %d tools to /usr/local/bin\n"), count)
 	return nil
 }
 
@@ -117,9 +162,10 @@ func findUserTool(user, tool string) (string, error) {
 func GetSpec() help.CommandSpec {
 	return help.CommandSpec{
 		Name:        "install-tools",
-		Usage:       term.BoldString("sudo lynx install-tools"),
+		Usage:       term.BoldString("sudo lynx install-tools [options]"),
 		Description: "Automatically symlink common dev tools (bun, node, go, etc) to /usr/local/bin so Lynx daemon can find them.",
 		Options: []help.Option{
+			{Short: "-y", Long: "--yes", Description: "Automatically confirm all prompts."},
 			{Short: "-h", Long: "--help", Description: "Show this help message."},
 		},
 	}

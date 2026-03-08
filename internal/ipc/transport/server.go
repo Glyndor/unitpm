@@ -52,8 +52,8 @@ const ContextKeyIdentity contextKey = "identity"
 type CommandHandler func(ctx context.Context, params jsonx.RawMessage) (jsonx.RawMessage, error)
 
 const (
-	statusError   = "error"
-	statusSuccess = "success"
+	statusError   = protocol.StatusError
+	statusSuccess = protocol.StatusSuccess
 )
 
 // Server accepts connections and dispatches commands.

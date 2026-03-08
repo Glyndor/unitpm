@@ -1,6 +1,4 @@
 // Package errs defines CLI error types.
-//go:build linux
-
 package errs
 
 // UsageError represents an error caused by incorrect CLI usage (invalid flags, args).
