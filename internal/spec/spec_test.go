@@ -104,18 +104,18 @@ func TestSaveLoadDeleteSpec(t *testing.T) {
 	}
 }
 
-func TestGenerateUUIDv4(t *testing.T) {
-	uuid1, err := GenerateUUIDv4()
+func TestGenerateID(t *testing.T) {
+	uuid1, err := GenerateID()
 	if err != nil {
-		t.Fatalf("GenerateUUIDv4 failed: %v", err)
+		t.Fatalf("GenerateID failed: %v", err)
 	}
 	if len(uuid1) == 0 {
 		t.Error("UUID is empty")
 	}
 
-	uuid2, err := GenerateUUIDv4()
+	uuid2, err := GenerateID()
 	if err != nil {
-		t.Fatalf("GenerateUUIDv4 failed: %v", err)
+		t.Fatalf("GenerateID failed: %v", err)
 	}
 
 	if uuid1 == uuid2 {

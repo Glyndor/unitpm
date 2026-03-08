@@ -12,9 +12,14 @@ import (
 	"github.com/google/uuid"
 )
 
-// GenerateUUIDv4 generates a random UUID v4 string.
-func GenerateUUIDv4() (string, error) {
-	return uuid.NewString(), nil
+// GenerateID generates a new unique ID for an application.
+// Currently uses UUID v7 for time-ordered uniqueness.
+func GenerateID() (string, error) {
+	id, err := uuid.NewV7()
+	if err != nil {
+		return "", fmt.Errorf("failed to generate uuid v7: %w", err)
+	}
+	return id.String(), nil
 }
 
 // GetSpecDir returns the directory where specs are stored, following XDG standards.

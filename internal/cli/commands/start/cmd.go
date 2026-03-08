@@ -49,7 +49,7 @@ func Run(client transport.IPCClient, args []string) error {
 		thisSpec := appSpec
 
 		// Generate ID first
-		id, err := spec.GenerateUUIDv4()
+		id, err := spec.GenerateID()
 		if err != nil {
 			return fmt.Errorf("failed to generate ID: %w", err)
 		}
