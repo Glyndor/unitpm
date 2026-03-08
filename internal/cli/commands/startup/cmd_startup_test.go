@@ -1,6 +1,6 @@
 //go:build linux
 
-package startup //nolint:testpackage
+package startup
 
 import (
 	"errors"
