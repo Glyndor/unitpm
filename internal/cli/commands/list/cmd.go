@@ -20,6 +20,8 @@ import (
 	xterm "golang.org/x/term"
 )
 
+const DefaultNamespace = "default"
+
 // Run executes the list command.
 func Run(client transport.IPCClient, args []string) error {
 	fs := flag.NewFlagSet("list", flag.ContinueOnError)
@@ -54,21 +56,35 @@ func Run(client transport.IPCClient, args []string) error {
 		return fmt.Errorf("list failed: %w", err)
 	}
 
-	if namespaceFilter != "" {
-		filtered := processes[:0]
-		for _, p := range processes {
-			ns := p.Namespace
-			if ns == "" {
-				ns = "default"
-			}
-			if ns == namespaceFilter {
-				filtered = append(filtered, p)
-			}
-		}
-		processes = filtered
+	processes = filterProcesses(processes, namespaceFilter)
+
+	if err := sortProcesses(processes, sortSpec); err != nil {
+		return err
 	}
 
-	fields, err := ParseSortSpec(sortSpec)
+	renderTable(processes, showLong)
+	return nil
+}
+
+func filterProcesses(processes []types.ProcessInfo, filter string) []types.ProcessInfo {
+	if filter == "" {
+		return processes
+	}
+	filtered := processes[:0]
+	for _, p := range processes {
+		ns := p.Namespace
+		if ns == "" {
+			ns = DefaultNamespace
+		}
+		if ns == filter {
+			filtered = append(filtered, p)
+		}
+	}
+	return filtered
+}
+
+func sortProcesses(processes []types.ProcessInfo, spec string) error {
+	fields, err := ParseSortSpec(spec)
 	if err != nil {
 		return err
 	}
@@ -84,58 +100,87 @@ func Run(client transport.IPCClient, args []string) error {
 
 	sort.Slice(processes, func(i, j int) bool {
 		for _, f := range fields {
-			switch f.Field {
-			case "namespace":
-				ni := processes[i].Namespace
-				if ni == "" {
-					ni = "default"
-				}
-				nj := processes[j].Namespace
-				if nj == "" {
-					nj = "default"
-				}
-				if ni == nj {
-					continue
-				}
-				if f.Asc {
-					return ni < nj
-				}
-				return ni > nj
-			case "name":
-				ni := strings.ToLower(processes[i].Name)
-				nj := strings.ToLower(processes[j].Name)
-				if ni == nj {
-					continue
-				}
-				if f.Asc {
-					return ni < nj
-				}
-				return ni > nj
-			case "createdAt":
-				ci := processes[i].CreatedAt
-				cj := processes[j].CreatedAt
-				if ci == cj {
-					continue
-				}
-				if f.Asc {
-					return ci < cj
-				}
-				return ci > cj
-			case "id":
-				if processes[i].ID == processes[j].ID {
-					continue
-				}
-				if f.Asc {
-					return processes[i].ID < processes[j].ID
-				}
-				return processes[i].ID > processes[j].ID
+			if res := compareProcess(processes[i], processes[j], f); res != 0 {
+				return res < 0
 			}
 		}
 		return false
 	})
-
-	renderTable(processes, showLong)
 	return nil
+}
+
+func compareProcess(pi, pj types.ProcessInfo, f SortField) int {
+	switch f.Field {
+	case "namespace":
+		ni := pi.Namespace
+		if ni == "" {
+			ni = DefaultNamespace
+		}
+		nj := pj.Namespace
+		if nj == "" {
+			nj = DefaultNamespace
+		}
+		if ni == nj {
+			return 0
+		}
+		if f.Asc {
+			if ni < nj {
+				return -1
+			}
+			return 1
+		}
+		if ni > nj {
+			return -1
+		}
+		return 1
+	case "name":
+		ni := strings.ToLower(pi.Name)
+		nj := strings.ToLower(pj.Name)
+		if ni == nj {
+			return 0
+		}
+		if f.Asc {
+			if ni < nj {
+				return -1
+			}
+			return 1
+		}
+		if ni > nj {
+			return -1
+		}
+		return 1
+	case "createdAt":
+		ci := pi.CreatedAt
+		cj := pj.CreatedAt
+		if ci == cj {
+			return 0
+		}
+		if f.Asc {
+			if ci < cj {
+				return -1
+			}
+			return 1
+		}
+		if ci > cj {
+			return -1
+		}
+		return 1
+	case "id":
+		if pi.ID == pj.ID {
+			return 0
+		}
+		if f.Asc {
+			if pi.ID < pj.ID {
+				return -1
+			}
+			return 1
+		}
+		if pi.ID > pj.ID {
+			return -1
+		}
+		return 1
+	}
+	return 0
 }
 
 func renderTable(processes []types.ProcessInfo, showLong bool) {
@@ -209,7 +254,7 @@ func renderTable(processes []types.ProcessInfo, showLong bool) {
 		}
 
 		var idStr string
-		if len(p.ID) > 8 {
+		if !showLong && len(p.ID) > 8 {
 			idStr = p.ID[:8]
 		} else {
 			idStr = p.ID

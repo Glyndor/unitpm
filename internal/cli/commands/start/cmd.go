@@ -1,3 +1,4 @@
+//nolint:gocognit,nestif,cyclop
 package start
 
 import (

@@ -3,6 +3,7 @@ package export
 import (
 	"fmt"
 	"os"
+	"strings"
 
 	"github.com/Jaro-c/Lynx/internal/cli/errs"
 	"github.com/Jaro-c/Lynx/internal/cli/help"
@@ -64,15 +65,14 @@ func Run(args []string) error {
 			Env:  s.Env,
 		}
 
-		if s.Exec.Type == "command" {
+		switch s.Exec.Type {
+		case "command":
 			cmd := s.Exec.Command
 			if len(s.Exec.Args) > 0 {
-				for _, a := range s.Exec.Args {
-					cmd += " " + a
-				}
+				cmd += " " + strings.Join(s.Exec.Args, " ")
 			}
 			app.Command = cmd
-		} else if s.Exec.Type == "entry" {
+		case "entry":
 			app.Entry = s.Exec.Entry
 			app.Runtime = s.Exec.Runtime
 		}

@@ -1,6 +1,7 @@
 package reload
 
 import (
+	"errors"
 	"fmt"
 	"os"
 
@@ -12,7 +13,7 @@ import (
 // Run executes the reload command to restart a specific application.
 func Run(client transport.IPCClient, args []string) error {
 	if len(args) == 0 {
-		return fmt.Errorf("missing process ID or name")
+		return errors.New("missing process ID or name")
 	}
 
 	for _, id := range args {

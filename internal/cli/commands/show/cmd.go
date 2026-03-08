@@ -1,6 +1,7 @@
 package show
 
 import (
+	"errors"
 	"fmt"
 	"os"
 
@@ -32,7 +33,7 @@ type showResponse struct {
 // Run executes the show command to display detailed information about a specific application.
 func Run(client transport.IPCClient, args []string) error {
 	if len(args) == 0 {
-		return fmt.Errorf("missing process ID or name")
+		return errors.New("missing process ID or name")
 	}
 
 	id := args[0]
@@ -48,7 +49,8 @@ func Run(client transport.IPCClient, args []string) error {
 	term.Printf("PID: %d\n", resp.Info.PID)
 	term.Printf("CPU: %.1f%%  Memory: %d bytes\n", resp.Info.CPU, resp.Info.Memory)
 	term.Printf("Uptime: %d ms  Restarts: %d\n", resp.Info.Uptime, resp.Info.Restarts)
-	term.Printf("User: %s  Mode: %s  Version: %s\n", resp.Info.User, resp.Info.Mode, resp.Info.Version)
+	term.Printf("User: %s  Mode: %s  Version: %s\n",
+		resp.Info.User, resp.Info.Mode, resp.Info.Version)
 
 	return nil
 }
