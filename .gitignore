@@ -29,6 +29,7 @@ Thumbs.db
 *.tmp
 *.swp
 *.swo
+*.stackdump
 
 # VS Code
 .vscode/
