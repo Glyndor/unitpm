@@ -16,6 +16,6 @@ require (
 	github.com/cloudwego/base64x v0.1.6 // indirect
 	github.com/klauspost/cpuid/v2 v2.3.0 // indirect
 	github.com/twitchyliquid64/golang-asm v0.15.1 // indirect
-	golang.org/x/arch v0.24.0 // indirect
-	golang.org/x/sys v0.41.0 // indirect
+	golang.org/x/arch v0.25.0 // indirect
+	golang.org/x/sys v0.42.0 // indirect
 )

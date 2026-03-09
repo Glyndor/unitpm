@@ -37,7 +37,9 @@ func NewClient() (IPCClient, error) {
 	scanner.Buffer(make([]byte, 4096), MaxMsgSize)
 
 	return &Client{
-		conn: conn,
+		conn:    conn,
+		scanner: scanner,
+		encoder: jsonx.NewEncoder(conn),
 	}, nil
 }
 

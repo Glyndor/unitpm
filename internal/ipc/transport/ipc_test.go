@@ -15,7 +15,28 @@ import (
 	"github.com/Jaro-c/Lynx/internal/jsonx"
 )
 
+func setupTestSocket(t *testing.T) {
+	// Create a temp dir for socket
+	dir, err := os.MkdirTemp("", "lynx-test-socket-*")
+	if err != nil {
+		t.Fatalf("failed to create temp dir: %v", err)
+	}
+	
+	// Set LYNX_SOCKET env var
+	socketPath := strings.ReplaceAll(dir, "\\", "/") + "/lynx.sock"
+	if err := os.Setenv("LYNX_SOCKET", socketPath); err != nil {
+		t.Fatalf("failed to set LYNX_SOCKET: %v", err)
+	}
+
+	// Cleanup
+	t.Cleanup(func() {
+		_ = os.Unsetenv("LYNX_SOCKET")
+		_ = os.RemoveAll(dir)
+	})
+}
+
 func TestIPC(t *testing.T) {
+	setupTestSocket(t)
 	// Start server
 	server := transport.NewServer()
 
@@ -64,6 +85,7 @@ func TestIPC(t *testing.T) {
 }
 
 func TestSocketPermissions(t *testing.T) {
+	setupTestSocket(t)
 	server := transport.NewServer()
 	if err := server.Start(); err != nil {
 		t.Fatalf("Failed to start server: %v", err)
@@ -89,6 +111,7 @@ func TestSocketPermissions(t *testing.T) {
 }
 
 func TestIdentity(t *testing.T) {
+	setupTestSocket(t)
 	server := transport.NewServer()
 	server.Register("whoami", func(
 		ctx context.Context,
@@ -126,6 +149,7 @@ func TestIdentity(t *testing.T) {
 }
 
 func TestLimits(t *testing.T) {
+	setupTestSocket(t)
 	// Start server with small limits
 	server := transport.NewServer()
 	// Register echo handler
@@ -175,6 +199,7 @@ func TestLimits(t *testing.T) {
 }
 
 func TestIPCAllowlistUIDs_Allowed(t *testing.T) {
+	setupTestSocket(t)
 	uid := os.Getuid()
 	if err := os.Setenv("LYNX_IPC_ALLOW_UIDS", strconv.Itoa(uid)); err != nil {
 		t.Fatalf("failed to set allowlist env: %v", err)
@@ -209,6 +234,7 @@ func TestIPCAllowlistUIDs_Allowed(t *testing.T) {
 }
 
 func TestIPCAllowlistUIDs_Denied(t *testing.T) {
+	setupTestSocket(t)
 	if err := os.Setenv("LYNX_IPC_ALLOW_UIDS", "999999"); err != nil {
 		t.Fatalf("failed to set allowlist env: %v", err)
 	}
@@ -249,6 +275,7 @@ func TestIPCAllowlistUIDs_Denied(t *testing.T) {
 }
 
 func TestServerRecoverFromHandlerPanic(t *testing.T) {
+	setupTestSocket(t)
 	server := transport.NewServer()
 	server.Register("panic", func(
 		_ context.Context,

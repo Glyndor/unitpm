@@ -98,7 +98,7 @@ func Run(args []string) error {
 	// Display plan
 	fmt.Println(term.BoldString("\nPlan of execution:"))
 	for _, p := range plan {
-		fmt.Printf("  %s %s -> %s\n", term.GreenString("+"), term.CyanString(p.Tool), p.Src)
+		fmt.Printf("  %s %s -> %s\n", term.GreenString("+"), term.CyanString("%s", p.Tool), p.Src)
 	}
 	fmt.Println()
 
@@ -120,14 +120,14 @@ func Run(args []string) error {
 	for _, p := range plan {
 		fmt.Printf("Linking %s... ", p.Tool)
 		if err := os.Symlink(p.Src, p.Dest); err != nil {
-			fmt.Printf(term.RedString("Failed: %v\n", err))
+			fmt.Print(term.RedString("Failed: %v\n", err))
 			continue
 		}
 		fmt.Println("Done")
 		count++
 	}
 
-	fmt.Printf(term.GreenString("\nSuccessfully linked %d tools to /usr/local/bin\n"), count)
+	fmt.Print(term.GreenString("\nSuccessfully linked %d tools to /usr/local/bin\n", count))
 	return nil
 }
 
