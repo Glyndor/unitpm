@@ -14,6 +14,15 @@ import (
 func GetSocketPath() (string, error) {
 	// 1. Env Override
 	if env := os.Getenv("LYNX_SOCKET"); env != "" {
+		if !filepath.IsAbs(env) {
+			return "", fmt.Errorf("LYNX_SOCKET must be an absolute path, got: %s", env)
+		}
+		dir := filepath.Dir(env)
+		if info, err := os.Stat(dir); err == nil {
+			if info.Mode()&0002 != 0 {
+				return "", fmt.Errorf("LYNX_SOCKET parent directory %s is world-writable: insecure", dir)
+			}
+		}
 		return env, nil
 	}
 

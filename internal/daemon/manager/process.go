@@ -694,9 +694,43 @@ func (p *Process) Info() types.ProcessInfo {
 	return p.info
 }
 
-// Spec returns the process spec.
+// Spec returns a deep copy of the process spec, safe for external mutation.
 func (p *Process) Spec() protocol.AppSpec {
-	return p.spec
+	s := p.spec
+
+	// Deep copy Exec.Args slice
+	if len(p.spec.Exec.Args) > 0 {
+		s.Exec.Args = make([]string, len(p.spec.Exec.Args))
+		copy(s.Exec.Args, p.spec.Exec.Args)
+	}
+
+	// Deep copy Env map
+	if len(p.spec.Env) > 0 {
+		s.Env = make(map[string]string, len(p.spec.Env))
+		for k, v := range p.spec.Env {
+			s.Env[k] = v
+		}
+	}
+
+	// Deep copy pointer fields
+	if p.spec.Logs != nil {
+		logsCopy := *p.spec.Logs
+		s.Logs = &logsCopy
+	}
+	if p.spec.Restart != nil {
+		restartCopy := *p.spec.Restart
+		if len(p.spec.Restart.StopOnExit) > 0 {
+			restartCopy.StopOnExit = make([]int, len(p.spec.Restart.StopOnExit))
+			copy(restartCopy.StopOnExit, p.spec.Restart.StopOnExit)
+		}
+		s.Restart = &restartCopy
+	}
+	if p.spec.RunAs != nil {
+		runAsCopy := *p.spec.RunAs
+		s.RunAs = &runAsCopy
+	}
+
+	return s
 }
 
 // ResetBackoff resets the restart counter and backoff timer.
