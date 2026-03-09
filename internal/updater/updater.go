@@ -155,11 +155,18 @@ func downloadAndReplace(ctx context.Context, assetURL, exePath string) error {
 	}
 
 	// Limit body size to prevent disk exhaustion.
-	_, err = io.Copy(tmpFile, io.LimitReader(resp.Body, maxDownloadSize))
+	n, err := io.Copy(tmpFile, io.LimitReader(resp.Body, maxDownloadSize))
 	tmpPath := tmpFile.Name()
-	_ = tmpFile.Close() // Close before chmod/rename
+	closeErr := tmpFile.Close() // Close before chmod/rename
+
 	if err != nil {
 		return fmt.Errorf("failed to write update file: %w", err)
+	}
+	if n >= maxDownloadSize {
+		return fmt.Errorf("update file exceeded max download size of %d bytes", maxDownloadSize)
+	}
+	if closeErr != nil {
+		return fmt.Errorf("failed to close update file: %w", closeErr)
 	}
 
 	// Make executable (use os.Chmod on path since file is already closed).
