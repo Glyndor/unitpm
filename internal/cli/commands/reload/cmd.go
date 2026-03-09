@@ -2,7 +2,6 @@ package reload
 
 import (
 	"errors"
-	"fmt"
 	"os"
 
 	"github.com/Jaro-c/Lynx/internal/cli/help"

@@ -2,7 +2,6 @@ package flush
 
 import (
 	"errors"
-	"fmt"
 	"os"
 
 	"github.com/Jaro-c/Lynx/internal/cli/help"
