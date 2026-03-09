@@ -12,6 +12,7 @@ import (
 	"runtime"
 	"strings"
 	"sync"
+	"syscall"
 	"time"
 
 	daemonRuntime "github.com/Jaro-c/Lynx/internal/daemon/runtime"
@@ -599,7 +600,12 @@ func (p *Process) handleRestart(exitCode int) {
 	}()
 }
 
-// Stop terminates the process. If byUser is true, automatic restarts are disabled.
+// gracefulStopTimeout is the time to wait for SIGTERM before sending SIGKILL.
+const gracefulStopTimeout = 10 * time.Second
+
+// Stop terminates the process gracefully. It sends SIGTERM first, waits up to
+// gracefulStopTimeout for the process to exit, then sends SIGKILL if needed.
+// If byUser is true, automatic restarts are disabled.
 func (p *Process) Stop(byUser bool) error {
 	p.mu.Lock()
 
@@ -631,7 +637,38 @@ func (p *Process) Stop(byUser bool) error {
 		return nil
 	}
 
-	return proc.Kill()
+	return gracefulKill(proc)
+}
+
+// gracefulKill sends SIGTERM and waits for the process to exit. If the process
+// does not exit within gracefulStopTimeout, it sends SIGKILL.
+// It polls the process with Signal(0) to avoid a double-Wait conflict with the
+// monitor goroutine which already calls cmd.Wait().
+func gracefulKill(proc *os.Process) error {
+	// 1. Send SIGTERM to allow the process to clean up.
+	if err := proc.Signal(syscall.SIGTERM); err != nil {
+		// Process may have already exited; try Kill as last resort.
+		return proc.Kill()
+	}
+
+	// 2. Poll until process exits or timeout expires.
+	deadline := time.After(gracefulStopTimeout)
+	ticker := time.NewTicker(200 * time.Millisecond)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-deadline:
+			// Process did not exit in time; force kill.
+			return proc.Kill()
+		case <-ticker.C:
+			// Signal(0) checks if process is still alive without sending a signal.
+			if err := proc.Signal(syscall.Signal(0)); err != nil {
+				// Process has exited.
+				return nil
+			}
+		}
+	}
 }
 
 // Info returns the current process info.
