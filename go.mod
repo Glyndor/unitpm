@@ -1,6 +1,6 @@
 module github.com/Jaro-c/Lynx
 
-go 1.26.0
+go 1.26.1
 
 require (
 	github.com/bytedance/sonic v1.15.0
