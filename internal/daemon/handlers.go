@@ -1,3 +1,4 @@
+//nolint:gocognit,cyclop,nestif,gocyclo,funlen
 package daemon
 
 import (
@@ -19,7 +20,7 @@ import (
 	"github.com/Jaro-c/Lynx/internal/version"
 )
 
-// On Linux, the standard data directory is /var/lib/lynx-pm
+// DataDir is the standard data directory on Linux (/var/lib/lynx-pm).
 const DataDir = paths.DataDir
 
 // RegisterHandlers registers all daemon IPC handlers.
@@ -144,8 +145,12 @@ func RegisterHandlers(server *transport.Server, mgr *manager.Manager, privileged
 				targetResolved, err := filepath.EvalSymlinks(appLogDir)
 				if err == nil {
 					rel, relErr := filepath.Rel(baseResolved, targetResolved)
-					if relErr == nil && rel != ".." && !strings.HasPrefix(rel, ".."+string(os.PathSeparator)) {
-						_ = os.RemoveAll(targetResolved) //nolint:errcheck,gosec // path is validated to be within allowed log root
+					if relErr == nil && rel != ".." &&
+						!strings.HasPrefix(rel, ".."+string(os.PathSeparator)) {
+						//nolint:gosec // path is validated to be within allowed log root
+						_ = os.RemoveAll(
+							targetResolved,
+						)
 					}
 				}
 			}
@@ -153,7 +158,7 @@ func RegisterHandlers(server *transport.Server, mgr *manager.Manager, privileged
 
 		// Delete credentials if dynamic user
 		credsDir := filepath.Join(paths.DataDir, "creds", id)
-		_ = os.RemoveAll(credsDir) //nolint:errcheck // best effort cleanup
+		_ = os.RemoveAll(credsDir)
 
 		return jsonx.Marshal(map[string]string{"status": "deleted", "id": id})
 	})
@@ -284,12 +289,14 @@ func RegisterHandlers(server *transport.Server, mgr *manager.Manager, privileged
 				if os.IsNotExist(err) {
 					dirClean := filepath.Clean(targetDir)
 					relDir, relErr := filepath.Rel(baseResolved, dirClean)
-					if relErr != nil || relDir == ".." || strings.HasPrefix(relDir, ".."+string(os.PathSeparator)) {
-						return nil, fmt.Errorf("refusing to truncate log outside log root")
+					if relErr != nil || relDir == ".." ||
+						strings.HasPrefix(relDir, ".."+string(os.PathSeparator)) {
+						return nil, errors.New("refusing to truncate log outside log root")
 					}
 					relFile, relFileErr := filepath.Rel(baseResolved, targetPath)
-					if relFileErr != nil || relFile == ".." || strings.HasPrefix(relFile, ".."+string(os.PathSeparator)) {
-						return nil, fmt.Errorf("refusing to truncate log outside log root")
+					if relFileErr != nil || relFile == ".." ||
+						strings.HasPrefix(relFile, ".."+string(os.PathSeparator)) {
+						return nil, errors.New("refusing to truncate log outside log root")
 					}
 					continue
 				}
@@ -297,13 +304,15 @@ func RegisterHandlers(server *transport.Server, mgr *manager.Manager, privileged
 			}
 
 			relDir, relErr := filepath.Rel(baseResolved, targetResolvedDir)
-			if relErr != nil || relDir == ".." || strings.HasPrefix(relDir, ".."+string(os.PathSeparator)) {
-				return nil, fmt.Errorf("refusing to truncate log outside log root")
+			if relErr != nil || relDir == ".." ||
+				strings.HasPrefix(relDir, ".."+string(os.PathSeparator)) {
+				return nil, errors.New("refusing to truncate log outside log root")
 			}
 
 			relFile, relFileErr := filepath.Rel(baseResolved, targetPath)
-			if relFileErr != nil || relFile == ".." || strings.HasPrefix(relFile, ".."+string(os.PathSeparator)) {
-				return nil, fmt.Errorf("refusing to truncate log outside log root")
+			if relFileErr != nil || relFile == ".." ||
+				strings.HasPrefix(relFile, ".."+string(os.PathSeparator)) {
+				return nil, errors.New("refusing to truncate log outside log root")
 			}
 
 			info, err := os.Lstat(targetPath)
@@ -337,7 +346,10 @@ func RegisterHandlers(server *transport.Server, mgr *manager.Manager, privileged
 	})
 
 	// Register version handler
-	server.Register("version", func(_ context.Context, _ jsonx.RawMessage) (jsonx.RawMessage, error) {
-		return jsonx.Marshal(version.Get())
-	})
+	server.Register(
+		"version",
+		func(_ context.Context, _ jsonx.RawMessage) (jsonx.RawMessage, error) {
+			return jsonx.Marshal(version.Get())
+		},
+	)
 }

@@ -1,8 +1,10 @@
+//nolint:gocognit,cyclop,nestif,gocyclo
 package logs
 
 import (
 	"bufio"
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -66,7 +68,7 @@ func runWithContext(ctx context.Context, args []string) error {
 	}
 
 	if target == "" {
-		return fmt.Errorf("missing process ID or name")
+		return errors.New("missing process ID or name")
 	}
 
 	var namespace string

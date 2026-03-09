@@ -163,6 +163,7 @@ func downloadAndReplace(ctx context.Context, assetURL, exePath string) error {
 	}
 
 	// Make executable (use os.Chmod on path since file is already closed).
+	// #nosec G703 // tmpPath is safely generated via os.CreateTemp
 	if err := os.Chmod(tmpPath, 0755); err != nil {
 		return fmt.Errorf("failed to set executable permissions: %w", err)
 	}

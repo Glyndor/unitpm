@@ -1,4 +1,6 @@
 // Package root implements the root command.
+//
+//nolint:gocyclo,nestif,cyclop
 package root
 
 import (
@@ -32,25 +34,25 @@ import (
 )
 
 const (
-	cmdList    = "list"
-	cmdLogs    = "logs"
-	cmdStart   = "start"
-	cmdStop    = "stop"
-	cmdRestart = "restart"
-	cmdDelete  = "delete"
-	cmdStartup = "startup"
-	cmdVersion = "version"
-	cmdApply   = "apply"
-	cmdExport  = "export"
-	cmdShow    = "show"
-	cmdMonit   = "monit"
-	cmdReload  = "reload"
-	cmdFlush   = "flush"
-	cmdUpdate      = "update"
+	cmdList         = "list"
+	cmdLogs         = "logs"
+	cmdStart        = "start"
+	cmdStop         = "stop"
+	cmdRestart      = "restart"
+	cmdDelete       = "delete"
+	cmdStartup      = "startup"
+	cmdVersion      = "version"
+	cmdApply        = "apply"
+	cmdExport       = "export"
+	cmdShow         = "show"
+	cmdMonit        = "monit"
+	cmdReload       = "reload"
+	cmdFlush        = "flush"
+	cmdUpdate       = "update"
 	cmdInstallTools = "install-tools"
-	cmdExecEnv     = "_exec-env"
-	cmdHelp    = "help"
-	flagHelp   = "--help"
+	cmdExecEnv      = "_exec-env"
+	cmdHelp         = "help"
+	flagHelp        = "--help"
 )
 
 // Execute executes the root CLI command.

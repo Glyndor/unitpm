@@ -153,7 +153,9 @@ func (app AppConfig) ToAppSpec(defaultNamespace string) (protocol.AppSpec, error
 }
 
 func (app AppConfig) buildLogs() *protocol.AppLogs {
-	if app.Logs.Dir != "" || app.Logs.Stdout != "" || app.Logs.Stderr != "" || app.Logs.Format != "" || app.Logs.Timestamp != "" {
+	if app.Logs.Dir != "" || app.Logs.Stdout != "" || app.Logs.Stderr != "" ||
+		app.Logs.Format != "" ||
+		app.Logs.Timestamp != "" {
 		return &protocol.AppLogs{
 			Dir:       app.Logs.Dir,
 			Stdout:    app.Logs.Stdout,

@@ -1,4 +1,6 @@
 // Package handlers provides the request handlers for the daemon.
+//
+//nolint:gocognit,nestif,gocyclo,cyclop
 package handlers
 
 import (

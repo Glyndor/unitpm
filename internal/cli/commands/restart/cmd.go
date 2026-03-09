@@ -1,7 +1,7 @@
 package restart
 
 import (
-	"fmt"
+	"errors"
 	"os"
 
 	"github.com/Jaro-c/Lynx/internal/cli/help"
@@ -12,7 +12,7 @@ import (
 // Run executes the restart command.
 func Run(client transport.IPCClient, args []string) error {
 	if len(args) == 0 {
-		return fmt.Errorf("missing process ID or name")
+		return errors.New("missing process ID or name")
 	}
 
 	for _, id := range args {

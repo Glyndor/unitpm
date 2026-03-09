@@ -168,9 +168,24 @@ func handleProtocolMismatch(w io.Writer, local version.Info, err error) bool {
 }
 
 func printVersionInfo(w io.Writer, info version.Info) {
-	_, _ = fmt.Fprintf(w, "  %s : %s\n", term.DimString("Version"), term.BoldString("%s", info.Version))
-	_, _ = fmt.Fprintf(w, "  %s : %s\n", term.DimString("Commit"), term.BoldString("%s", info.Commit))
-	_, _ = fmt.Fprintf(w, "  %s : %s\n", term.DimString("Built"), term.BoldString("%s", info.BuildDate))
+	_, _ = fmt.Fprintf(
+		w,
+		"  %s : %s\n",
+		term.DimString("Version"),
+		term.BoldString("%s", info.Version),
+	)
+	_, _ = fmt.Fprintf(
+		w,
+		"  %s : %s\n",
+		term.DimString("Commit"),
+		term.BoldString("%s", info.Commit),
+	)
+	_, _ = fmt.Fprintf(
+		w,
+		"  %s : %s\n",
+		term.DimString("Built"),
+		term.BoldString("%s", info.BuildDate),
+	)
 }
 
 // GetSpec returns the command specification.

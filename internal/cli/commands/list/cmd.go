@@ -1,4 +1,6 @@
 // Package list implements the list command.
+//
+//nolint:gocognit,gocyclo,cyclop
 package list
 
 import (
@@ -308,12 +310,14 @@ func GetSpec() help.CommandSpec {
 			{Short: "-h", Long: "--help", Description: "Show this help message."},
 			{Short: "", Long: "--long", Description: "Show full process IDs."},
 			{Short: "", Long: "--namespace <name>", Description: "Filter by namespace"},
-			{Short: "", Long: "--sort <fields>", Description: "Sort order, e.g. 'namespace:asc,name:asc,createdAt:desc'"},
+			{
+				Short:       "",
+				Long:        "--sort <fields>",
+				Description: "Sort order, e.g. 'namespace:asc,name:asc,createdAt:desc'",
+			},
 		},
 	}
 }
-
-
 
 // PrintHelp prints the help message for the list command.
 func PrintHelp() {

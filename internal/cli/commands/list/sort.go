@@ -1,7 +1,6 @@
 package list
 
 import (
-	"fmt"
 	"strings"
 
 	"github.com/Jaro-c/Lynx/internal/cli/errs"
@@ -34,13 +33,13 @@ func ParseSortSpec(spec string) ([]SortField, error) {
 			if dir == "desc" {
 				asc = false
 			} else if dir != "" && dir != "asc" {
-				return nil, &errs.UsageError{Message: fmt.Sprintf("invalid sort direction: %s", dir)}
+				return nil, &errs.UsageError{Message: "invalid sort direction: " + dir}
 			}
 		}
 		switch field {
 		case "namespace", "name", "createdAt", "id":
 		default:
-			return nil, &errs.UsageError{Message: fmt.Sprintf("invalid sort field: %s", field)}
+			return nil, &errs.UsageError{Message: "invalid sort field: " + field}
 		}
 		fields = append(fields, SortField{Field: field, Asc: asc})
 	}

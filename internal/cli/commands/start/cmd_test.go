@@ -218,7 +218,10 @@ func TestTokenize(t *testing.T) {
 		{input: "a \"b c\"", want: []string{"a", "b c"}},
 		{input: "a 'b \"c\" d'", want: []string{"a", "b \"c\" d"}},
 		{input: "a \"b 'c' d\"", want: []string{"a", "b 'c' d"}},
-		{input: "a\\ b", want: []string{"a\\", "b"}}, // Backslash is literal outside quotes in this simple lexer
+		{
+			input: "a\\ b",
+			want:  []string{"a\\", "b"},
+		}, // Backslash is literal outside quotes in this simple lexer
 		{input: "'a b", wantErr: true},
 		{input: "\"a b", wantErr: true},
 		{input: "\"invalid escape \\z\"", wantErr: true},

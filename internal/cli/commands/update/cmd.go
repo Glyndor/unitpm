@@ -46,7 +46,9 @@ func Run(w io.Writer, args []string) error {
 	// 1. Check if managed by system package manager
 	isManaged := updater.IsManagedByPackageSystem()
 	if isManaged && *apply && !*force {
-		return errors.New("lynx is managed by system package manager (dpkg). Please download the latest .deb release and install it using 'sudo apt install ./lynx_<version>_amd64.deb'. Use --force to override (not recommended)")
+		return errors.New(
+			"lynx is managed by system package manager (dpkg). Please download the latest .deb release and install it using 'sudo apt install ./lynx_<version>_amd64.deb'. Use --force to override (not recommended)",
+		)
 	}
 
 	fmt.Fprintf(w, "Checking for updates...\n")
@@ -58,11 +60,21 @@ func Run(w io.Writer, args []string) error {
 	}
 
 	if release == nil {
-		fmt.Fprintf(w, "%s You are using the latest version (%s)\n", term.GreenString("✓"), version.Version)
+		fmt.Fprintf(
+			w,
+			"%s You are using the latest version (%s)\n",
+			term.GreenString("✓"),
+			version.Version,
+		)
 		return nil
 	}
 
-	fmt.Fprintf(w, "%s New version available: %s\n", term.YellowString("!"), term.BoldString("%s", release.TagName))
+	fmt.Fprintf(
+		w,
+		"%s New version available: %s\n",
+		term.YellowString("!"),
+		term.BoldString("%s", release.TagName),
+	)
 	fmt.Fprintf(w, "  Release notes: %s\n", release.HTMLURL)
 
 	// 3. Apply update if requested
@@ -72,10 +84,17 @@ func Run(w io.Writer, args []string) error {
 			return fmt.Errorf("update failed: %w", err)
 		}
 		fmt.Fprintf(w, "%s Successfully updated to %s\n", term.GreenString("✓"), release.TagName)
-		fmt.Fprintf(w, "Please restart the daemon manually if needed: 'systemctl restart lynx.lynxd' or 'lynx reload'\n")
+		fmt.Fprintf(
+			w,
+			"Please restart the daemon manually if needed: 'systemctl restart lynx.lynxd' or 'lynx reload'\n",
+		)
 	} else {
 		if isManaged {
-			fmt.Fprintf(w, "\nTo update, download the latest .deb release from %s\n", release.HTMLURL)
+			fmt.Fprintf(
+				w,
+				"\nTo update, download the latest .deb release from %s\n",
+				release.HTMLURL,
+			)
 			fmt.Fprintf(w, "and run:\n  sudo apt install ./<downloaded_deb_file>\n")
 		} else {
 			fmt.Fprintf(w, "\nTo update, run:\n  lynx update --apply\n")
@@ -93,8 +112,16 @@ func GetSpec() help.CommandSpec {
 		Description: "Check for updates and apply them.",
 		Options: []help.Option{
 			{Short: "-a", Long: "--apply", Description: "Download and apply the update."},
-			{Short: "-c", Long: "--check", Description: "Check for updates without applying (default)."},
-			{Short: "-f", Long: "--force", Description: "Force update even if managed by system package manager."},
+			{
+				Short:       "-c",
+				Long:        "--check",
+				Description: "Check for updates without applying (default).",
+			},
+			{
+				Short:       "-f",
+				Long:        "--force",
+				Description: "Force update even if managed by system package manager.",
+			},
 			{Short: "-h", Long: "--help", Description: "Show this help message."},
 		},
 	}

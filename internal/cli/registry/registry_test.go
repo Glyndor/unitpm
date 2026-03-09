@@ -43,7 +43,7 @@ func TestRegisterAndResolve(t *testing.T) {
 func TestGetAll(t *testing.T) {
 	// Since tests run in parallel or sequentially, GetAll might return other registered commands.
 	// We just check if our registered command is present.
-	
+
 	all := registry.GetAll()
 	found := false
 	for _, s := range all {

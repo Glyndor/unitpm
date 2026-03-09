@@ -24,7 +24,15 @@ func Run(client transport.IPCClient, args []string) error {
 		fmt.Print("\033[H\033[2J")
 		term.Printf("Lynx monit\n")
 		for _, p := range processes {
-			term.Printf("%s/%s pid=%d state=%s cpu=%.1f%% mem=%d\n", p.Namespace, p.Name, p.PID, p.State, p.CPU, p.Memory)
+			term.Printf(
+				"%s/%s pid=%d state=%s cpu=%.1f%% mem=%d\n",
+				p.Namespace,
+				p.Name,
+				p.PID,
+				p.State,
+				p.CPU,
+				p.Memory,
+			)
 		}
 
 		time.Sleep(interval)

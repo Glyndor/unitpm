@@ -57,7 +57,7 @@ func TestRunUnexpectedArgs(t *testing.T) {
 	if err == nil {
 		t.Fatal("Expected error for unexpected args")
 	}
-	
+
 	if !strings.Contains(err.Error(), "Unexpected arguments") {
 		t.Errorf("Expected Unexpected arguments error, got %v", err)
 	}

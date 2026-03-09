@@ -1,3 +1,4 @@
+//nolint:gocognit,nestif,gocyclo,cyclop
 package manager
 
 import (
@@ -47,7 +48,7 @@ const DefaultNamespace = "default"
 // It does not start the process.
 func NewProcess(id string, spec protocol.AppSpec) (*Process, error) {
 	if _, err := uuid.Parse(id); err != nil {
-		return nil, fmt.Errorf("invalid process ID: must be a valid UUID v4")
+		return nil, errors.New("invalid process ID: must be a valid UUID v4")
 	}
 
 	name := spec.Name
@@ -529,7 +530,12 @@ func (p *Process) monitor() {
 func (p *Process) handleRestart(exitCode int) {
 	restart := p.spec.Restart
 	if restart == nil {
-		restart = &protocol.AppRestart{Policy: "on-failure", MaxRetries: 10, BackoffMs: 2000, BackoffType: "expo"}
+		restart = &protocol.AppRestart{
+			Policy:      "on-failure",
+			MaxRetries:  10,
+			BackoffMs:   2000,
+			BackoffType: "expo",
+		}
 	}
 
 	for _, code := range restart.StopOnExit {
@@ -683,5 +689,5 @@ func (p *Process) getLynxBinary() (string, error) {
 		}
 	}
 
-	return "", fmt.Errorf("lynx binary not found in PATH or adjacent to daemon")
+	return "", errors.New("lynx binary not found in PATH or adjacent to daemon")
 }

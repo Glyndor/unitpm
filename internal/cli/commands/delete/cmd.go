@@ -1,7 +1,7 @@
 package deletecmd
 
 import (
-	"fmt"
+	"errors"
 	"os"
 
 	"github.com/Jaro-c/Lynx/internal/cli/help"
@@ -23,7 +23,7 @@ func Run(client transport.IPCClient, args []string) error {
 	}
 
 	if len(ids) == 0 {
-		return fmt.Errorf("missing process ID or name")
+		return errors.New("missing process ID or name")
 	}
 
 	for _, id := range ids {
