@@ -11,6 +11,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"runtime"
+	"strconv"
 	"strings"
 	"time"
 
@@ -20,6 +21,9 @@ import (
 const (
 	repoOwner = "Jaro-c"
 	repoName  = "Lynx"
+
+	// maxDownloadSize is the maximum size of a downloaded binary (500MB).
+	maxDownloadSize = 500 * 1024 * 1024
 )
 
 // Release represents a GitHub release.
@@ -63,13 +67,17 @@ func Check(ctx context.Context) (*Release, error) {
 		return nil, fmt.Errorf("failed to decode release info: %w", err)
 	}
 
-	// Simple version comparison (assumes vX.Y.Z format)
-	// Remove 'v' prefix if present
+	// Semantic version comparison (assumes vX.Y.Z format).
 	current := strings.TrimPrefix(version.Version, "v")
 	latest := strings.TrimPrefix(release.TagName, "v")
 
 	if current == latest {
 		return nil, nil // Up to date
+	}
+
+	// Only report update if latest is actually newer, to prevent downgrades.
+	if !isNewer(latest, current) {
+		return nil, nil
 	}
 
 	return &release, nil
@@ -130,8 +138,11 @@ func downloadAndReplace(ctx context.Context, assetURL, exePath string) error {
 		return fmt.Errorf("failed to create download request: %w", err)
 	}
 
+	// Use a client with a timeout to prevent indefinite hangs.
+	downloadClient := &http.Client{Timeout: 10 * time.Minute}
+
 	// #nosec G704 // assetURL comes from the Github API response
-	resp, err := http.DefaultClient.Do(req)
+	resp, err := downloadClient.Do(req)
 	if err != nil {
 		_ = tmpFile.Close()
 		return fmt.Errorf("failed to download update: %w", err)
@@ -143,14 +154,16 @@ func downloadAndReplace(ctx context.Context, assetURL, exePath string) error {
 		return fmt.Errorf("download failed with status: %s", resp.Status)
 	}
 
-	_, err = io.Copy(tmpFile, resp.Body)
+	// Limit body size to prevent disk exhaustion.
+	_, err = io.Copy(tmpFile, io.LimitReader(resp.Body, maxDownloadSize))
+	tmpPath := tmpFile.Name()
 	_ = tmpFile.Close() // Close before chmod/rename
 	if err != nil {
 		return fmt.Errorf("failed to write update file: %w", err)
 	}
 
-	// Make executable
-	if err := tmpFile.Chmod(0755); err != nil {
+	// Make executable (use os.Chmod on path since file is already closed).
+	if err := os.Chmod(tmpPath, 0755); err != nil {
 		return fmt.Errorf("failed to set executable permissions: %w", err)
 	}
 
@@ -188,4 +201,34 @@ func IsManagedByPackageSystem() bool {
 		}
 	}
 	return false
+}
+
+// isNewer reports whether version a is strictly newer than version b.
+// Both must be in X.Y.Z format (without 'v' prefix).
+func isNewer(a, b string) bool {
+	pa := parseVersion(a)
+	pb := parseVersion(b)
+	for i := 0; i < 3; i++ {
+		if pa[i] > pb[i] {
+			return true
+		}
+		if pa[i] < pb[i] {
+			return false
+		}
+	}
+	return false
+}
+
+// parseVersion splits "X.Y.Z" into [X, Y, Z]. Returns [0,0,0] on error.
+func parseVersion(v string) [3]int {
+	var parts [3]int
+	segs := strings.SplitN(v, ".", 3)
+	for i := 0; i < len(segs) && i < 3; i++ {
+		n, err := strconv.Atoi(segs[i])
+		if err != nil {
+			return [3]int{}
+		}
+		parts[i] = n
+	}
+	return parts
 }
