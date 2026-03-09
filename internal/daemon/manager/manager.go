@@ -81,7 +81,7 @@ func (m *Manager) StartWithSpec(spec protocol.AppSpec) (types.ProcessInfo, error
 	}
 
 	if spec.Namespace == "" {
-		spec.Namespace = "default"
+		spec.Namespace = DefaultNamespace
 	}
 
 	if _, exists := m.processes[spec.ID]; exists {
@@ -181,7 +181,7 @@ func (m *Manager) Reload(id string) error {
 	}
 
 	if s.Namespace == "" {
-		s.Namespace = "default"
+		s.Namespace = DefaultNamespace
 	}
 
 	s.Disabled = false

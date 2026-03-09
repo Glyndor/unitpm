@@ -14,6 +14,7 @@ import (
 	"time"
 
 	daemonRuntime "github.com/Jaro-c/Lynx/internal/daemon/runtime"
+	"github.com/Jaro-c/Lynx/internal/git"
 	"github.com/Jaro-c/Lynx/internal/ipc/protocol"
 	"github.com/Jaro-c/Lynx/internal/metrics"
 	"github.com/Jaro-c/Lynx/internal/paths"
@@ -41,6 +42,8 @@ type Process struct {
 
 // NewProcess creates a new process instance.
 // It does not start the process.
+const DefaultNamespace = "default"
+
 func NewProcess(id string, spec protocol.AppSpec) (*Process, error) {
 	if _, err := uuid.Parse(id); err != nil {
 		return nil, fmt.Errorf("invalid process ID: must be a valid UUID v4")
@@ -57,7 +60,7 @@ func NewProcess(id string, spec protocol.AppSpec) (*Process, error) {
 
 	ns := spec.Namespace
 	if ns == "" {
-		ns = "default"
+		ns = DefaultNamespace
 	}
 
 	proc := &Process{
@@ -134,6 +137,16 @@ func (p *Process) Start() error {
 	// Init metrics
 	if col, err := metrics.NewCollector(p.info.PID); err == nil {
 		p.metrics = col
+	}
+
+	// Capture Git Metadata (if applicable)
+	// We capture this at Start time so it reflects the version being executed.
+	if p.spec.Cwd != "" {
+		if info, err := git.GetInfo(p.spec.Cwd); err == nil {
+			p.info.GitBranch = info.Branch
+			p.info.GitCommit = info.Commit
+			p.info.GitDirty = info.Dirty
+		}
 	}
 
 	// Start scheduler if not running
@@ -328,9 +341,9 @@ func (p *Process) prepareEnv() ([]string, error) {
 		if err != nil {
 			return nil, fmt.Errorf("ERR_BAD_REQUEST: failed to open env file: %w", err)
 		}
-		defer func() { _ = file.Close() }() //nolint:errcheck
-
-		scanner := bufio.NewScanner(file)
+		defer func() { _ = file.Close() }()
+				
+				scanner := bufio.NewScanner(file)
 		for scanner.Scan() {
 			line := strings.TrimSpace(scanner.Text())
 			if line == "" || strings.HasPrefix(line, "#") {
@@ -419,7 +432,7 @@ func (p *Process) prepareIsolation(ctx context.Context, cmd *exec.Cmd) (*exec.Cm
 
 func (p *Process) setupLogs(cmd *exec.Cmd) error {
 	for _, f := range p.logFiles {
-		_ = f.Close() //nolint:errcheck
+		_ = f.Close()
 	}
 	p.logFiles = nil
 
@@ -483,7 +496,7 @@ func (p *Process) monitor() {
 	err := p.cmd.Wait()
 
 	for _, f := range p.logFiles {
-		_ = f.Close() //nolint:errcheck
+		_ = f.Close()
 	}
 
 	p.mu.Lock()

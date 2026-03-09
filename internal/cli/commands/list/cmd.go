@@ -198,6 +198,7 @@ func renderTable(processes []types.ProcessInfo, showLong bool) {
 		term.CyanString("%s", term.BoldString("cpu")),
 		term.CyanString("%s", term.BoldString("mem")),
 		term.CyanString("%s", term.BoldString("user")),
+		term.CyanString("%s", term.BoldString("git")),
 		term.CyanString("%s", term.BoldString("watch")),
 	}
 
@@ -215,6 +216,7 @@ func renderTable(processes []types.ProcessInfo, showLong bool) {
 		8,  // cpu
 		10, // mem
 		15, // user
+		20, // git
 		10, // watch
 	}
 
@@ -260,6 +262,19 @@ func renderTable(processes []types.ProcessInfo, showLong bool) {
 			idStr = p.ID
 		}
 
+		var gitStr string
+		if p.GitBranch != "" {
+			gitStr = fmt.Sprintf("%s@%s", p.GitBranch, p.GitCommit)
+			if p.GitDirty {
+				gitStr += "*"
+				gitStr = term.YellowString("%s", gitStr)
+			} else {
+				gitStr = term.DimString("%s", gitStr)
+			}
+		} else {
+			gitStr = term.DimString("-")
+		}
+
 		row := []string{
 			idStr,
 			term.BoldString("%s", p.Name),
@@ -273,6 +288,7 @@ func renderTable(processes []types.ProcessInfo, showLong bool) {
 			cpuStr,
 			memStr,
 			p.User,
+			gitStr,
 			watchStr,
 		}
 		t.addRow(row)

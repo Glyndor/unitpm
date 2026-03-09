@@ -34,5 +34,8 @@ type ProcessInfo struct {
 	Memory    int64        `json:"memory_bytes"` // Bytes
 	User      string       `json:"user"`
 	Watch     bool         `json:"watch"`
+	GitBranch string       `json:"git_branch,omitempty"`
+	GitCommit string       `json:"git_commit,omitempty"`
+	GitDirty  bool         `json:"git_dirty,omitempty"`
 	CreatedAt string       `json:"created_at,omitempty"`
 }
