@@ -1,3 +1,16 @@
+lynx-pm (0.4.2-1) unstable; urgency=medium
+
+  * fix(updater): fix Chmod called on closed file descriptor
+  * fix(updater): add timeout to download HTTP client
+  * fix(updater): add io.LimitReader to prevent disk exhaustion
+  * fix(updater): implement semver comparison to prevent downgrades
+  * perf(daemon): eliminate double mutex lock in restart handler
+  * perf(daemon): use map for O(1) env whitelist lookup
+  * refactor(manager): remove goto in ResolveID
+  * fix(paths): remove dead-code duplicate check in withinRoot
+
+ -- Jaro-c <jaro-c@users.noreply.github.com>  Sat, 08 Mar 2026 20:30:00 -0500
+
 lynx-pm (0.4.1-1) unstable; urgency=medium
 
   * feat(git): add support for git metadata detection in managed applications

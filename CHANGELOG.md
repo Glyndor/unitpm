@@ -4,6 +4,23 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.4.2] - 2026-03-08
+
+### Security
+- **updater**: Fix `Chmod` called on closed file descriptor — binary updates now correctly receive executable permissions.
+- **updater**: Add timeout (10 min) to download HTTP client to prevent indefinite hangs.
+- **updater**: Add `io.LimitReader` (500MB) to prevent disk exhaustion from malicious responses.
+- **updater**: Implement proper semver comparison to prevent accidental downgrades.
+
+### Efficiency
+- **daemon**: Eliminate unnecessary double mutex lock/unlock in restart handler.
+- **daemon**: Replace O(n×m) environment whitelist loop with O(1) map lookup.
+- **manager**: Remove `goto` in `ResolveID`, extract `resolveFromCandidates` helper.
+- **paths**: Remove dead-code duplicate check in `withinRoot`.
+
+### Chore
+- Clean up stale binary artifacts from repository working directory.
+
 ## [0.4.1] - 2026-03-08
 
 ### Features
