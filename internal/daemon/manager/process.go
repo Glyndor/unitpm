@@ -280,22 +280,17 @@ func (p *Process) prepareEnv() ([]string, error) {
 	// 1. Base Environment
 	if isRoot {
 		// System Mode: Whitelist to prevent leaking secrets (e.g. AWS_KEYS)
-		allowed := []string{
-			"PATH", "LANG", "TERM", "TZ", "TMPDIR",
-			"USER", "LOGNAME", "SHELL", "PWD",
-			"XDG_DATA_HOME", "XDG_CONFIG_HOME", "XDG_STATE_HOME", "XDG_CACHE_HOME", "XDG_RUNTIME_DIR",
+		allowed := map[string]struct{}{
+			"PATH": {}, "LANG": {}, "TERM": {}, "TZ": {}, "TMPDIR": {},
+			"USER": {}, "LOGNAME": {}, "SHELL": {}, "PWD": {},
+			"XDG_DATA_HOME": {}, "XDG_CONFIG_HOME": {}, "XDG_STATE_HOME": {},
+			"XDG_CACHE_HOME": {}, "XDG_RUNTIME_DIR": {},
 		}
 
 		sysEnv := os.Environ()
 		for _, e := range sysEnv {
 			key := strings.SplitN(e, "=", 2)[0]
-			allow := false
-			for _, a := range allowed {
-				if key == a {
-					allow = true
-					break
-				}
-			}
+			_, allow := allowed[key]
 			if !allow && strings.HasPrefix(key, "LC_") {
 				allow = true
 			}
@@ -343,8 +338,8 @@ func (p *Process) prepareEnv() ([]string, error) {
 			return nil, fmt.Errorf("ERR_BAD_REQUEST: failed to open env file: %w", err)
 		}
 		defer func() { _ = file.Close() }()
-				
-				scanner := bufio.NewScanner(file)
+
+		scanner := bufio.NewScanner(file)
 		for scanner.Scan() {
 			line := strings.TrimSpace(scanner.Text())
 			if line == "" || strings.HasPrefix(line, "#") {
@@ -559,9 +554,6 @@ func (p *Process) handleRestart(exitCode int) {
 
 	p.mu.Lock()
 	p.info.State = types.StateRestarting
-	p.mu.Unlock()
-
-	p.mu.Lock()
 	if time.Since(p.lastRestart) > 60*time.Second {
 		p.restartCount = 0
 	}

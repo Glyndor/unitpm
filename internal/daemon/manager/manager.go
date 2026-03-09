@@ -222,13 +222,7 @@ func (m *Manager) ResolveID(identifier string) (string, error) {
 				candidates = append(candidates, id)
 			}
 		}
-		if len(candidates) == 0 {
-			return "", fmt.Errorf("process not found: %s", identifier)
-		}
-		if len(candidates) > 1 {
-			return "", fmt.Errorf("ambiguous selector '%s': matches %v", identifier, candidates)
-		}
-		return candidates[0], nil
+		return resolveFromCandidates(identifier, candidates)
 	}
 
 	// 1. Exact ID match
@@ -236,16 +230,15 @@ func (m *Manager) ResolveID(identifier string) (string, error) {
 		return identifier, nil
 	}
 
-	var candidates []string
-
 	// 2. Prefix Match
+	var candidates []string
 	for id := range m.processes {
 		if strings.HasPrefix(id, identifier) {
 			candidates = append(candidates, id)
 		}
 	}
 	if len(candidates) > 0 {
-		goto CheckCandidates
+		return resolveFromCandidates(identifier, candidates)
 	}
 
 	// 3. Name Match
@@ -255,15 +248,19 @@ func (m *Manager) ResolveID(identifier string) (string, error) {
 		}
 	}
 
-CheckCandidates:
-	if len(candidates) == 0 {
+	return resolveFromCandidates(identifier, candidates)
+}
+
+// resolveFromCandidates returns the single match or an appropriate error.
+func resolveFromCandidates(identifier string, candidates []string) (string, error) {
+	switch len(candidates) {
+	case 0:
 		return "", fmt.Errorf("process not found: %s", identifier)
-	}
-	if len(candidates) > 1 {
+	case 1:
+		return candidates[0], nil
+	default:
 		return "", fmt.Errorf("ambiguous selector '%s': matches %v", identifier, candidates)
 	}
-
-	return candidates[0], nil
 }
 
 // List returns a snapshot of all managed processes.

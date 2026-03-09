@@ -110,9 +110,6 @@ func withinRoot(root, path string) bool {
 	if rel == ".." || strings.HasPrefix(rel, ".."+string(os.PathSeparator)) {
 		return false
 	}
-	if strings.HasPrefix(rel, ".."+string(os.PathSeparator)) {
-		return false
-	}
 	return true
 }
 
