@@ -40,10 +40,11 @@ type Process struct {
 	lastRestart   time.Time
 }
 
-// NewProcess creates a new process instance.
-// It does not start the process.
+// DefaultNamespace is the default namespace for processes.
 const DefaultNamespace = "default"
 
+// NewProcess creates a new process instance.
+// It does not start the process.
 func NewProcess(id string, spec protocol.AppSpec) (*Process, error) {
 	if _, err := uuid.Parse(id); err != nil {
 		return nil, fmt.Errorf("invalid process ID: must be a valid UUID v4")
