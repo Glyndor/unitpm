@@ -4,6 +4,16 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.4.1] - 2026-03-08
+
+### Features
+- **git**: Add support for Git metadata detection in managed applications.
+- **cli**: Display Git branch, commit hash, and dirty status in `lynx list`.
+- **daemon**: Capture Git metadata (branch/commit) at process startup time.
+
+### Documentation
+- **list**: Update documentation to include new Git information column and flags.
+
 ## [0.4.0] - 2026-02-27
 
 ### Bug Fixes

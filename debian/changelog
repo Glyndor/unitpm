@@ -1,3 +1,12 @@
+lynx-pm (0.4.1-1) unstable; urgency=medium
+
+  * feat(git): add support for git metadata detection in managed applications
+  * feat(cli): display git branch, commit hash, and dirty status in lynx list
+  * feat(daemon): capture git metadata at process startup time
+  * docs(list): update documentation to include new git information
+
+ -- Jaro-c <jaro-c@users.noreply.github.com>  Sat, 08 Mar 2026 12:00:00 +0000
+
 lynx-pm (0.4.0-1) unstable; urgency=medium
 
   * Fix(cli): use correct systemd service name 'lynx.lynxd.service' in startup command
