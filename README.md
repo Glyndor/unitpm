@@ -50,7 +50,7 @@ Forget about compiling source code. Just download the Debian package!
 
 ```bash
 # Download the package (check the Releases tab for the latest version)
-curl -L -o lynxd.deb https://github.com/Jaro-c/Lynx/releases/latest/download/lynx-pm_0.4.0-1_amd64.deb
+curl -L -o lynxd.deb "$(curl -s https://api.github.com/repos/Jaro-c/Lynx/releases/latest | grep browser_download_url | grep amd64.deb | cut -d '"' -f 4)"
 
 # Install it
 sudo apt install ./lynxd.deb

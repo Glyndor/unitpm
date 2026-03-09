@@ -53,6 +53,7 @@ Thumbs.db
 # Debian Packaging
 # =====================
 debian/lynx/
+debian/lynx-pm/
 debian/.debhelper/
 debian/files
 debian/*.substvars
@@ -70,7 +71,17 @@ obj-*/
 /lynxd
 lynx_*
 gosec*
-*.out
-*.test
-*.txt
 *.debhelper
+
+# =====================
+# Agent / AI Tool Data
+# =====================
+.gemini/
+.agents/
+.agent/
+
+# =====================
+# Misc
+# =====================
+*.txt
+readme_tag.md
