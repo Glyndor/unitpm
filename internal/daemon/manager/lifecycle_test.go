@@ -57,7 +57,7 @@ func TestStopDuringBackoffPreventsRestart(t *testing.T) {
 	restore := setupTestEnv(t)
 	defer restore()
 
-	id := uuid.NewString()
+	id := uuid.Must(uuid.NewV7()).String()
 	spec := protocol.AppSpec{
 		Version: 1,
 		ID:      id,
@@ -113,7 +113,7 @@ func TestCronRespectsNoAutoRestart(t *testing.T) {
 	restore := setupTestEnv(t)
 	defer restore()
 
-	id := uuid.NewString()
+	id := uuid.Must(uuid.NewV7()).String()
 	spec := protocol.AppSpec{
 		Version: 1,
 		ID:      id,
@@ -166,7 +166,7 @@ func TestCronEveryIntervalBounds(t *testing.T) {
 	restore := setupTestEnv(t)
 	defer restore()
 
-	id := uuid.NewString()
+	id := uuid.Must(uuid.NewV7()).String()
 
 	_, err := NewProcess(id, protocol.AppSpec{
 		Version: 1,
@@ -186,7 +186,7 @@ func TestCronEveryIntervalBounds(t *testing.T) {
 		t.Fatalf("expected ERR_LIMITS cron interval error, got %v", err)
 	}
 
-	id = uuid.NewString()
+	id = uuid.Must(uuid.NewV7()).String()
 	_, err = NewProcess(id, protocol.AppSpec{
 		Version: 1,
 		ID:      id,
@@ -205,7 +205,7 @@ func TestCronEveryIntervalBounds(t *testing.T) {
 		t.Fatalf("expected ERR_LIMITS cron interval error, got %v", err)
 	}
 
-	id = uuid.NewString()
+	id = uuid.Must(uuid.NewV7()).String()
 	if _, err := NewProcess(id, protocol.AppSpec{
 		Version: 1,
 		ID:      id,
@@ -227,7 +227,7 @@ func TestManualRestartReenablesAutoRestart(t *testing.T) {
 
 	mgr := NewManager()
 
-	id := uuid.NewString()
+	id := uuid.Must(uuid.NewV7()).String()
 	spec := protocol.AppSpec{
 		Version: 1,
 		ID:      id,

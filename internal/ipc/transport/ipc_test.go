@@ -21,7 +21,7 @@ func setupTestSocket(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to create temp dir: %v", err)
 	}
-	
+
 	// Set LYNX_SOCKET env var
 	socketPath := strings.ReplaceAll(dir, "\\", "/") + "/lynx.sock"
 	if err := os.Setenv("LYNX_SOCKET", socketPath); err != nil {

@@ -155,5 +155,5 @@ func (c *Client) checkStatus(resp *protocol.Response) error {
 }
 
 func generateID() string {
-	return uuid.NewString()
+	return uuid.Must(uuid.NewV7()).String()
 }

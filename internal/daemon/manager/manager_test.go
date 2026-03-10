@@ -37,7 +37,7 @@ func TestRestoreAndPersistence(t *testing.T) {
 
 	// 1. Create specs on disk
 	// App A: Enabled, should start
-	idA := uuid.NewString()
+	idA := uuid.Must(uuid.NewV7()).String()
 	specA := protocol.AppSpec{
 		Version: 1, ID: idA, Name: "app-a",
 		Exec: protocol.AppExec{Type: "command", Command: "true"}, // Short lived is fine for this test
@@ -47,7 +47,7 @@ func TestRestoreAndPersistence(t *testing.T) {
 	}
 
 	// App B: Disabled, should NOT start
-	idB := uuid.NewString()
+	idB := uuid.Must(uuid.NewV7()).String()
 	specB := protocol.AppSpec{
 		Version: 1, ID: idB, Name: "app-b",
 		Exec:     protocol.AppExec{Type: "command", Command: "true"},
@@ -82,7 +82,7 @@ func TestRestoreAndPersistence(t *testing.T) {
 	// We need a long running process to test Stop() effectively.
 
 	// Let's create App C: Long running
-	idC := uuid.NewString()
+	idC := uuid.Must(uuid.NewV7()).String()
 	specC := protocol.AppSpec{
 		Version: 1, ID: idC, Name: "app-c",
 		Exec: protocol.AppExec{Type: "command", Command: "sleep", Args: []string{"10"}},
@@ -189,7 +189,7 @@ func TestManager_MaxProcessesLimit(t *testing.T) {
 
 	specA := protocol.AppSpec{
 		Version: 1,
-		ID:      uuid.NewString(),
+		ID:      uuid.Must(uuid.NewV7()).String(),
 		Name:    "app-a",
 		Exec: protocol.AppExec{
 			Type:    "command",
@@ -204,7 +204,7 @@ func TestManager_MaxProcessesLimit(t *testing.T) {
 
 	specB := protocol.AppSpec{
 		Version: 1,
-		ID:      uuid.NewString(),
+		ID:      uuid.Must(uuid.NewV7()).String(),
 		Name:    "app-b",
 		Exec: protocol.AppExec{
 			Type:    "command",
@@ -244,7 +244,7 @@ func TestManager_MaxProcessesLimitInvalidEnv(t *testing.T) {
 
 	specA := protocol.AppSpec{
 		Version: 1,
-		ID:      uuid.NewString(),
+		ID:      uuid.Must(uuid.NewV7()).String(),
 		Name:    "app-a",
 		Exec: protocol.AppExec{
 			Type:    "command",
@@ -286,7 +286,7 @@ func TestManager_MaxProcessesLimitNonPositive(t *testing.T) {
 
 	specA := protocol.AppSpec{
 		Version: 1,
-		ID:      uuid.NewString(),
+		ID:      uuid.Must(uuid.NewV7()).String(),
 		Name:    "app-a",
 		Exec: protocol.AppExec{
 			Type:    "command",
