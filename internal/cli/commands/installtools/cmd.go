@@ -104,14 +104,31 @@ func Run(args []string) error {
 
 	// Confirm
 	if !autoYes {
-		fmt.Printf("Do you want to proceed with linking %d tools? [y/N] ", len(plan))
+		fmt.Printf("Do you want to proceed with linking %d tools? [Y/n/choose] ", len(plan))
 		reader := bufio.NewReader(os.Stdin)
 		response, _ := reader.ReadString('\n')
 		response = strings.TrimSpace(strings.ToLower(response))
 
-		if response != "y" && response != "yes" {
+		if response == "n" || response == "no" {
 			fmt.Println("Operation aborted by user.")
 			return nil
+		}
+
+		if response == "choose" || response == "c" {
+			var filteredPlan []plannedLink
+			for _, p := range plan {
+				fmt.Printf("Link %s (%s)? [Y/n] ", term.CyanString(p.Tool), p.Src)
+				ans, _ := reader.ReadString('\n')
+				ans = strings.TrimSpace(strings.ToLower(ans))
+				if ans != "n" && ans != "no" {
+					filteredPlan = append(filteredPlan, p)
+				}
+			}
+			plan = filteredPlan
+			if len(plan) == 0 {
+				fmt.Println("No tools selected. Aborting.")
+				return nil
+			}
 		}
 	}
 
