@@ -249,6 +249,7 @@ func printLastNLines(f *os.File, label string, n int) {
 func GetSpec() help.CommandSpec {
 	return help.CommandSpec{
 		Name:        "logs",
+		Aliases:     []string{"log"},
 		Description: "View and follow process logs",
 		Usage:       "lynx logs <id|name> [--lines N] [--follow] [--stdout] [--stderr]",
 	}

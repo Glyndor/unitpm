@@ -3,14 +3,13 @@
 package execenv
 
 import (
-	"bufio"
 	"fmt"
 	"os"
 	"os/exec"
-	"strings"
 	"syscall"
 
 	"github.com/Jaro-c/Lynx/internal/cli/help"
+	"github.com/Jaro-c/Lynx/internal/env"
 )
 
 // Run executes the _exec-env command.
@@ -52,34 +51,14 @@ func Run(args []string) error {
 }
 
 func loadEnv(path string) error {
-	f, err := os.Open(path)
+	parsed, err := env.ParseFile(path)
 	if err != nil {
 		return err
 	}
-	defer func() { _ = f.Close() }()
-
-	scanner := bufio.NewScanner(f)
-	for scanner.Scan() {
-		line := strings.TrimSpace(scanner.Text())
-		if line == "" || strings.HasPrefix(line, "#") {
-			continue
-		}
-		parts := strings.SplitN(line, "=", 2)
-		if len(parts) != 2 {
-			continue
-		}
-		key := strings.TrimSpace(parts[0])
-		val := parts[1]
-
-		// Basic key validation to prevent setting weird things?
-		// Setenv handles most cases.
-		if key == "" {
-			continue
-		}
-
-		_ = os.Setenv(key, val)
+	for k, v := range parsed {
+		_ = os.Setenv(k, v)
 	}
-	return scanner.Err()
+	return nil
 }
 
 // GetSpec returns the command specification.

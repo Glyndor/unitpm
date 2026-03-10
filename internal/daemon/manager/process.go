@@ -1,8 +1,7 @@
-//nolint:gocognit,nestif,gocyclo,cyclop
+//nolint:gocognit,nestif
 package manager
 
 import (
-	"bufio"
 	"context"
 	"errors"
 	"fmt"
@@ -16,6 +15,7 @@ import (
 	"time"
 
 	daemonRuntime "github.com/Jaro-c/Lynx/internal/daemon/runtime"
+	"github.com/Jaro-c/Lynx/internal/env"
 	"github.com/Jaro-c/Lynx/internal/git"
 	"github.com/Jaro-c/Lynx/internal/ipc/protocol"
 	"github.com/Jaro-c/Lynx/internal/metrics"
@@ -273,7 +273,7 @@ func (p *Process) resolveCommand() (string, []string, error) {
 }
 
 func (p *Process) prepareEnv() ([]string, error) {
-	var env []string
+	var envs []string
 	isRoot := false
 	if runtime.GOOS != "windows" {
 		isRoot = os.Geteuid() == 0
@@ -297,12 +297,12 @@ func (p *Process) prepareEnv() ([]string, error) {
 				allow = true
 			}
 			if allow {
-				env = append(env, e)
+				envs = append(envs, e)
 			}
 		}
 	} else {
 		// User Mode: Inherit full environment
-		env = os.Environ()
+		envs = os.Environ()
 	}
 
 	// 2. Handle HOME
@@ -311,55 +311,45 @@ func (p *Process) prepareEnv() ([]string, error) {
 
 	if isDynamic {
 		// Filter out HOME if it exists (e.g. from user mode inheritance)
-		filtered := env[:0]
-		for _, e := range env {
+		filtered := envs[:0]
+		for _, e := range envs {
 			if !strings.HasPrefix(e, "HOME=") {
 				filtered = append(filtered, e)
 			}
 		}
-		env = filtered
+		envs = filtered
 	} else {
 		// If not dynamic, ensure HOME is present (especially for system mode where we didn't whitelist it)
 		// Check if HOME is already there
 		hasHome := false
-		for _, e := range env {
+		for _, e := range envs {
 			if strings.HasPrefix(e, "HOME=") {
 				hasHome = true
 				break
 			}
 		}
 		if !hasHome {
-			env = append(env, "HOME="+os.Getenv("HOME"))
+			envs = append(envs, "HOME="+os.Getenv("HOME"))
 		}
 	}
 
 	// 3. Env File
 	if p.spec.EnvFile != "" {
-		file, err := os.Open(p.spec.EnvFile)
+		parsedEnv, err := env.ParseFile(p.spec.EnvFile)
 		if err != nil {
-			return nil, fmt.Errorf("ERR_BAD_REQUEST: failed to open env file: %w", err)
+			return nil, fmt.Errorf("ERR_BAD_REQUEST: failed to parse env file: %w", err)
 		}
-		defer func() { _ = file.Close() }()
-
-		scanner := bufio.NewScanner(file)
-		for scanner.Scan() {
-			line := strings.TrimSpace(scanner.Text())
-			if line == "" || strings.HasPrefix(line, "#") {
-				continue
-			}
-			env = append(env, line)
-		}
-		if err := scanner.Err(); err != nil {
-			return nil, fmt.Errorf("ERR_BAD_REQUEST: failed to read env file: %w", err)
+		for k, v := range parsedEnv {
+			envs = append(envs, fmt.Sprintf("%s=%s", k, v))
 		}
 	}
 
 	if len(p.spec.Env) > 0 {
 		for k, v := range p.spec.Env {
-			env = append(env, fmt.Sprintf("%s=%s", k, v))
+			envs = append(envs, fmt.Sprintf("%s=%s", k, v))
 		}
 	}
-	return env, nil
+	return envs, nil
 }
 
 func (p *Process) prepareIsolation(ctx context.Context, cmd *exec.Cmd) (*exec.Cmd, error) {

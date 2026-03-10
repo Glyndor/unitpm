@@ -17,7 +17,7 @@ func TestParseAppSpec(t *testing.T) {
 	}
 
 	defaultLogs := &protocol.AppLogs{
-		Mode:      "inherit",
+		Mode:      "file",
 		Format:    "plain",
 		Timestamp: "rfc3339",
 	}

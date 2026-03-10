@@ -145,7 +145,7 @@ type specParser struct {
 func (p *specParser) parse() (protocol.AppSpec, int, error) {
 	p.parsingFlags = true
 	p.scale = 1
-	p.stdio = "inherit"
+	p.stdio = "file"
 	p.runAs = "self"
 	p.restartPolicy = "on-failure"
 	p.maxRestarts = 10
