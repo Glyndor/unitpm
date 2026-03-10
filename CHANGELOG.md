@@ -2,7 +2,27 @@
 
 All notable changes to this project will be documented in this file.
 
-## [Unreleased]
+## [0.4.5] - 2026-03-10
+
+### Features
+- **env**: Implement robust custom environment variable parser.
+  - Handles double and single quotes (`"`, `'`) correctly by stripping them from values.
+  - Supports inline comments (`#`) and ignores them.
+  - Fixes compatibility issues with Node.js/Next.js/Bun applications that failed when receiving quoted values from `.env` files.
+- **cli**: Change default `start` logging mode from `inherit` to `file`.
+  - New processes now automatically write to `stdout.log` and `stderr.log` in the standard log directory unless specified otherwise.
+- **cli**: Allow spaces in process names (e.g., `lynx start --name "My App"`).
+- **cli**: Add `log` as an alias for the `logs` command.
+
+## [0.4.4] - 2026-03-10
+
+### Features
+- **cli**: Allow selective tool installation in `install-tools`.
+
+## [0.4.3] - 2026-03-10
+
+### Refactor
+- **core**: Replace all occurrences of UUID v4 with UUID v7 for better sortability and time-ordered IDs.
 
 ## [0.4.2] - 2026-03-08
 
