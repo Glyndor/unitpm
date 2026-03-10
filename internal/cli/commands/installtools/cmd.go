@@ -117,7 +117,7 @@ func Run(args []string) error {
 		if response == "choose" || response == "c" {
 			var filteredPlan []plannedLink
 			for _, p := range plan {
-				fmt.Printf("Link %s (%s)? [Y/n] ", term.CyanString(p.Tool), p.Src)
+				fmt.Printf("Link %s (%s)? [Y/n] ", term.CyanString("%s", p.Tool), p.Src)
 				ans, _ := reader.ReadString('\n')
 				ans = strings.TrimSpace(strings.ToLower(ans))
 				if ans != "n" && ans != "no" {
