@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.4.7] - 2026-03-10
+
+### Efficiency
+- **metrics**: Optimize Linux `/proc` process tree scanning by implementing a centralized 1-second TTL memory cache, avoiding O(N) direct syscalls and string allocation overhead during metric collection.
+
 ## [0.4.6] - 2026-03-10
 
 ### Features
