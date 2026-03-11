@@ -83,6 +83,20 @@ func Run(args []string) error {
 			continue
 		}
 
+		// Prevent circular symlinks:
+		// If userPath resolves to globalPath, we shouldn't link it.
+		// Also check if userPath resolves to the same file as globalPath (if globalPath existed)
+		// Since globalPath doesn't exist (checked above), we mainly check if userPath points to globalPath
+		// or if we are linking a file to itself in a way that causes a loop.
+		
+		resolvedUserPath, err := filepath.EvalSymlinks(userPath)
+		if err == nil {
+			if resolvedUserPath == globalPath {
+				fmt.Printf("Skipping %s: resolves to destination %s (circular loop detected)\n", tool, globalPath)
+				continue
+			}
+		}
+
 		plan = append(plan, plannedLink{
 			Tool: tool,
 			Src:  userPath,
@@ -154,9 +168,9 @@ func findUserTool(user, tool string) (string, error) {
 		return exec.LookPath(tool)
 	}
 
-	// Use 'su -c which' to find the path as the user
-	// This respects the user's PATH configuration in .bashrc/.zshrc etc (mostly)
-	cmd := exec.Command("runuser", "-u", user, "--", "which", tool)
+	// Use 'runuser -l' to simulate a full login shell, ensuring .bashrc/.zshrc
+	// and the user's full PATH are loaded (crucial for tools like Bun in ~/.bun/bin)
+	cmd := exec.Command("runuser", "-l", user, "-c", "which "+tool)
 	out, err := cmd.Output()
 	if err != nil {
 		return "", err

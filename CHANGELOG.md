@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.4.8] - 2026-03-10
+
+### Bug Fixes
+- **cli**: Fix `install-tools` symlink loop detection to prevent circular references in `/usr/local/bin`.
+- **cli**: Enhance `install-tools` to correctly detect user's `$PATH` (including `~/.bun/bin`) when running with `sudo` by simulating a login shell.
+
 ## [0.4.7] - 2026-03-10
 
 ### Efficiency
