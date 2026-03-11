@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.4.9] - 2026-03-11
+
+### Features
+- **cli**: Update `lynx startup` to support non-root users.
+  - Automatically generates `systemd --user` service unit.
+  - Enables user lingering (`loginctl enable-linger`) for persistence after logout.
+  - Behaves similarly to `pm2 startup` for user-level process management.
+
 ## [0.4.8] - 2026-03-10
 
 ### Bug Fixes
