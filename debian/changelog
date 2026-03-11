@@ -1,3 +1,10 @@
+lynx-pm (0.4.6-1) unstable; urgency=medium
+
+  * feat(daemon): allow colon character in process names
+  * fix(debian): migrate lynx user home directory in postinst
+
+ -- Jaro-c <jaro-c@users.noreply.github.com>  Tue, 10 Mar 2026 20:30:00 -0500
+
 lynx-pm (0.4.5-1) unstable; urgency=medium
 
   * feat(env): implement custom robust env parser to handle quotes and comments

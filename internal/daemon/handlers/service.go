@@ -17,7 +17,7 @@ import (
 	"github.com/Jaro-c/Lynx/internal/types"
 )
 
-var nameRegex = regexp.MustCompile(`^[a-zA-Z0-9][a-zA-Z0-9 ._-]{0,63}$`)
+var nameRegex = regexp.MustCompile(`^[a-zA-Z0-9][a-zA-Z0-9 ._:-]{0,63}$`)
 var namespaceRegex = regexp.MustCompile(`^[a-zA-Z0-9][a-zA-Z0-9._-]{0,63}$`)
 
 // StartProcess handles the process start request with full validation and policy enforcement.

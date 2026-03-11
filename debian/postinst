@@ -10,6 +10,21 @@ if [ "$1" = "configure" ]; then
     # Create lynx user if it doesn't exist
     if ! getent passwd lynx >/dev/null; then
         adduser --system --group --no-create-home --home /var/lib/lynx-pm lynx
+    else
+        # Migration: Update home directory for existing lynx user if it points to old path
+        CURRENT_HOME=$(getent passwd lynx | cut -d: -f6)
+        if [ "$CURRENT_HOME" = "/var/lib/lynx" ]; then
+            # Ensure service is stopped and processes are killed before migration
+            # This is necessary because usermod fails if the user has running processes
+            if command -v systemctl >/dev/null; then
+                systemctl stop lynx.lynxd || true
+            fi
+            if command -v pkill >/dev/null; then
+                pkill -u lynx || true
+            fi
+            
+            usermod -d /var/lib/lynx-pm lynx || true
+        fi
     fi
 
     # Add lynx user to lynxadm group
