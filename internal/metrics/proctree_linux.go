@@ -3,11 +3,12 @@
 package metrics
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 	"os"
 	"strconv"
-	"strings"
+	"sync"
 	"time"
 )
 
@@ -18,6 +19,77 @@ const (
 	// pageSize is usually 4KB.
 	pageSize = 4096
 )
+
+// Global process tree cache to minimize /proc filesystem scanning overhead.
+var (
+	procCacheMu       sync.Mutex
+	procTreeCache     map[int][]int
+	procTreeCacheTime time.Time
+)
+
+// getGlobalTreeSnapshot retrieves a snapshot of the process parent-child relationships.
+// It caches the tree for 1 second to avoid heavy I/O when multiple collectors run.
+func getGlobalTreeSnapshot() (map[int][]int, error) {
+	procCacheMu.Lock()
+	defer procCacheMu.Unlock()
+
+	now := time.Now()
+	// Use 1-second TTL for the cache (as per the TODO suggestion)
+	if now.Sub(procTreeCacheTime) < time.Second && procTreeCache != nil {
+		return procTreeCache, nil
+	}
+
+	tree := make(map[int][]int)
+
+	entries, err := os.ReadDir("/proc")
+	if err != nil {
+		return nil, err
+	}
+
+	for _, e := range entries {
+		if !e.IsDir() {
+			continue
+		}
+		pid, err := strconv.Atoi(e.Name())
+		if err != nil {
+			continue
+		}
+
+		ppid, err := getPpid(pid)
+		if err != nil {
+			continue
+		}
+		tree[ppid] = append(tree[ppid], pid)
+	}
+
+	procTreeCache = tree
+	procTreeCacheTime = now
+	return tree, nil
+}
+
+// getPpid reads a single process's PPID directly from /proc/<pid>/stat.
+// Optimized to avoid string allocations.
+func getPpid(pid int) (int, error) {
+	statPath := fmt.Sprintf("/proc/%d/stat", pid)
+	data, err := os.ReadFile(statPath)
+	if err != nil {
+		return 0, err
+	}
+
+	lastParen := bytes.LastIndexByte(data, ')')
+	if lastParen == -1 || lastParen+2 >= len(data) {
+		return 0, errors.New("invalid stat format")
+	}
+
+	// Format after comm: state ppid pgrp session ...
+	parts := bytes.Fields(data[lastParen+2:])
+	if len(parts) < 2 {
+		return 0, errors.New("stat too short")
+	}
+
+	// parts[0] is state, parts[1] is ppid
+	return strconv.Atoi(string(parts[1]))
+}
 
 // ProcTreeCollector collects metrics by aggregating process tree.
 type ProcTreeCollector struct {
@@ -43,8 +115,7 @@ func (c *ProcTreeCollector) Collect() (Metrics, error) {
 	}
 
 	// 1. Build Process Tree
-	// Default to full tree scan for accuracy.
-	// TODO: Optimization: Implement snapshot caching (once per tick) to reduce /proc scan overhead.
+	// Now cached and highly efficient
 	pids, err := c.findDescendants(c.rootPid)
 	if err != nil {
 		// Fallback to just root PID if scan fails (e.g. permission error or race)
@@ -84,31 +155,11 @@ func (c *ProcTreeCollector) Collect() (Metrics, error) {
 	return m, nil
 }
 
-// findDescendants finds all descendant PIDs including the root.
-// This is expensive as it scans /proc.
+// findDescendants finds all descendant PIDs including the root by querying the global snapshot cache.
 func (c *ProcTreeCollector) findDescendants(root int) ([]int, error) {
-	// Map PPID -> []PID
-	tree := make(map[int][]int)
-
-	entries, err := os.ReadDir("/proc")
+	tree, err := getGlobalTreeSnapshot()
 	if err != nil {
 		return nil, err
-	}
-
-	for _, e := range entries {
-		if !e.IsDir() {
-			continue
-		}
-		pid, err := strconv.Atoi(e.Name())
-		if err != nil {
-			continue
-		}
-
-		ppid, err := c.getPpid(pid)
-		if err != nil {
-			continue
-		}
-		tree[ppid] = append(tree[ppid], pid)
 	}
 
 	// BFS traversal
@@ -127,29 +178,7 @@ func (c *ProcTreeCollector) findDescendants(root int) ([]int, error) {
 	return descendants, nil
 }
 
-func (c *ProcTreeCollector) getPpid(pid int) (int, error) {
-	statPath := fmt.Sprintf("/proc/%d/stat", pid)
-	data, err := os.ReadFile(statPath)
-	if err != nil {
-		return 0, err
-	}
-
-	// Format: pid (comm) state ppid ...
-	// Comm can contain spaces and parenthesis. Find last ')'
-	s := string(data)
-	lastParen := strings.LastIndex(s, ")")
-	if lastParen == -1 || lastParen+2 >= len(s) {
-		return 0, errors.New("invalid stat format")
-	}
-
-	parts := strings.Fields(s[lastParen+2:])
-	if len(parts) < 1 {
-		return 0, errors.New("invalid stat format")
-	}
-
-	return strconv.Atoi(parts[0])
-}
-
+// readProcStat reads utime, stime, and rss without excessive string allocations.
 func (c *ProcTreeCollector) readProcStat(pid int) (int64, int64, error) {
 	statPath := fmt.Sprintf("/proc/%d/stat", pid)
 	data, err := os.ReadFile(statPath)
@@ -157,8 +186,7 @@ func (c *ProcTreeCollector) readProcStat(pid int) (int64, int64, error) {
 		return 0, 0, err
 	}
 
-	s := string(data)
-	lastParen := strings.LastIndex(s, ")")
+	lastParen := bytes.LastIndexByte(data, ')')
 	if lastParen == -1 {
 		return 0, 0, errors.New("invalid stat format")
 	}
@@ -169,21 +197,20 @@ func (c *ProcTreeCollector) readProcStat(pid int) (int64, int64, error) {
 	// utime: 11 (14th field total)
 	// stime: 12 (15th field total)
 	// rss: 21 (24th field total)
-
-	parts := strings.Fields(s[lastParen+2:])
+	parts := bytes.Fields(data[lastParen+2:])
 	if len(parts) < 22 {
 		return 0, 0, errors.New("stat too short")
 	}
 
-	utime, err := strconv.ParseInt(parts[11], 10, 64)
+	utime, err := strconv.ParseInt(string(parts[11]), 10, 64)
 	if err != nil {
 		return 0, 0, err
 	}
-	stime, err := strconv.ParseInt(parts[12], 10, 64)
+	stime, err := strconv.ParseInt(string(parts[12]), 10, 64)
 	if err != nil {
 		return 0, 0, err
 	}
-	rss, err := strconv.ParseInt(parts[21], 10, 64)
+	rss, err := strconv.ParseInt(string(parts[21]), 10, 64)
 	if err != nil {
 		return 0, 0, err
 	}
