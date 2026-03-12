@@ -37,29 +37,36 @@ func GetSocketPath() (string, error) {
 		return "/run/lynxd/lynx.sock", nil
 	}
 
-	// If the user belongs to the 'lynxadm' group, they are administering the system daemon
-	gids, err := u.GroupIds()
-	if err == nil {
-		lynxadmGroup, err := user.LookupGroup("lynxadm")
-		if err == nil {
-			for _, gid := range gids {
-				if gid == lynxadmGroup.Gid {
-					return "/run/lynxd/lynx.sock", nil
-				}
-			}
-		}
-	}
-
-	// 3. Rootless / User Daemon
-	// Unix
+	// 3. User-specific socket path calculation
 	baseDir := os.Getenv("XDG_RUNTIME_DIR")
 	if baseDir == "" {
 		baseDir = os.TempDir()
 	}
 
-	// Create a subdirectory for lynx
 	sockDir := filepath.Join(baseDir, "lynx-"+u.Uid)
+	userSocketPath := filepath.Join(sockDir, "lynx.sock")
 
+	// 4. Admin Exception (System Daemon Redirection)
+	// If the user belongs to 'lynxadm', they normally manage the system daemon.
+	// HOWEVER:
+	// - We only redirect if the system socket actually exists.
+	// - If the user has their own user-daemon socket, we should probably prefer it 
+	//   or at least not crash trying to bind to the system one.
+	if _, err := os.Stat("/run/lynxd/lynx.sock"); err == nil {
+		gids, err := u.GroupIds()
+		if err == nil {
+			lynxadmGroup, err := user.LookupGroup("lynxadm")
+			if err == nil {
+				for _, gid := range gids {
+					if gid == lynxadmGroup.Gid {
+						return "/run/lynxd/lynx.sock", nil
+					}
+				}
+			}
+		}
+	}
+
+	// 5. Rootless / User Daemon
 	// Ensure directory exists with 0700
 	if err := os.MkdirAll(sockDir, 0700); err != nil {
 		return "", fmt.Errorf("failed to create socket directory: %w", err)
@@ -70,5 +77,5 @@ func GetSocketPath() (string, error) {
 		return "", fmt.Errorf("failed to set socket directory permissions: %w", err)
 	}
 
-	return filepath.Join(sockDir, "lynx.sock"), nil
+	return userSocketPath, nil
 }

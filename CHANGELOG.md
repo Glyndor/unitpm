@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.4.10] - 2026-03-12
+
+### Bug Fixes
+- **ipc**: Fix socket path resolution for users in `lynxadm` group.
+  - Prioritize user-specific socket (`XDG_RUNTIME_DIR`) if the system-wide socket is not present.
+  - Fixes `permission denied` errors when running `lynx startup` in user mode as an admin.
+
 ## [0.4.9] - 2026-03-11
 
 ### Features
