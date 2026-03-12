@@ -132,7 +132,7 @@ func runUserStartup(runner Runner) error {
 	// but usually users can enable lingering for themselves.
 	fmt.Println("Enabling lingering to keep process running after logout...")
 	if _, stderr, _, err := runner.Run("loginctl", "enable-linger", currentUser.Username); err != nil {
-		fmt.Printf(term.YellowString("Warning: Failed to enable lingering: %v\n%s\n"), err, stderr)
+		fmt.Print(term.YellowString("Warning: Failed to enable lingering: %v\n%s\n", err, stderr))
 		fmt.Println("You might need to run this manually: sudo loginctl enable-linger " + currentUser.Username)
 	} else {
 		fmt.Println("Lingering enabled.")
