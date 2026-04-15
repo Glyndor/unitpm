@@ -169,7 +169,7 @@ func TestFilterProcesses(t *testing.T) {
 	procs := []types.ProcessInfo{
 		{ID: "1", Namespace: "prod"},
 		{ID: "2", Namespace: "staging"},
-		{ID: "3", Namespace: ""},  // treated as "default"
+		{ID: "3", Namespace: ""}, // treated as "default"
 	}
 
 	// No filter: all returned

@@ -30,12 +30,12 @@ const (
 
 // Config is marshaled as JSON into LYNX_SANDBOX_CONFIG by the daemon.
 type Config struct {
-	Cwd     string              `json:"cwd"`
-	LogDir  string              `json:"log_dir,omitempty"`
+	Cwd     string                `json:"cwd"`
+	LogDir  string                `json:"log_dir,omitempty"`
 	Allow   []landlock.PathAccess `json:"allow,omitempty"`
-	Limits  rlimit.Limits        `json:"limits"`
-	Command string               `json:"command"`
-	Args    []string             `json:"args"`
+	Limits  rlimit.Limits         `json:"limits"`
+	Command string                `json:"command"`
+	Args    []string              `json:"args"`
 }
 
 // Run is invoked when a sandboxed process starts. It performs the final

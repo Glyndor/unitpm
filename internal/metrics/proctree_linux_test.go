@@ -46,7 +46,7 @@ func TestProcTreeCollectorSafe(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to collect second time: %v", err)
 	}
-	
+
 	if metrics2.MemoryBytes == 0 {
 		t.Errorf("MemoryBytes is 0 on cache hit")
 	}

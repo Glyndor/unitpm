@@ -110,17 +110,17 @@ func runUserStartup(runner Runner) error {
 			return errors.New("lynxd binary not found. Please install Lynx correctly")
 		}
 	}
-	
+
 	// Resolve absolute path
 	lynxdPath, _ = filepath.Abs(lynxdPath)
 
 	// 3. Generate Unit File
 	// Default user socket path logic mirrors socket_unix.go
-	// We don't strictly need to set LYNX_SOCKET env if we use defaults, 
+	// We don't strictly need to set LYNX_SOCKET env if we use defaults,
 	// but it's safer to be explicit if needed. For now, let's rely on default behavior.
 	// But we DO need to know where the binary is.
-	unitContent := fmt.Sprintf(systemdUserUnit, lynxdPath, "") 
-	
+	unitContent := fmt.Sprintf(systemdUserUnit, lynxdPath, "")
+
 	unitPath := filepath.Join(configDir, "lynx.service")
 	if err := os.WriteFile(unitPath, []byte(unitContent), 0644); err != nil {
 		return fmt.Errorf("failed to write unit file: %w", err)

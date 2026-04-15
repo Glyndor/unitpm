@@ -75,9 +75,9 @@ func Run(client transport.IPCClient, w io.Writer, args []string) error {
 			Daemon *int `json:"daemon,omitempty"`
 		}
 		type jsonOutput struct {
-			CLI      versionEntry   `json:"cli"`
-			Daemon   *versionEntry  `json:"daemon,omitempty"`
-			Protocol protocolEntry  `json:"protocol"`
+			CLI      versionEntry  `json:"cli"`
+			Daemon   *versionEntry `json:"daemon,omitempty"`
+			Protocol protocolEntry `json:"protocol"`
 		}
 
 		out := jsonOutput{

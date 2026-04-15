@@ -10,8 +10,8 @@ import (
 	"os"
 
 	"github.com/Jaro-c/Lynx/internal/cli/commands/apply"
-	deletecmd "github.com/Jaro-c/Lynx/internal/cli/commands/delete"
 	"github.com/Jaro-c/Lynx/internal/cli/commands/completion"
+	deletecmd "github.com/Jaro-c/Lynx/internal/cli/commands/delete"
 	"github.com/Jaro-c/Lynx/internal/cli/commands/execenv"
 	"github.com/Jaro-c/Lynx/internal/cli/commands/execsandbox"
 	"github.com/Jaro-c/Lynx/internal/cli/commands/export"
