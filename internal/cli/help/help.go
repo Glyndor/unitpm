@@ -23,6 +23,12 @@ type CommandSpec struct {
 	Usage       string
 	Description string
 	Options     []Option
+	// Examples are shown at the bottom of `lynx <cmd> --help`. Each string
+	// is printed verbatim, indented.
+	Examples []string
+	// Hidden excludes the command from `lynx` / `lynx help` output while
+	// keeping it invokable. Use for internal wrappers.
+	Hidden bool
 }
 
 // RenderCommandHelp prints the help output for a single command.
@@ -70,22 +76,46 @@ func RenderCommandHelp(w io.Writer, spec CommandSpec) {
 	_, _ = fmt.Fprintln(w)
 	_, _ = fmt.Fprintf(w, "%s\n", term.CyanString("Options:"))
 
-	// Calculate padding
+	// Pre-compute the flag label for each option, handling short-only,
+	// long-only, and both cases without leaving a stray leading comma.
+	labels := make([]string, len(options))
 	maxLen := 0
-	for _, opt := range options {
-		// Length of "-s, --long"
-		l := len(opt.Short) + 2 + len(opt.Long) // 2 for ", "
-		if l > maxLen {
-			maxLen = l
+	for i, opt := range options {
+		labels[i] = flagLabel(opt)
+		if n := len(labels[i]); n > maxLen {
+			maxLen = n
 		}
 	}
 
-	for _, opt := range options {
-		flags := fmt.Sprintf("%s, %s", opt.Short, opt.Long)
-		padding := strings.Repeat(" ", maxLen-len(flags)+4)
-		_, _ = fmt.Fprintf(w, "  %s%s%s\n", term.BoldString("%s", flags), padding, opt.Description)
+	for i, opt := range options {
+		padding := strings.Repeat(" ", maxLen-len(labels[i])+4)
+		_, _ = fmt.Fprintf(w, "  %s%s%s\n", term.BoldString("%s", labels[i]), padding, opt.Description)
 	}
 	_, _ = fmt.Fprintln(w)
+
+	// 4. Examples
+	if len(spec.Examples) > 0 {
+		_, _ = fmt.Fprintf(w, "%s\n", term.CyanString("Examples:"))
+		for _, ex := range spec.Examples {
+			_, _ = fmt.Fprintf(w, "  %s\n", ex)
+		}
+		_, _ = fmt.Fprintln(w)
+	}
+}
+
+// flagLabel formats an option's flag names for help output, leaving out
+// the comma when only one form is present.
+func flagLabel(opt Option) string {
+	switch {
+	case opt.Short != "" && opt.Long != "":
+		return fmt.Sprintf("%s, %s", opt.Short, opt.Long)
+	case opt.Short != "":
+		return opt.Short
+	case opt.Long != "":
+		return "    " + opt.Long
+	default:
+		return ""
+	}
 }
 
 // RenderRootHelp prints the help output for the root command.
@@ -98,10 +128,18 @@ func RenderRootHelp(w io.Writer, specs []CommandSpec, showCommands bool) {
 		_, _ = fmt.Fprintln(w)
 		_, _ = fmt.Fprintf(w, "%s\n", term.CyanString("Commands:"))
 
-		// Calculate padding
+		// Filter out hidden internal commands (e.g. _exec-env, _exec-sandbox).
+		visible := make([]CommandSpec, 0, len(specs))
+		for _, s := range specs {
+			if s.Hidden {
+				continue
+			}
+			visible = append(visible, s)
+		}
+
 		maxLen := 0
-		displayNames := make([]string, len(specs))
-		for i, spec := range specs {
+		displayNames := make([]string, len(visible))
+		for i, spec := range visible {
 			name := spec.Name
 			if len(spec.Aliases) > 0 {
 				name = fmt.Sprintf("%s, %s", spec.Name, strings.Join(spec.Aliases, ", "))
@@ -112,7 +150,7 @@ func RenderRootHelp(w io.Writer, specs []CommandSpec, showCommands bool) {
 			}
 		}
 
-		for i, spec := range specs {
+		for i, spec := range visible {
 			padding := strings.Repeat(" ", maxLen-len(displayNames[i])+3)
 			_, _ = fmt.Fprintf(
 				w,
