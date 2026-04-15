@@ -9,17 +9,24 @@ cmd/
   lynx/           CLI entry point (client)
   lynxd/          Daemon entry point (server)
 internal/
-  cli/            All CLI command implementations (17 commands)
-    commands/     One directory per command (start, list, stop, …)
-    root/         Command dispatch + global flag parsing
+  cli/            All CLI command implementations (18 user-facing + 2 internal wrappers)
+    commands/     One directory per command
+      start/ list/ stop/ restart/ reload/ flush/ delete/
+      show/ logs/ monit/ apply/ export/ startup/ version/
+      update/ install-tools/ completion/
+      execenv/      internal wrapper for --isolation dynamic (LoadCredential)
+      execsandbox/  internal wrapper for --isolation sandbox (landlock + rlimit)
+    root/         Command dispatch + global flag parsing (--quiet)
     registry/     Maps command names to Run() functions
-    help/         Shared help rendering
+    help/         Shared help rendering (Hidden flag, Examples slot)
     errs/         Usage error type
   daemon/         Daemon runtime
     manager/      Process lifecycle (spawn, monitor, restart, cron)
     handlers/     IPC request handlers (start, stop, list, …)
-    policy/       Restart policy + backoff calculators
-    runtime/      Isolation primitives (DynamicUser, cgroups)
+    policy/       Authorization + restart policy + backoff calculators
+    runtime/      Isolation glue; thin wrappers around:
+      landlock/    Landlock ruleset (unprivileged filesystem sandbox)
+      rlimit/      setrlimit for sandbox resource caps
   ipc/
     protocol/     Wire types: AppSpec, StartRequest, responses, errors
     transport/    Unix-socket client, server, framing, identity

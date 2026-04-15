@@ -1,3 +1,31 @@
+lynx-pm (0.4.11-1) unstable; urgency=medium
+
+  * feat(cli): --isolation sandbox using user namespaces + landlock + rlimit
+    (unprivileged container isolation, no sudo required).
+  * feat(cli): global --quiet / -q flag.
+  * feat(start): --dry-run / -n previews the resolved spec without contacting
+    the daemon.
+  * feat(cli): lynx completion <bash|zsh|fish> emits shell completion scripts.
+  * feat(install-tools): default to ~/.local/bin, add --system flag for the
+    /usr/local/bin path (no longer requires root in the common case).
+  * fix(daemon): detect system mode by uid 0 OR lynx user. --isolation
+    dynamic now works on the shipped .deb (previously rejected because
+    lynxd runs as the lynx user, uid != 0).
+  * fix(handlers): validate cwd is accessible to the daemon user; replaces
+    the cryptic "fork/exec: permission denied" with a clear error.
+  * fix(polkit): grant manage-units when the "unit" detail is absent, which
+    is the typical case for systemd-run's StartTransientUnit. Unblocks
+    --isolation dynamic on the shipped .deb.
+  * fix(process): count every restart regardless of trigger (cron ticks
+    were not incrementing Restarts).
+  * fix(manager): reject duplicate (namespace, name) on start with ERR_CONFLICT.
+  * fix(cli): open IPC client lazily — bad invocations no longer emit a
+    daemon connection error before the usage message.
+  * fix(ipc): replace cryptic dial error with actionable daemon-off hint.
+  * docs: add SECURITY.md, ARCHITECTURE.md, runnable examples in --help.
+
+ -- Jaro-c <jaro-c@users.noreply.github.com>  Wed, 15 Apr 2026 14:00:00 -0500
+
 lynx-pm (0.4.10-1) unstable; urgency=medium
 
   * fix(ipc): allow lynxadm users to run user-mode daemons if system socket is missing
