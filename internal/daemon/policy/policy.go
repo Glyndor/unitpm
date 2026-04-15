@@ -26,6 +26,10 @@ func AuthorizeStart(spec protocol.AppSpec, _ *transport.Identity, daemonPrivileg
 			return errors.New("ERR_UNSUPPORTED: run_as=dynamic requires system daemon")
 		}
 		return nil
+	case "sandbox":
+		// Unprivileged sandbox: user namespaces + landlock + rlimit. Works
+		// in both user and system mode without sudo.
+		return nil
 	case "app_user":
 		return errors.New("ERR_UNSUPPORTED: run_as=app_user not supported in Phase 1")
 	case "explicit_user":

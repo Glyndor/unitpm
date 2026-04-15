@@ -358,6 +358,21 @@ func (p *Process) prepareIsolation(ctx context.Context, cmd *exec.Cmd) (*exec.Cm
 		runAs = *p.spec.RunAs
 	}
 
+	if runAs.Mode == "sandbox" {
+		lynxBin, err := p.getLynxBinary()
+		if err != nil {
+			return nil, fmt.Errorf("sandbox: locate lynx binary: %w", err)
+		}
+		opts := daemonRuntime.SandboxOptions{
+			LynxBin: lynxBin,
+			Cwd:     p.spec.Cwd,
+		}
+		if p.spec.Logs != nil {
+			opts.LogDir = p.spec.Logs.Dir
+		}
+		return daemonRuntime.WrapSandbox(ctx, cmd, opts)
+	}
+
 	if runAs.Mode == "dynamic" {
 		// Secure Environment via Credentials
 		credsDir := filepath.Join(paths.DataDir, "creds", p.info.ID)
