@@ -510,18 +510,33 @@ func (t *table) calculateWidths(termWidth int) []int {
 		}
 	}
 
-	// Check if we exceed terminal width
-	totalWidth := 1 // Initial border
-	for _, w := range widths {
-		totalWidth += w + 3 // Padding + border
-	}
-
-	// If we exceed terminal width, we need to shrink columns
-	// Simple strategy: shrink largest columns first until we fit
-	if totalWidth > termWidth {
-		// TODO: Implement more sophisticated column shrinking if needed
-		// For now, we rely on wrapping to handle the overflow visually if we force widths down
-		_ = 0
+	// Shrink the widest columns iteratively when the total exceeds the
+	// terminal width. We never drop below minColWidth so narrow columns
+	// (pid, ↺) still render readably; text in wider columns gets wrapped by
+	// wrapText() at render time.
+	const minColWidth = 3
+	for {
+		totalWidth := 1 // left border
+		for _, w := range widths {
+			totalWidth += w + 3 // cell padding + right border
+		}
+		if totalWidth <= termWidth {
+			break
+		}
+		// Find the widest column above minColWidth.
+		widestIdx := -1
+		for i, w := range widths {
+			if w <= minColWidth {
+				continue
+			}
+			if widestIdx == -1 || w > widths[widestIdx] {
+				widestIdx = i
+			}
+		}
+		if widestIdx == -1 {
+			break // nothing left to shrink
+		}
+		widths[widestIdx]--
 	}
 
 	return widths
