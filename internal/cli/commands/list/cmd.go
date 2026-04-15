@@ -22,6 +22,8 @@ import (
 	xterm "golang.org/x/term"
 )
 
+// DefaultNamespace is the namespace used when an AppSpec has no explicit
+// namespace set, both for storage and for `lynx list --namespace` filtering.
 const DefaultNamespace = "default"
 
 // Run executes the list command.
