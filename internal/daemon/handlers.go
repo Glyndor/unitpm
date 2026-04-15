@@ -208,6 +208,29 @@ func RegisterHandlers(server *transport.Server, mgr *manager.Manager, privileged
 		return jsonx.Marshal(resp)
 	})
 
+	server.Register("reset", func(
+		_ context.Context,
+		params jsonx.RawMessage,
+	) (jsonx.RawMessage, error) {
+		var args struct {
+			ID string `json:"id"`
+		}
+		if err := jsonx.Unmarshal(params, &args); err != nil {
+			return nil, err
+		}
+
+		id, err := mgr.ResolveID(args.ID)
+		if err != nil {
+			return nil, err
+		}
+
+		if err := mgr.Reset(id); err != nil {
+			return nil, err
+		}
+
+		return jsonx.Marshal(map[string]string{"status": "reset", "id": id})
+	})
+
 	server.Register("reload", func(
 		_ context.Context,
 		params jsonx.RawMessage,

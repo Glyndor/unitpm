@@ -21,6 +21,7 @@ import (
 	"github.com/Jaro-c/Lynx/internal/cli/commands/logs"
 	"github.com/Jaro-c/Lynx/internal/cli/commands/monit"
 	"github.com/Jaro-c/Lynx/internal/cli/commands/reload"
+	"github.com/Jaro-c/Lynx/internal/cli/commands/reset"
 	"github.com/Jaro-c/Lynx/internal/cli/commands/restart"
 	"github.com/Jaro-c/Lynx/internal/cli/commands/show"
 	"github.com/Jaro-c/Lynx/internal/cli/commands/start"
@@ -48,6 +49,7 @@ const (
 	cmdShow         = "show"
 	cmdMonit        = "monit"
 	cmdReload       = "reload"
+	cmdReset        = "reset"
 	cmdFlush        = "flush"
 	cmdUpdate       = "update"
 	cmdInstallTools = "install-tools"
@@ -168,6 +170,8 @@ func runCommand(name string, args []string) error {
 		return deletecmd.Run(nil, args)
 	case cmdReload:
 		return reload.Run(nil, args)
+	case cmdReset:
+		return reset.Run(nil, args)
 	case cmdFlush:
 		return flush.Run(nil, args)
 	}
@@ -207,6 +211,8 @@ func printCommandHelp(name string) int {
 		monit.PrintHelp()
 	case cmdReload:
 		reload.PrintHelp()
+	case cmdReset:
+		reset.PrintHelp()
 	case cmdFlush:
 		flush.PrintHelp()
 	case cmdCompletion:
@@ -272,5 +278,6 @@ func registerCommands() {
 	registry.Register(show.GetSpec())
 	registry.Register(monit.GetSpec())
 	registry.Register(reload.GetSpec())
+	registry.Register(reset.GetSpec())
 	registry.Register(flush.GetSpec())
 }

@@ -476,6 +476,14 @@ func (p *Process) setupLogs(cmd *exec.Cmd) error {
 		return fmt.Errorf("failed to create log dir: %w", err)
 	}
 
+	// Size-based rotation (safety net for user mode where logrotate is
+	// typically not configured). Triggered on every spawn so it kicks in
+	// after crash/restart cycles.
+	rotateIfLarge(stdoutPath)
+	if stderrPath != stdoutPath {
+		rotateIfLarge(stderrPath)
+	}
+
 	// Open Stdout
 	fOut, err := os.OpenFile(stdoutPath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0600)
 	if err != nil {
@@ -754,6 +762,17 @@ func (p *Process) ResetBackoff() {
 	p.restartCount = 0
 	p.lastRestart = time.Time{}
 	p.noAutoRestart = false
+}
+
+// ResetMetrics zeroes the user-visible Restarts counter and the internal
+// backoff bucket without touching the running process. Useful after fixing
+// a crash loop and wanting to observe stability from a clean baseline.
+func (p *Process) ResetMetrics() {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	p.info.Restarts = 0
+	p.restartCount = 0
+	p.lastRestart = time.Time{}
 }
 
 func (p *Process) getLynxBinary() (string, error) {

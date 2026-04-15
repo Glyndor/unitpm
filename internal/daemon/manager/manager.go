@@ -187,6 +187,19 @@ func (m *Manager) Restart(id string) error {
 	return proc.Restart()
 }
 
+// Reset zeroes the Restarts counter and internal backoff state for a process
+// without restarting it. Useful after resolving a crash loop.
+func (m *Manager) Reset(id string) error {
+	m.mu.RLock()
+	proc, exists := m.processes[id]
+	m.mu.RUnlock()
+	if !exists {
+		return fmt.Errorf("process not found: %s", id)
+	}
+	proc.ResetMetrics()
+	return nil
+}
+
 // Reload reloads a process configuration from its spec file and restarts the process.
 func (m *Manager) Reload(id string) error {
 	s, err := spec2.LoadSpec(id)
