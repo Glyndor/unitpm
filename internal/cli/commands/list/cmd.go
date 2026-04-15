@@ -4,6 +4,7 @@
 package list
 
 import (
+	"encoding/json"
 	"flag"
 	"fmt"
 	"io"
@@ -39,9 +40,11 @@ func Run(client transport.IPCClient, args []string) error {
 	var showLong bool
 	var namespaceFilter string
 	var sortSpec string
+	var jsonOutput bool
 	fs.BoolVar(&showLong, "long", false, "Show full process IDs")
 	fs.StringVar(&namespaceFilter, "namespace", "", "Filter by namespace")
 	fs.StringVar(&sortSpec, "sort", "", "Sort order, e.g. 'namespace:asc,name:asc,createdAt:desc'")
+	fs.BoolVar(&jsonOutput, "json", false, "Emit the process list as JSON on stdout")
 
 	if err := fs.Parse(args); err != nil {
 		if strings.HasPrefix(err.Error(), "flag provided but not defined: -") {
@@ -73,6 +76,15 @@ func Run(client transport.IPCClient, args []string) error {
 
 	if err := sortProcesses(processes, sortSpec); err != nil {
 		return err
+	}
+
+	if jsonOutput {
+		if processes == nil {
+			processes = []types.ProcessInfo{}
+		}
+		enc := json.NewEncoder(os.Stdout)
+		enc.SetIndent("", "  ")
+		return enc.Encode(processes)
 	}
 
 	renderTable(processes, showLong)
@@ -364,12 +376,14 @@ func GetSpec() help.CommandSpec {
 				Long:        "--sort <fields>",
 				Description: "Sort order, e.g. 'namespace:asc,name:asc,createdAt:desc'",
 			},
+			{Short: "", Long: "--json", Description: "Emit the process list as JSON on stdout"},
 		},
 		Examples: []string{
 			`lynx list`,
 			`lynx ls --namespace prod`,
 			`lynx ls --sort name:asc`,
 			`lynx ls --long`,
+			`lynx ls --json | jq '.[] | {name, state, pid}'`,
 		},
 	}
 }
