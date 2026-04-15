@@ -50,11 +50,18 @@ func RegisterHandlers(server *transport.Server, mgr *manager.Manager, privileged
 			return nil, err
 		}
 
+		// Check state before stopping to determine if the process was running
+		wasRunning := false
+		if proc, ok := mgr.Get(id); ok {
+			info := proc.Info()
+			wasRunning = info.State == "running" || info.State == "restarting" || info.State == "online"
+		}
+
 		if err := mgr.Stop(id); err != nil {
 			return nil, err
 		}
 
-		return jsonx.Marshal(map[string]string{"status": "stopped", "id": id})
+		return jsonx.Marshal(map[string]any{"status": "stopped", "id": id, "was_running": wasRunning})
 	})
 
 	// Register restart handler

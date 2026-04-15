@@ -17,8 +17,9 @@ func Run(client transport.IPCClient, args []string) error {
 
 	for _, id := range args {
 		var resp struct {
-			Status string `json:"status"`
-			ID     string `json:"id"`
+			Status     string `json:"status"`
+			ID         string `json:"id"`
+			WasRunning bool   `json:"was_running"`
 		}
 
 		err := client.Call("stop", map[string]string{"id": id}, &resp)
@@ -26,7 +27,11 @@ func Run(client transport.IPCClient, args []string) error {
 			term.Printf("Failed to stop %s: %v\n", id, err)
 			continue
 		}
-		term.Printf("Stopped %s\n", resp.ID)
+		if resp.WasRunning {
+			term.Printf("Stopped %s\n", resp.ID)
+		} else {
+			term.Printf("Already stopped: %s\n", resp.ID)
+		}
 	}
 	return nil
 }
