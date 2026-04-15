@@ -3,6 +3,7 @@ package list_test
 import (
 	"encoding/json"
 	"errors"
+	"os"
 	"reflect"
 	"strings"
 	"testing"
@@ -308,6 +309,89 @@ func TestRun_InvalidSort(t *testing.T) {
 	err := list.Run(mc, []string{"--sort", "badfield"})
 	if err == nil {
 		t.Fatal("expected error for invalid sort field")
+	}
+}
+
+func TestRun_JSON(t *testing.T) {
+	// Capture stdout to verify JSON shape.
+	orig := os.Stdout
+	r, w, _ := os.Pipe()
+	os.Stdout = w
+	defer func() { os.Stdout = orig }()
+
+	done := make(chan struct{})
+	var buf strings.Builder
+	go func() {
+		b := make([]byte, 4096)
+		for {
+			n, err := r.Read(b)
+			if n > 0 {
+				buf.Write(b[:n])
+			}
+			if err != nil {
+				break
+			}
+		}
+		close(done)
+	}()
+
+	procs := []types.ProcessInfo{
+		{ID: "id1", Name: "api", Namespace: "prod", State: types.StateRunning, PID: 1},
+		{ID: "id2", Name: "worker", Namespace: "prod", State: types.StateStopped},
+	}
+	mc := &mockClient{response: procs}
+	if err := list.Run(mc, []string{"--json"}); err != nil {
+		t.Fatalf("run --json: %v", err)
+	}
+	_ = w.Close()
+	<-done
+
+	var got []types.ProcessInfo
+	if err := json.Unmarshal([]byte(buf.String()), &got); err != nil {
+		t.Fatalf("output not valid JSON: %v\n%s", err, buf.String())
+	}
+	if len(got) != 2 {
+		t.Errorf("want 2 procs, got %d", len(got))
+	}
+	if got[0].Name != "api" || got[1].Name != "worker" {
+		t.Errorf("unexpected names: %v", got)
+	}
+}
+
+func TestRun_JSON_Empty(t *testing.T) {
+	orig := os.Stdout
+	r, w, _ := os.Pipe()
+	os.Stdout = w
+	defer func() { os.Stdout = orig }()
+	done := make(chan struct{})
+	var buf strings.Builder
+	go func() {
+		b := make([]byte, 1024)
+		for {
+			n, err := r.Read(b)
+			if n > 0 {
+				buf.Write(b[:n])
+			}
+			if err != nil {
+				break
+			}
+		}
+		close(done)
+	}()
+
+	mc := &mockClient{response: []types.ProcessInfo{}}
+	if err := list.Run(mc, []string{"--json"}); err != nil {
+		t.Fatalf("run: %v", err)
+	}
+	_ = w.Close()
+	<-done
+
+	var got []types.ProcessInfo
+	if err := json.Unmarshal([]byte(buf.String()), &got); err != nil {
+		t.Fatalf("want '[]', got %q (err=%v)", buf.String(), err)
+	}
+	if len(got) != 0 {
+		t.Errorf("expected empty, got %v", got)
 	}
 }
 
