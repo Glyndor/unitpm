@@ -49,17 +49,18 @@ func GetSocketPath() (string, error) {
 	// 4. Admin Exception (System Daemon Redirection)
 	// If the user belongs to 'lynxadm', they normally manage the system daemon.
 	// HOWEVER:
-	// - We only redirect if the system socket actually exists.
-	// - If the user has their own user-daemon socket, we should probably prefer it 
-	//   or at least not crash trying to bind to the system one.
+	// - If the user has their own user-daemon socket, we PREFER it.
+	// - We only redirect if the system socket exists AND the user doesn't have a personal one.
 	if _, err := os.Stat("/run/lynxd/lynx.sock"); err == nil {
-		gids, err := u.GroupIds()
-		if err == nil {
-			lynxadmGroup, err := user.LookupGroup("lynxadm")
+		if _, err := os.Stat(userSocketPath); os.IsNotExist(err) {
+			gids, err := u.GroupIds()
 			if err == nil {
-				for _, gid := range gids {
-					if gid == lynxadmGroup.Gid {
-						return "/run/lynxd/lynx.sock", nil
+				lynxadmGroup, err := user.LookupGroup("lynxadm")
+				if err == nil {
+					for _, gid := range gids {
+						if gid == lynxadmGroup.Gid {
+							return "/run/lynxd/lynx.sock", nil
+						}
 					}
 				}
 			}
