@@ -61,14 +61,14 @@ func Execute(args []string) int {
 	specs := registry.GetAll()
 
 	if len(args) < 1 {
-		help.RenderRootHelp(os.Stdout, specs, false)
+		help.RenderRootHelp(os.Stdout, specs, true)
 		return 0
 	}
 
 	cmdName := resolveCommand(args[0])
 	if cmdName == "" {
 		printError(os.Stderr, "Command not found: %s", args[0])
-		help.RenderRootHelp(os.Stderr, specs, false)
+		help.RenderRootHelp(os.Stderr, specs, true)
 		return 1
 	}
 
@@ -84,14 +84,14 @@ func Execute(args []string) int {
 				return printCommandHelp(subName)
 			}
 			if subName == cmdHelp {
-				help.RenderRootHelp(os.Stdout, specs, false)
+				help.RenderRootHelp(os.Stdout, specs, true)
 				return 0
 			}
 			printError(os.Stderr, "Command not found: %s", args[1])
-			help.RenderRootHelp(os.Stderr, specs, false)
+			help.RenderRootHelp(os.Stderr, specs, true)
 			return 1
 		}
-		help.RenderRootHelp(os.Stdout, specs, false)
+		help.RenderRootHelp(os.Stdout, specs, true)
 		return 0
 	}
 
