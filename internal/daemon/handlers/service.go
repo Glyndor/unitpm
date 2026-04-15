@@ -63,6 +63,17 @@ func StartProcess(
 				)
 			}
 		}
+		// Verify the daemon's own user can cd/stat into the resolved cwd.
+		// In system mode the daemon runs as `lynx`, so if the client is root
+		// inside /root the chdir() would later fail with a cryptic
+		// `fork/exec ... permission denied`. Surface a clean error now.
+		if f, err := os.Open(resolved); err != nil {
+			return types.ProcessInfo{}, errors.New(
+				"ERR_BAD_REQUEST: cwd is not accessible to the daemon user; pass --cwd to a directory readable by the daemon (e.g. /var/lib/lynx-pm or /tmp)",
+			)
+		} else {
+			_ = f.Close()
+		}
 		spec.Cwd = resolved
 	}
 
