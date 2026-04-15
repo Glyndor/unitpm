@@ -34,7 +34,8 @@ func getGlobalTreeSnapshot() (map[int][]int, error) {
 	defer procCacheMu.Unlock()
 
 	now := time.Now()
-	// Use 1-second TTL for the cache (as per the TODO suggestion)
+	// 1-second cache TTL: when N collectors run at once (one per managed
+	// process) only the first scan walks /proc; the rest share the snapshot.
 	if now.Sub(procTreeCacheTime) < time.Second && procTreeCache != nil {
 		return procTreeCache, nil
 	}
