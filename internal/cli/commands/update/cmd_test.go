@@ -37,3 +37,22 @@ func TestRun_InvalidFlags(t *testing.T) {
 		t.Errorf("Expected 'Unknown flag' error, got %v", err)
 	}
 }
+
+func TestRun_Help(t *testing.T) {
+	var buf bytes.Buffer
+	err := update.Run(&buf, []string{"--help"})
+	if err != nil {
+		t.Errorf("expected no error for --help, got %v", err)
+	}
+}
+
+func TestRun_UnexpectedArgs(t *testing.T) {
+	var buf bytes.Buffer
+	err := update.Run(&buf, []string{"extra-positional-arg"})
+	if err == nil {
+		t.Fatal("expected error for unexpected positional args")
+	}
+	if !strings.Contains(err.Error(), "Unexpected arguments") {
+		t.Errorf("unexpected error: %v", err)
+	}
+}
