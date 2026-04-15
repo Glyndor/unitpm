@@ -140,7 +140,8 @@ git clone https://github.com/Jaro-c/Lynx.git
 cd Lynx
 
 # 2. Build binaries manually
-$env:GOOS="linux"; $env:GOARCH="amd64"; go build -v -o lynx_linux_amd64 ./cmd/lynx
+GOOS=linux GOARCH=amd64 go build -v -o lynx_linux_amd64 ./cmd/lynx
+GOOS=linux GOARCH=amd64 go build -v -o lynxd_linux_amd64 ./cmd/lynxd
 
 # 3. Build & Install Debian Package locally
 sudo apt-get update && sudo apt-get install -y build-essential debhelper
@@ -151,11 +152,16 @@ sudo dpkg -i ../lynx-pm_*.deb
 ### User Mode (Optional)
 If you prefer per-user isolation without system-wide privileges:
 ```bash
-# Start the daemon as your user (in a separate terminal)
-systemd --user &
-# Then use lynx with default user-mode socket ($XDG_RUNTIME_DIR/lynx-<uid>/lynx.sock)
+# Run lynxd as your user in the background
+lynxd &
+# Then use lynx with the default user-mode socket ($XDG_RUNTIME_DIR/lynx-<uid>/lynx.sock)
 lynx list
 ```
+
+> **Note on `--isolation dynamic`**: this mode uses `systemd-run DynamicUser=yes`, which requires the system
+> systemd instance (not user-systemd). In **system mode**, the Polkit rule installed by the `.deb` package
+> lets the `lynx` user call it without sudo. In **user mode**, `DynamicUser` is unavailable because
+> synthetic users are a system-level primitive.
 
 ## 🚀 Deployment Guide (Debian/Ubuntu)
 
