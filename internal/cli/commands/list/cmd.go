@@ -185,6 +185,35 @@ func compareProcess(pi, pj types.ProcessInfo, f SortField) int {
 	return 0
 }
 
+// shortIDLen computes the minimum prefix length (>= 8) that uniquely identifies
+// every process ID in the list. Prevents collision when multiple processes are
+// created in rapid succession (UUID v7 timestamps overlap).
+func shortIDLen(processes []types.ProcessInfo) int {
+	const minLen = 8
+	if len(processes) <= 1 {
+		return minLen
+	}
+	for l := minLen; l <= 36; l++ {
+		seen := make(map[string]bool, len(processes))
+		collide := false
+		for _, p := range processes {
+			prefix := p.ID
+			if len(prefix) > l {
+				prefix = prefix[:l]
+			}
+			if seen[prefix] {
+				collide = true
+				break
+			}
+			seen[prefix] = true
+		}
+		if !collide {
+			return l
+		}
+	}
+	return 36 // full UUID as last resort
+}
+
 func renderTable(processes []types.ProcessInfo, showLong bool) {
 	// id | name | namespace | version | mode | pid | uptime | ↺ | status | cpu | mem | user | watch
 	headers := []string{
@@ -205,21 +234,25 @@ func renderTable(processes []types.ProcessInfo, showLong bool) {
 	}
 
 	t := newTable(headers)
+	idColWidth := shortIDLen(processes)
+	if showLong {
+		idColWidth = 36
+	}
 	t.maxColWidths = []int{
-		8,  // id
-		30, // name
-		20, // namespace
-		10, // version
-		10, // mode
-		8,  // pid
-		10, // uptime
-		5,  // restarts
-		15, // status
-		8,  // cpu
-		10, // mem
-		15, // user
-		20, // git
-		10, // watch
+		idColWidth, // id — dynamic width to avoid short-ID collisions
+		30,         // name
+		20,         // namespace
+		10,         // version
+		10,         // mode
+		8,          // pid
+		10,         // uptime
+		5,          // restarts
+		15,         // status
+		8,          // cpu
+		10,         // mem
+		15,         // user
+		20,         // git
+		10,         // watch
 	}
 
 	for _, p := range processes {
@@ -258,10 +291,15 @@ func renderTable(processes []types.ProcessInfo, showLong bool) {
 		}
 
 		var idStr string
-		if !showLong && len(p.ID) > 8 {
-			idStr = p.ID[:8]
-		} else {
+		if showLong {
 			idStr = p.ID
+		} else {
+			l := shortIDLen(processes)
+			if len(p.ID) > l {
+				idStr = p.ID[:l]
+			} else {
+				idStr = p.ID
+			}
 		}
 
 		var gitStr string
