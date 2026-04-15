@@ -82,7 +82,7 @@ func Run(client transport.IPCClient, args []string) error {
 		}
 		thisSpec.Env["LYNX_INSTANCE"] = strconv.Itoa(i)
 
-		// Save the spec to disk
+		// Save the spec to disk before calling daemon (daemon may restart mid-flight).
 		_, err = spec.SaveSpec(thisSpec.ID, thisSpec)
 		if err != nil {
 			return fmt.Errorf("failed to save spec: %w", err)
@@ -99,6 +99,9 @@ func Run(client transport.IPCClient, args []string) error {
 		var startResp protocol.StartResponseData
 		err = client.Call("start", req, &startResp)
 		if err != nil {
+			// Daemon rejected the spec — remove it from disk to prevent phantom
+			// entries being restored on next daemon restart.
+			_ = spec.DeleteSpec(thisSpec.ID)
 			return fmt.Errorf("start failed for instance %d: %w", i+1, err)
 		}
 
