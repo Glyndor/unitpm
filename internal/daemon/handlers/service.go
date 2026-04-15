@@ -17,7 +17,7 @@ import (
 	"github.com/Jaro-c/Lynx/internal/types"
 )
 
-var nameRegex = regexp.MustCompile(`^[a-zA-Z0-9][a-zA-Z0-9 ._:-]{0,63}$`)
+var nameRegex = regexp.MustCompile(`^[a-zA-Z0-9][a-zA-Z0-9 ._-]{0,63}$`)
 var namespaceRegex = regexp.MustCompile(`^[a-zA-Z0-9][a-zA-Z0-9._-]{0,63}$`)
 
 // StartProcess handles the process start request with full validation and policy enforcement.
@@ -40,10 +40,30 @@ func StartProcess(
 		if len(spec.Cwd) > 4096 {
 			return types.ProcessInfo{}, errors.New("ERR_LIMITS: cwd too long")
 		}
-		info, err := os.Stat(spec.Cwd)
+		cwd := filepath.Clean(spec.Cwd)
+		if !filepath.IsAbs(cwd) {
+			var err error
+			cwd, err = filepath.Abs(cwd)
+			if err != nil {
+				return types.ProcessInfo{}, errors.New("ERR_BAD_REQUEST: invalid cwd")
+			}
+		}
+		resolved, err := filepath.EvalSymlinks(cwd)
+		if err != nil {
+			return types.ProcessInfo{}, errors.New("ERR_BAD_REQUEST: invalid cwd")
+		}
+		info, err := os.Stat(resolved)
 		if err != nil || !info.IsDir() {
 			return types.ProcessInfo{}, errors.New("ERR_BAD_REQUEST: invalid cwd")
 		}
+		for _, restricted := range []string{"/etc", "/proc", "/sys", "/boot", "/dev", "/run"} {
+			if resolved == restricted || strings.HasPrefix(resolved, restricted+string(os.PathSeparator)) {
+				return types.ProcessInfo{}, errors.New(
+					"ERR_BAD_REQUEST: cwd is a restricted system directory; use --cwd to set a different path",
+				)
+			}
+		}
+		spec.Cwd = resolved
 	}
 
 	// Start process via Manager
