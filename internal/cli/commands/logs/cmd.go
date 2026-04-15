@@ -252,5 +252,11 @@ func GetSpec() help.CommandSpec {
 		Aliases:     []string{"log"},
 		Description: "View and follow process logs",
 		Usage:       "lynx logs <id|name> [--lines N] [--follow] [--stdout] [--stderr]",
+		Examples: []string{
+			`lynx logs api`,
+			`lynx logs api --follow`,
+			`lynx logs api --lines 100 --stderr`,
+			`lynx logs prod:api`,
+		},
 	}
 }

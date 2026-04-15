@@ -42,6 +42,11 @@ func GetSpec() help.CommandSpec {
 		Name:        "stop",
 		Description: "Stop a running process",
 		Usage:       "lynx stop <id|name>...",
+		Examples: []string{
+			`lynx stop api`,
+			`lynx stop prod:api`,
+			`lynx stop api worker-1 worker-2`,
+		},
 	}
 }
 

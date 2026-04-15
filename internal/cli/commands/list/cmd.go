@@ -354,6 +354,12 @@ func GetSpec() help.CommandSpec {
 				Description: "Sort order, e.g. 'namespace:asc,name:asc,createdAt:desc'",
 			},
 		},
+		Examples: []string{
+			`lynx list`,
+			`lynx ls --namespace prod`,
+			`lynx ls --sort name:asc`,
+			`lynx ls --long`,
+		},
 	}
 }
 

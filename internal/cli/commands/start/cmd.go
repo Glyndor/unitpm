@@ -490,5 +490,12 @@ func GetSpec() help.CommandSpec {
 			{Short: "", Long: "--isolation <mode>", Description: "Isolation mode (self, dynamic, sandbox)"},
 			{Short: "", Long: "--scale <N>", Description: "Number of instances to start"},
 		},
+		Examples: []string{
+			`lynx start "node server.js" --name api`,
+			`lynx start app.py --runtime python3 --restart on-failure`,
+			`lynx start "bun run dev" --name web --env-file .env`,
+			`lynx start worker.js --name w --scale 3`,
+			`lynx start server.js --isolation sandbox --cwd /srv/app`,
+		},
 	}
 }

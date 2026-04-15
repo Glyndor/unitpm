@@ -57,6 +57,11 @@ func GetSpec() help.CommandSpec {
 		Options: []help.Option{
 			{Short: "", Long: "--purge", Description: "Delete logs and runtime data"},
 		},
+		Examples: []string{
+			`lynx delete api`,
+			`lynx rm --purge old-worker`,
+			`lynx delete prod:api prod:worker`,
+		},
 	}
 }
 
