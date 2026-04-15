@@ -1,3 +1,4 @@
+// Package env parses .env files into key/value maps with quoting and escape handling.
 package env
 
 import (

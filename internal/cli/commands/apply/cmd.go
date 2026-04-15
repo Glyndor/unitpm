@@ -1,3 +1,4 @@
+// Package apply implements the apply command: applies a Lynxfile.yml declarative configuration to the daemon.
 package apply
 
 import (

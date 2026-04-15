@@ -1,3 +1,4 @@
+// Package paths resolves XDG-aware filesystem paths (config, logs, runtime socket) for both system and user mode deployments.
 package paths
 
 import (
@@ -8,10 +9,18 @@ import (
 	"strings"
 )
 
-const LogRoot = "/var/log/lynx-pm"
-const RunDir = "/run/lynxd"
-const CredsDir = "/var/lib/lynx-pm/creds"
-const DataDir = "/var/lib/lynx-pm"
+// System-mode filesystem layout. User-mode overrides these with XDG paths.
+const (
+	// LogRoot is the system-wide directory where lynxd writes per-process logs.
+	LogRoot = "/var/log/lynx-pm"
+	// RunDir is the system-mode runtime directory that holds the IPC socket.
+	RunDir = "/run/lynxd"
+	// CredsDir is where systemd LoadCredential= staging files are written
+	// for --isolation dynamic (one subdirectory per process ID).
+	CredsDir = "/var/lib/lynx-pm/creds"
+	// DataDir is the persistent state root for the lynx system user.
+	DataDir = "/var/lib/lynx-pm"
+)
 
 var currentEuid = getEuid
 

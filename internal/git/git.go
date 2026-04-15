@@ -1,3 +1,4 @@
+// Package git probes the HEAD of a repository to surface branch / commit / dirty state in process listings.
 package git
 
 import (

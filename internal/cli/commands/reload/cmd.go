@@ -1,3 +1,4 @@
+// Package reload implements the reload command: re-reads a process's spec and restarts it.
 package reload
 
 import (

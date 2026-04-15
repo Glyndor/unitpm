@@ -1,3 +1,4 @@
+// Package deletecmd implements the delete command: removes a process and its spec from the daemon.
 package deletecmd
 
 import (

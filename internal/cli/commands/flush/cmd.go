@@ -1,3 +1,4 @@
+// Package flush implements the flush command: truncates a process's log files.
 package flush
 
 import (

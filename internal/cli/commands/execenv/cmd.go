@@ -1,5 +1,6 @@
 //go:build linux
 
+// Package execenv implements the internal _exec-env wrapper used by --isolation dynamic to bridge LoadCredential env vars into the managed process.
 package execenv
 
 import (

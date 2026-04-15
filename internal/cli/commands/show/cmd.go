@@ -1,3 +1,4 @@
+// Package show implements the show command: prints detailed runtime + spec information for one process.
 package show
 
 import (

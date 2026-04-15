@@ -1,3 +1,6 @@
+// Package start implements the start command: parses a command line into
+// an AppSpec and tells the daemon to spawn it.
+//
 //nolint:gocognit,nestif,cyclop
 package start
 

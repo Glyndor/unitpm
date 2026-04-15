@@ -1,3 +1,4 @@
+// Package restart implements the restart command: stops and restarts a process via the daemon.
 package restart
 
 import (

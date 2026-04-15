@@ -1,3 +1,6 @@
+// Package logs implements the logs command: tails and streams a
+// process's stdout/stderr log files.
+//
 //nolint:gocognit,cyclop,nestif,gocyclo
 package logs
 

@@ -1,3 +1,6 @@
+// Package daemon wires the lynxd command handlers into the IPC server and
+// owns the daemon-side lifecycle.
+//
 //nolint:gocognit,cyclop,nestif,gocyclo,funlen
 package daemon
 

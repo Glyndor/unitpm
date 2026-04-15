@@ -1,3 +1,4 @@
+// Package monit implements the monit command: prints a refreshing live view of all managed processes.
 package monit
 
 import (

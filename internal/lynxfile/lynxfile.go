@@ -1,3 +1,4 @@
+// Package lynxfile parses the Lynxfile.yml declarative format and converts it into the daemon's AppSpec shape.
 package lynxfile
 
 import (

@@ -1,3 +1,4 @@
+// Package stop implements the stop command: sends SIGTERM (then SIGKILL if needed) to a managed process.
 package stop
 
 import (

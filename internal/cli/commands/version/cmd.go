@@ -1,3 +1,4 @@
+// Package version implements the version command: reports CLI + daemon versions and the IPC protocol version.
 package version
 
 import (
