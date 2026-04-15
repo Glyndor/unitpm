@@ -85,6 +85,35 @@ lynx logs ultra-api --follow
 ```
 
 ---
+
+## 🧩 Supported Runtimes
+
+Lynx is language-agnostic — it runs anything you can spawn as a Linux
+process. Common one-liners:
+
+| Stack | Example |
+|-------|---------|
+| **Node.js** | `lynx start server.js`  _(auto-detected)_ |
+| **Bun** | `lynx start "bun run server.ts"` |
+| **Deno** | `lynx start "deno run --allow-net server.ts"` |
+| **Python (system)** | `lynx start app.py --runtime python3` |
+| **Python (venv)** | `lynx start "/srv/api/.venv/bin/python app.py"` |
+| **Python (uv / uvx)** | `lynx start "uv run app.py" --cwd /srv/api` |
+| **Go (source)** | `lynx start main.go`  _(auto-detected)_ |
+| **Go (binary)** | `lynx start ./bin/api --cwd /srv/api` |
+| **Rust** | `lynx start ./target/release/api` |
+| **Ruby / Rails** | `lynx start "bundle exec rails server" --shell` |
+| **Java / JVM** | `lynx start "java -jar app.jar"` |
+| **Shell** | `lynx start /srv/api/start.sh` |
+
+See [`docs/RUNTIMES.md`](docs/RUNTIMES.md) for the full playbook —
+version-managed runtimes (fnm/nvm/pyenv/rbenv), virtualenvs, env-file
+injection, clustering with `--scale`, and the isolation-mode picker.
+
+If lynxd can't find your interpreter run `lynx install-tools` (user
+install to `~/.local/bin`) or `sudo lynx install-tools --system`.
+
+---
 ## 🔒 Access Model
 
 Lynx supports two modes of operation:

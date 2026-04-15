@@ -32,9 +32,17 @@ Start a new process managed by Lynx. This command creates a new application spec
 | `--log-timestamp` | string | rfc3339 | Log timestamp (`rfc3339`, `unix`, `none`). | `--log-timestamp unix` |
 | `--runtime` | string | - | Runtime for entry file (e.g., node, python). | `--runtime python3` |
 | `--env-file` | string | - | Path to a file containing environment variables. | `--env-file .env` |
-| `--isolation` | string | self | Isolation mode (`self`, `dynamic`). | `--isolation dynamic` |
+| `--isolation` | string | self | Isolation mode (`self`, `dynamic`, `sandbox`). | `--isolation sandbox` |
 | `--scale`, `--instances` | int | 1 | Number of instances to start. | `--scale 4` |
+| `-n`, `--dry-run` | - | - | Print the resolved spec without starting. | `--dry-run` |
+| `-q`, `--quiet` | - | - | Suppress success messages; errors still printed. | `--quiet` |
 | `-h`, `--help` | - | - | Show help message. | — |
+
+## Supported Runtimes
+
+Any Linux executable works. For language-specific recipes (Node/Bun/Deno,
+Python with venv / uv / uvx, Go / Rust / Ruby / Java, shell scripts),
+see [`docs/RUNTIMES.md`](../RUNTIMES.md).
 
 ## 🚀 Examples
 

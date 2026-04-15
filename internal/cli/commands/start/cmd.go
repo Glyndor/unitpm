@@ -555,9 +555,12 @@ func GetSpec() help.CommandSpec {
 		Examples: []string{
 			`lynx start "node server.js" --name api`,
 			`lynx start app.py --runtime python3 --restart on-failure`,
+			`lynx start "uv run main.py" --name worker --cwd /srv/app`,
 			`lynx start "bun run dev" --name web --env-file .env`,
+			`lynx start ./target/release/api --name api --restart always`,
 			`lynx start worker.js --name w --scale 3`,
 			`lynx start server.js --isolation sandbox --cwd /srv/app`,
+			`# Runtime recipes:  docs/RUNTIMES.md`,
 		},
 	}
 }
