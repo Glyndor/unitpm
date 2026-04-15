@@ -1,6 +1,8 @@
 package start_test
 
 import (
+	"encoding/json"
+	"errors"
 	"os"
 	"reflect"
 	"strings"
@@ -9,6 +11,101 @@ import (
 	"github.com/Jaro-c/Lynx/internal/cli/commands/start"
 	"github.com/Jaro-c/Lynx/internal/ipc/protocol"
 )
+
+type mockClient struct {
+	response any
+	err      error
+	calls    []string
+}
+
+func (m *mockClient) Call(cmd string, _ any, result any) error {
+	m.calls = append(m.calls, cmd)
+	if m.err != nil {
+		return m.err
+	}
+	if m.response != nil {
+		b, _ := json.Marshal(m.response)
+		_ = json.Unmarshal(b, result)
+	}
+	return nil
+}
+
+func (m *mockClient) Close() error { return nil }
+
+func TestRun_Help(t *testing.T) {
+	if err := start.Run(nil, []string{"--help"}); err != nil {
+		t.Errorf("expected no error for --help, got %v", err)
+	}
+}
+
+func TestRun_ParseError(t *testing.T) {
+	err := start.Run(nil, []string{})
+	if err == nil {
+		t.Fatal("expected error for empty args")
+	}
+	if !strings.Contains(err.Error(), "missing command") {
+		t.Errorf("unexpected error: %v", err)
+	}
+}
+
+func TestRun_Success(t *testing.T) {
+	// Point XDG_CONFIG_HOME to temp dir so SaveSpec writes there
+	t.Setenv("XDG_CONFIG_HOME", t.TempDir())
+
+	mc := &mockClient{
+		response: protocol.StartResponseData{
+			ProcID: "abc-123",
+			PID:    9999,
+			Status: "running",
+		},
+	}
+	err := start.Run(mc, []string{"echo", "hello"})
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+	if len(mc.calls) != 1 || mc.calls[0] != "start" {
+		t.Errorf("expected one 'start' IPC call, got %v", mc.calls)
+	}
+}
+
+func TestRun_Scale(t *testing.T) {
+	t.Setenv("XDG_CONFIG_HOME", t.TempDir())
+
+	mc := &mockClient{
+		response: protocol.StartResponseData{
+			ProcID: "abc-123",
+			PID:    9999,
+			Status: "running",
+		},
+	}
+	err := start.Run(mc, []string{"echo", "--scale", "3"})
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+	if len(mc.calls) != 3 {
+		t.Errorf("expected 3 IPC calls for scale=3, got %d", len(mc.calls))
+	}
+}
+
+func TestRun_IPCError_DeletesSpec(t *testing.T) {
+	t.Setenv("XDG_CONFIG_HOME", t.TempDir())
+
+	mc := &mockClient{err: errors.New("daemon rejected")}
+	err := start.Run(mc, []string{"echo"})
+	if err == nil {
+		t.Fatal("expected error")
+	}
+	if !strings.Contains(err.Error(), "start failed") {
+		t.Errorf("unexpected error: %v", err)
+	}
+}
+
+func TestGetSpec(t *testing.T) {
+	spec := start.GetSpec()
+	if spec.Name != "start" {
+		t.Errorf("expected name 'start', got %s", spec.Name)
+	}
+}
 
 func TestParseAppSpec(t *testing.T) {
 	cwd, err := os.Getwd()
