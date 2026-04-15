@@ -5,6 +5,13 @@ process and supervises the PID. The `--runtime` flag and file-extension
 auto-detection are convenience shortcuts — they never restrict what you can
 actually run.
 
+> **Verification status.** The Node.js, Bun, Python (system / venv / uv / uvx),
+> and Go (source + compiled) examples below are exercised end-to-end as part
+> of the development loop (see the `--scale`/`LYNX_INSTANCE` sanity check).
+> The Deno, Rust, Ruby, Java, and Docker recipes are written against each
+> tool's documented CLI shape but not currently part of the automated smoke
+> run — they should Just Work, but please open an issue if they don't.
+
 Two things matter:
 
 1. **The daemon must see the binary you're asking for.** In system mode the
