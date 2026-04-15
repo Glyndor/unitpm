@@ -1,6 +1,7 @@
 package version
 
 import (
+	"encoding/json"
 	"errors"
 	"flag"
 	"fmt"
@@ -22,6 +23,9 @@ func Run(client transport.IPCClient, w io.Writer, args []string) error {
 	fs := flag.NewFlagSet("version", flag.ContinueOnError)
 	fs.SetOutput(io.Discard)
 
+	var jsonOutput bool
+	fs.BoolVar(&jsonOutput, "json", false, "Output version info as JSON")
+
 	if help.IsHelp(args) {
 		PrintHelp()
 		return nil
@@ -41,15 +45,68 @@ func Run(client transport.IPCClient, w io.Writer, args []string) error {
 
 	local := version.Get()
 
-	// 1. Print local CLI version
-	_, _ = fmt.Fprintf(w, "%s\n", term.CyanString("%s", term.BoldString("Lynx CLI")))
-	printVersionInfo(w, local)
-
 	// 2. Attempt to connect to daemon
 	var err error
 	if client == nil {
 		client, err = transport.NewClient()
 	}
+
+	var daemonInfo *version.Info
+	var daemonErr error
+	if err == nil {
+		defer func() { _ = client.Close() }()
+		var di version.Info
+		daemonErr = client.Call("version", nil, &di)
+		if daemonErr == nil {
+			daemonInfo = &di
+		}
+	}
+
+	// JSON output mode
+	if jsonOutput {
+		type versionEntry struct {
+			Version   string `json:"version"`
+			Commit    string `json:"commit"`
+			BuildDate string `json:"build_date"`
+		}
+		type protocolEntry struct {
+			CLI    int  `json:"cli"`
+			Daemon *int `json:"daemon,omitempty"`
+		}
+		type jsonOutput struct {
+			CLI      versionEntry   `json:"cli"`
+			Daemon   *versionEntry  `json:"daemon,omitempty"`
+			Protocol protocolEntry  `json:"protocol"`
+		}
+
+		out := jsonOutput{
+			CLI: versionEntry{
+				Version:   local.Version,
+				Commit:    local.Commit,
+				BuildDate: local.BuildDate,
+			},
+			Protocol: protocolEntry{
+				CLI: local.ProtocolVersion,
+			},
+		}
+		if daemonInfo != nil {
+			out.Daemon = &versionEntry{
+				Version:   daemonInfo.Version,
+				Commit:    daemonInfo.Commit,
+				BuildDate: daemonInfo.BuildDate,
+			}
+			dv := daemonInfo.ProtocolVersion
+			out.Protocol.Daemon = &dv
+		}
+		enc := json.NewEncoder(w)
+		enc.SetIndent("", "  ")
+		return enc.Encode(out)
+	}
+
+	// 1. Print local CLI version
+	_, _ = fmt.Fprintf(w, "%s\n", term.CyanString("%s", term.BoldString("Lynx CLI")))
+	printVersionInfo(w, local)
+
 	if err != nil {
 		// Daemon not running or unreachable.
 		// Print only Protocol section and exit 0.
@@ -63,13 +120,9 @@ func Run(client transport.IPCClient, w io.Writer, args []string) error {
 		)
 		return nil
 	}
-	defer func() { _ = client.Close() }()
 
-	// 3. Fetch daemon version
-	var daemonInfo version.Info
-	err = client.Call("version", nil, &daemonInfo)
-	if err != nil {
-		if handleProtocolMismatch(w, local, err) {
+	if daemonErr != nil {
+		if handleProtocolMismatch(w, local, daemonErr) {
 			return errors.New("protocol mismatch")
 		}
 
@@ -88,7 +141,7 @@ func Run(client transport.IPCClient, w io.Writer, args []string) error {
 	// 4. Print daemon version
 	_, _ = fmt.Fprintln(w)
 	_, _ = fmt.Fprintf(w, "%s\n", term.CyanString("%s", term.BoldString("Lynx Daemon")))
-	printVersionInfo(w, daemonInfo)
+	printVersionInfo(w, *daemonInfo)
 
 	// 5. Print Protocol
 	_, _ = fmt.Fprintln(w)
@@ -195,6 +248,7 @@ func GetSpec() help.CommandSpec {
 		Usage:       term.BoldString("lynx version"),
 		Description: "Show version information for CLI and Daemon.",
 		Options: []help.Option{
+			{Long: "--json", Description: "Output version info as JSON."},
 			{Short: "-h", Long: "--help", Description: "Show this help message."},
 		},
 	}
