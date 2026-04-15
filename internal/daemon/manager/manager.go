@@ -91,6 +91,17 @@ func (m *Manager) StartWithSpec(spec protocol.AppSpec) (types.ProcessInfo, error
 		return types.ProcessInfo{}, fmt.Errorf("process with ID %s already exists", spec.ID)
 	}
 
+	// Enforce (namespace, name) uniqueness so `namespace:name` resolution
+	// stays unambiguous.
+	for _, existing := range m.processes {
+		if existing.info.Namespace == spec.Namespace && existing.info.Name == spec.Name {
+			return types.ProcessInfo{}, fmt.Errorf(
+				"ERR_CONFLICT: a process named %q already exists in namespace %q",
+				spec.Name, spec.Namespace,
+			)
+		}
+	}
+
 	proc, err := NewProcess(spec.ID, spec)
 	if err != nil {
 		return types.ProcessInfo{}, err
