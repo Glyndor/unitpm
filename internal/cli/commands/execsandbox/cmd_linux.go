@@ -17,6 +17,8 @@ import (
 	"strings"
 	"syscall"
 
+	"golang.org/x/sys/unix"
+
 	"github.com/Jaro-c/Lynx/internal/cli/help"
 	"github.com/Jaro-c/Lynx/internal/daemon/runtime/landlock"
 	"github.com/Jaro-c/Lynx/internal/daemon/runtime/rlimit"
@@ -57,6 +59,23 @@ func Run(args []string) error {
 	}
 	if cfg.Command == "" {
 		return errors.New("sandbox config missing command")
+	}
+
+	// Remount /proc so the new PID namespace sees only its own processes
+	// (ps, top, /proc/<pid>/... all become namespace-local). Requires the
+	// CLONE_NEWNS | CLONE_NEWPID flags set by the parent. Best-effort: if it
+	// fails we continue — the sandbox still has landlock+rlimit+user-ns.
+	//
+	// Mark the root mount as private first so our unshare's mount namespace
+	// doesn't propagate back to the host (systemd defaults to shared).
+	_ = unix.Mount("none", "/", "", unix.MS_REC|unix.MS_PRIVATE, "")
+	// Unmount the inherited /proc so we can cover it with a fresh one
+	// scoped to the new PID namespace. MNT_DETACH is used so we don't
+	// block on any open descriptors held by the parent.
+	_ = unix.Unmount("/proc", unix.MNT_DETACH)
+	mountFlags := uintptr(unix.MS_NOSUID | unix.MS_NODEV | unix.MS_NOEXEC)
+	if err := unix.Mount("proc", "/proc", "proc", mountFlags, ""); err != nil {
+		fmt.Fprintf(os.Stderr, "lynx: warning: could not remount /proc in sandbox: %v\n", err)
 	}
 
 	if cfg.Cwd != "" {

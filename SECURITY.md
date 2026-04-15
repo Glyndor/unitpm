@@ -123,8 +123,11 @@ These are tracked but not yet fixed. Contributions welcome.
 2. **No seccomp filter on managed processes.** Only `NoNewPrivileges` is
    applied. Per-app seccomp profiles are a planned feature.
 3. **No audit log** of destructive actions beyond systemd journal output.
-4. **No unprivileged sandbox** for user mode. Planned: `--isolation sandbox`
-   using user namespaces + landlock + cgroup v2 user delegation.
+4. **PID namespace visibility in `--isolation sandbox`.** The sandbox creates
+   a new PID namespace, but remounting `/proc` inside is blocked by locked
+   mounts and AppArmor policies on modern Ubuntu. `ps`, `top`, etc. still
+   read the host `/proc` and see host processes. Filesystem access and UID
+   isolation are unaffected (landlock + user namespace remain fully enforced).
 5. **No signature verification** of the `lynxd` binary on startup.
 
 ## Security Contacts

@@ -70,6 +70,9 @@ func WrapSandbox(ctx context.Context, cmd *exec.Cmd, opts SandboxOptions) (*exec
 	// child "feels" like root but has no real privileges.
 	uid := os.Getuid()
 	gid := os.Getgid()
+	// User + PID + mount namespaces at once. The mount namespace lets the
+	// child try to remount /proc (best-effort — often blocked on modern
+	// distros by locked mounts / AppArmor policies).
 	newCmd.SysProcAttr = &syscall.SysProcAttr{
 		Cloneflags: syscall.CLONE_NEWUSER |
 			syscall.CLONE_NEWPID |
