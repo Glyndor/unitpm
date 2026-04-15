@@ -163,12 +163,15 @@ func (p *Process) Start() error {
 }
 
 // Restart stops the process (if running) and starts it again.
+// Increments the Restarts counter regardless of the trigger (manual via
+// `lynx restart`, cron schedule, or failure-driven via handleRestart).
 func (p *Process) Restart() error {
 	p.mu.Lock()
 	if p.noAutoRestart {
 		p.mu.Unlock()
 		return nil
 	}
+	p.info.Restarts++
 	p.mu.Unlock()
 
 	_ = p.Stop(false) //nolint:errcheck
@@ -573,7 +576,8 @@ func (p *Process) handleRestart(exitCode int) {
 		p.restartCount = 0
 	}
 	p.restartCount++
-	p.info.Restarts++
+	// info.Restarts is incremented inside Restart() so all trigger paths
+	// (manual, cron, failure) share one counter update.
 	count := p.restartCount
 	p.lastRestart = time.Now()
 	p.mu.Unlock()
