@@ -5,12 +5,17 @@ process and supervises the PID. The `--runtime` flag and file-extension
 auto-detection are convenience shortcuts — they never restrict what you can
 actually run.
 
-> **Verification status.** The Node.js, Bun, Python (system / venv / uv / uvx),
-> and Go (source + compiled) examples below are exercised end-to-end as part
-> of the development loop (see the `--scale`/`LYNX_INSTANCE` sanity check).
-> The Deno, Rust, Ruby, Java, and Docker recipes are written against each
-> tool's documented CLI shape but not currently part of the automated smoke
-> run — they should Just Work, but please open an issue if they don't.
+> **Verification status.** The following runtimes are exercised end-to-end
+> through `lynx start` in a clean systemd-nspawn container with the Debian
+> package installed:
+>
+> Node 18, Bun 1.3, Deno 2.7, Python 3.12 (system / venv / uv / uvx),
+> Go (source + compiled binary), Rust, C, C++, OCaml, Haskell, Nim,
+> Java 21, Ruby 3.2, Perl 5.38, PHP 8.3, Lua 5.4, R 4.3, Erlang, Elixir 1.14,
+> Tcl 8.6, Bash 5.2.
+>
+> Docker-as-managed-process and Kotlin/Scala are shape-correct per each
+> tool's docs but not part of the automated matrix.
 
 Two things matter:
 
