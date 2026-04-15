@@ -139,11 +139,27 @@ func DimString(format string, a ...any) string {
 }
 
 // Printf formats according to a format specifier and writes to standard output.
+// Suppressed when quiet mode is active.
 func Printf(format string, a ...any) (int, error) {
+	if quiet {
+		return 0, nil
+	}
 	return fmt.Printf(format, a...)
 }
 
-// Println formats using the default formats for its operands and writes to standard output.
+// Println formats using the default formats for its operands and writes to
+// standard output. Suppressed when quiet mode is active.
 func Println(a ...any) (int, error) {
+	if quiet {
+		return 0, nil
+	}
 	return fmt.Println(a...)
 }
+
+var quiet bool
+
+// SetQuiet toggles suppression of success messages (errors still go to stderr).
+func SetQuiet(q bool) { quiet = q }
+
+// IsQuiet reports whether quiet mode is active.
+func IsQuiet() bool { return quiet }
