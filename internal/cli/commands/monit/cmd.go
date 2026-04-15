@@ -11,8 +11,18 @@ import (
 	"github.com/Jaro-c/Lynx/internal/types"
 )
 
-// Run executes the monit command to display live statistics for all running applications.
+// Run executes the monit command to display live statistics for all running
+// applications. Client is created lazily if nil.
 func Run(client transport.IPCClient, args []string) error {
+	if client == nil {
+		c, err := transport.NewClient()
+		if err != nil {
+			return err
+		}
+		defer func() { _ = c.Close() }()
+		client = c
+	}
+
 	interval := time.Second * 2
 
 	for {

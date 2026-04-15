@@ -11,6 +11,7 @@ import (
 
 	"github.com/Jaro-c/Lynx/internal/cli/commands/apply"
 	deletecmd "github.com/Jaro-c/Lynx/internal/cli/commands/delete"
+	"github.com/Jaro-c/Lynx/internal/cli/commands/completion"
 	"github.com/Jaro-c/Lynx/internal/cli/commands/execenv"
 	"github.com/Jaro-c/Lynx/internal/cli/commands/execsandbox"
 	"github.com/Jaro-c/Lynx/internal/cli/commands/export"
@@ -30,7 +31,6 @@ import (
 	"github.com/Jaro-c/Lynx/internal/cli/errs"
 	"github.com/Jaro-c/Lynx/internal/cli/help"
 	"github.com/Jaro-c/Lynx/internal/cli/registry"
-	"github.com/Jaro-c/Lynx/internal/ipc/transport"
 	"github.com/Jaro-c/Lynx/internal/term"
 )
 
@@ -53,6 +53,7 @@ const (
 	cmdInstallTools = "install-tools"
 	cmdExecEnv      = "_exec-env"
 	cmdExecSandbox  = "_exec-sandbox"
+	cmdCompletion   = "completion"
 	cmdHelp         = "help"
 	flagHelp        = "--help"
 )
@@ -61,6 +62,9 @@ const (
 func Execute(args []string) int {
 	registerCommands()
 	specs := registry.GetAll()
+
+	// Strip global flags (--quiet/-q) before command dispatch.
+	args = applyGlobalFlags(args)
 
 	if len(args) < 1 {
 		help.RenderRootHelp(os.Stdout, specs, true)
@@ -140,49 +144,32 @@ func runCommand(name string, args []string) error {
 		return execenv.Run(args)
 	case cmdExecSandbox:
 		return execsandbox.Run(args)
+	case cmdCompletion:
+		return completion.Run(args)
 	case cmdStartup:
 		return startup.Run(nil, args)
 	case cmdLogs:
 		return logs.Run(args)
 	case cmdShow:
-		client, err := transport.NewClient()
-		if err != nil {
-			return fmt.Errorf("failed to connect to daemon: %w", err)
-		}
-		defer func() { _ = client.Close() }()
-		return show.Run(client, args)
+		return show.Run(nil, args)
 	case cmdMonit:
-		client, err := transport.NewClient()
-		if err != nil {
-			return fmt.Errorf("failed to connect to daemon: %w", err)
-		}
-		defer func() { _ = client.Close() }()
-		return monit.Run(client, args)
-	case cmdList, cmdStart, cmdStop, cmdRestart, cmdDelete, cmdApply, cmdReload, cmdFlush:
-		client, err := transport.NewClient()
-		if err != nil {
-			return fmt.Errorf("failed to connect to daemon: %w", err)
-		}
-		defer func() { _ = client.Close() }()
-
-		switch name {
-		case cmdList:
-			return list.Run(client, args)
-		case cmdStart:
-			return start.Run(client, args)
-		case cmdApply:
-			return apply.Run(client, args)
-		case cmdStop:
-			return stop.Run(client, args)
-		case cmdRestart:
-			return restart.Run(client, args)
-		case cmdDelete:
-			return deletecmd.Run(client, args)
-		case cmdReload:
-			return reload.Run(client, args)
-		case cmdFlush:
-			return flush.Run(client, args)
-		}
+		return monit.Run(nil, args)
+	case cmdList:
+		return list.Run(nil, args)
+	case cmdStart:
+		return start.Run(nil, args)
+	case cmdApply:
+		return apply.Run(nil, args)
+	case cmdStop:
+		return stop.Run(nil, args)
+	case cmdRestart:
+		return restart.Run(nil, args)
+	case cmdDelete:
+		return deletecmd.Run(nil, args)
+	case cmdReload:
+		return reload.Run(nil, args)
+	case cmdFlush:
+		return flush.Run(nil, args)
 	}
 	return nil
 }
@@ -222,6 +209,8 @@ func printCommandHelp(name string) int {
 		reload.PrintHelp()
 	case cmdFlush:
 		flush.PrintHelp()
+	case cmdCompletion:
+		completion.PrintHelp()
 	}
 	return 0
 }
@@ -234,6 +223,20 @@ func handleError(err error, cmdName string) {
 	} else {
 		printError(os.Stderr, "%v", err)
 	}
+}
+
+// applyGlobalFlags strips recognized global flags from args and applies them
+// as side effects. Currently handles --quiet / -q.
+func applyGlobalFlags(args []string) []string {
+	out := make([]string, 0, len(args))
+	for _, a := range args {
+		if a == "--quiet" || a == "-q" {
+			term.SetQuiet(true)
+			continue
+		}
+		out = append(out, a)
+	}
+	return out
 }
 
 func isHelpRequest(args []string) bool {
@@ -263,6 +266,7 @@ func registerCommands() {
 	registry.Register(installtools.GetSpec())
 	registry.Register(execenv.GetSpec())
 	registry.Register(execsandbox.GetSpec())
+	registry.Register(completion.GetSpec())
 	registry.Register(apply.GetSpec())
 	registry.Register(export.GetSpec())
 	registry.Register(show.GetSpec())

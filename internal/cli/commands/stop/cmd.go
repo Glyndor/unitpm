@@ -9,10 +9,20 @@ import (
 	"github.com/Jaro-c/Lynx/internal/term"
 )
 
-// Run executes the stop command.
+// Run executes the stop command. Client is created lazily after
+// argument validation if nil.
 func Run(client transport.IPCClient, args []string) error {
 	if len(args) == 0 {
 		return errors.New("missing process ID or name")
+	}
+
+	if client == nil {
+		c, err := transport.NewClient()
+		if err != nil {
+			return err
+		}
+		defer func() { _ = c.Close() }()
+		client = c
 	}
 
 	for _, id := range args {

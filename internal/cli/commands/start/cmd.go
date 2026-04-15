@@ -18,12 +18,25 @@ import (
 	"github.com/Jaro-c/Lynx/internal/term"
 )
 
-// Run executes the start command.
+// Run executes the start command. If client is nil, it is created lazily
+// *after* argument validation so bad invocations fail without touching the
+// daemon socket.
 func Run(client transport.IPCClient, args []string) error {
 	if help.IsHelp(args) {
 		PrintHelp()
 		return nil
 	}
+
+	dryRun := false
+	filtered := make([]string, 0, len(args))
+	for _, a := range args {
+		if a == "--dry-run" || a == "-n" {
+			dryRun = true
+			continue
+		}
+		filtered = append(filtered, a)
+	}
+	args = filtered
 
 	appSpec, scale, err := ParseAppSpec(args)
 	if err != nil {
@@ -32,6 +45,19 @@ func Run(client transport.IPCClient, args []string) error {
 
 	if scale < 1 {
 		scale = 1
+	}
+
+	if dryRun {
+		return printDryRun(appSpec, scale)
+	}
+
+	if client == nil {
+		c, err := transport.NewClient()
+		if err != nil {
+			return err
+		}
+		defer func() { _ = c.Close() }()
+		client = c
 	}
 
 	// Derive base name if empty
@@ -420,15 +446,46 @@ func PrintHelp() {
 	help.RenderCommandHelp(os.Stdout, GetSpec())
 }
 
-func printSuccessResponse(data *protocol.StartResponseData, name string) {
-	fmt.Printf("Started %s\n", name)
-	if len(data.ProcID) > 8 {
-		fmt.Printf("  ID: %s (short: %s)\n", data.ProcID, data.ProcID[:8])
-	} else {
-		fmt.Printf("  ID: %s\n", data.ProcID)
+// printDryRun renders the resolved spec without talking to the daemon.
+func printDryRun(spec protocol.AppSpec, scale int) error {
+	fmt.Printf("Dry run — would start %d instance(s):\n", scale)
+	fmt.Printf("  command:   %s\n", spec.Exec.Command)
+	if len(spec.Exec.Args) > 0 {
+		fmt.Printf("  args:      %v\n", spec.Exec.Args)
 	}
-	fmt.Printf("  PID: %d\n", data.PID)
-	fmt.Printf("  Status: %s\n", data.Status)
+	if spec.Exec.Entry != "" {
+		fmt.Printf("  entry:     %s (%s)\n", spec.Exec.Entry, spec.Exec.Runtime)
+	}
+	fmt.Printf("  cwd:       %s\n", spec.Cwd)
+	fmt.Printf("  namespace: %s\n", spec.Namespace)
+	if spec.Name != "" {
+		fmt.Printf("  name:      %s\n", spec.Name)
+	}
+	if spec.RunAs != nil && spec.RunAs.Mode != "self" {
+		fmt.Printf("  isolation: %s\n", spec.RunAs.Mode)
+	}
+	if spec.Cron != "" {
+		fmt.Printf("  schedule:  %s\n", spec.Cron)
+	}
+	if spec.Restart != nil {
+		fmt.Printf("  restart:   policy=%s max=%d backoff=%s\n",
+			spec.Restart.Policy, spec.Restart.MaxRetries, spec.Restart.BackoffType)
+	}
+	if spec.EnvFile != "" {
+		fmt.Printf("  env-file:  %s\n", spec.EnvFile)
+	}
+	return nil
+}
+
+func printSuccessResponse(data *protocol.StartResponseData, name string) {
+	term.Printf("Started %s\n", name)
+	if len(data.ProcID) > 8 {
+		term.Printf("  ID: %s (short: %s)\n", data.ProcID, data.ProcID[:8])
+	} else {
+		term.Printf("  ID: %s\n", data.ProcID)
+	}
+	term.Printf("  PID: %d\n", data.PID)
+	term.Printf("  Status: %s\n", data.Status)
 }
 
 // GetSpec returns the command specification.
@@ -489,6 +546,8 @@ func GetSpec() help.CommandSpec {
 			{Short: "", Long: "--env-file <file>", Description: "Path to environment file"},
 			{Short: "", Long: "--isolation <mode>", Description: "Isolation mode (self, dynamic, sandbox)"},
 			{Short: "", Long: "--scale <N>", Description: "Number of instances to start"},
+			{Short: "-n", Long: "--dry-run", Description: "Print the resolved spec without starting anything"},
+			{Short: "-q", Long: "--quiet", Description: "Suppress success messages (errors still printed)"},
 		},
 		Examples: []string{
 			`lynx start "node server.js" --name api`,

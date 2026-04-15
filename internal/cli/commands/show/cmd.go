@@ -30,13 +30,24 @@ type showResponse struct {
 	Spec any `json:"spec"`
 }
 
-// Run executes the show command to display detailed information about a specific application.
+// Run executes the show command to display detailed information about a
+// specific application. Client is created lazily after argument validation
+// if nil.
 func Run(client transport.IPCClient, args []string) error {
 	if len(args) == 0 {
 		return errors.New("missing process ID or name")
 	}
 
 	id := args[0]
+
+	if client == nil {
+		c, err := transport.NewClient()
+		if err != nil {
+			return err
+		}
+		defer func() { _ = c.Close() }()
+		client = c
+	}
 
 	var resp showResponse
 	if err := client.Call("show", map[string]string{"id": id}, &resp); err != nil {

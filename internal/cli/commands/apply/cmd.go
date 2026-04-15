@@ -43,6 +43,16 @@ func Run(client transport.IPCClient, args []string) error {
 		return err
 	}
 
+	// Connect only after local validation succeeds.
+	if client == nil {
+		c, err := transport.NewClient()
+		if err != nil {
+			return err
+		}
+		defer func() { _ = c.Close() }()
+		client = c
+	}
+
 	for _, s := range specs {
 		id, err := spec.GenerateID()
 		if err != nil {

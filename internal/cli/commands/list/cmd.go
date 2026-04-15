@@ -53,6 +53,15 @@ func Run(client transport.IPCClient, args []string) error {
 		return &errs.UsageError{Message: fmt.Sprintf("Unexpected arguments: %v", fs.Args())}
 	}
 
+	if client == nil {
+		c, err := transport.NewClient()
+		if err != nil {
+			return err
+		}
+		defer func() { _ = c.Close() }()
+		client = c
+	}
+
 	var processes []types.ProcessInfo
 	if err := client.Call("list", nil, &processes); err != nil {
 		return fmt.Errorf("list failed: %w", err)

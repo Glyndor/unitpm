@@ -26,6 +26,15 @@ func Run(client transport.IPCClient, args []string) error {
 		return errors.New("missing process ID or name")
 	}
 
+	if client == nil {
+		c, err := transport.NewClient()
+		if err != nil {
+			return err
+		}
+		defer func() { _ = c.Close() }()
+		client = c
+	}
+
 	for _, id := range ids {
 		var resp struct {
 			Status string `json:"status"`
