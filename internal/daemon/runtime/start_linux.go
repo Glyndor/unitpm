@@ -1,6 +1,9 @@
 //go:build linux
 
-// Package runtime provides process runtime configuration.
+// Package runtime owns the per-process isolation primitives used by the
+// daemon when spawning children: the default `self` mode attaches a plain
+// SysProcAttr, `dynamic` is handled by the systemd-run wrapper in
+// manager.prepareIsolation, and `sandbox` is provided by WrapSandbox.
 package runtime
 
 import (
@@ -11,19 +14,18 @@ import (
 	"github.com/Jaro-c/Lynx/internal/ipc/protocol"
 )
 
-// ConfigureProcessIsolation sets up process isolation (namespaces, user, etc.) for the command.
+// ConfigureProcessIsolation attaches the SysProcAttr appropriate for the
+// requested RunAs mode. It is a no-op for "self" (and unknown modes) because
+// "dynamic" and "sandbox" are wrapped at a higher layer.
 func ConfigureProcessIsolation(cmd *exec.Cmd, runAs protocol.RunAsPolicy) error {
 	cmd.SysProcAttr = &syscall.SysProcAttr{}
 
 	switch runAs.Mode {
 	case "self":
 		return nil
-	case "app_user":
-		// TODO: Phase 2
-		return errors.New("ERR_UNSUPPORTED: run_as=app_user not supported in Phase 1")
-	case "explicit_user":
-		// TODO: Phase 2
-		return errors.New("ERR_UNSUPPORTED: run_as=explicit_user not supported in Phase 1")
+	case "app_user", "explicit_user":
+		// Reserved for future per-app uid/gid isolation.
+		return errors.New("ERR_UNSUPPORTED: run_as=" + runAs.Mode + " is not implemented yet; use 'dynamic' or 'sandbox'")
 	default:
 		return nil
 	}

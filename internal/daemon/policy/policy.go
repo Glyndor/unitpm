@@ -30,10 +30,10 @@ func AuthorizeStart(spec protocol.AppSpec, _ *transport.Identity, daemonPrivileg
 		// Unprivileged sandbox: user namespaces + landlock + rlimit. Works
 		// in both user and system mode without sudo.
 		return nil
-	case "app_user":
-		return errors.New("ERR_UNSUPPORTED: run_as=app_user not supported in Phase 1")
-	case "explicit_user":
-		return errors.New("ERR_UNSUPPORTED: run_as=explicit_user not supported in Phase 1")
+	case "app_user", "explicit_user":
+		// Reserved for future per-app uid/gid isolation. Use "dynamic"
+		// (system mode) or "sandbox" (user mode) in the meantime.
+		return errors.New("ERR_UNSUPPORTED: run_as=" + spec.RunAs.Mode + " is not implemented yet; use 'dynamic' or 'sandbox'")
 	default:
 		return errors.New("ERR_BAD_REQUEST: invalid run_as mode")
 	}
