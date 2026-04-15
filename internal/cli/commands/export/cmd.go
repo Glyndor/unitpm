@@ -101,6 +101,10 @@ func Run(args []string) error {
 		file.Apps = append(file.Apps, app)
 	}
 
+	if len(file.Apps) == 0 {
+		return fmt.Errorf("no apps found in namespace %q", namespace)
+	}
+
 	out, err := yaml.Marshal(file)
 	if err != nil {
 		return fmt.Errorf("failed to encode Lynxfile: %w", err)
