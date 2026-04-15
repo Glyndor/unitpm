@@ -28,10 +28,11 @@ func StartHandler(mgr *manager.Manager, privileged bool) transport.CommandHandle
 			return nil, errors.New("ERR_BAD_REQUEST: spec ID is required")
 		}
 
-		// TODO: Validate identity from ctx if needed for explicit_user
+		// Peer identity (uid/gid/pid) comes from SO_PEERCRED — the IPC
+		// server attaches it to ctx for every request. Future per-user
+		// isolation modes (explicit_user, app_user) will consult it.
 		identity, ok := ctx.Value(transport.ContextKeyIdentity).(*transport.Identity)
 		if !ok {
-			// Should not happen if server logic is correct
 			return nil, errors.New("INTERNAL_ERROR: identity not found")
 		}
 
