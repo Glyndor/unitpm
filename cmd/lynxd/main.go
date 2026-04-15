@@ -7,12 +7,27 @@ import (
 	"log"
 	"os"
 	"os/signal"
+	"os/user"
 	"syscall"
 
 	"github.com/Jaro-c/Lynx/internal/daemon"
 	"github.com/Jaro-c/Lynx/internal/daemon/manager"
 	"github.com/Jaro-c/Lynx/internal/ipc/transport"
 )
+
+// isSystemDaemon reports whether lynxd is the system-mode daemon, with
+// the polkit grants to call systemd-run with DynamicUser. Covers both
+// running as root and running as the `lynx` system user (the default
+// deployment from the Debian package).
+func isSystemDaemon() bool {
+	if os.Geteuid() == 0 {
+		return true
+	}
+	if u, err := user.Current(); err == nil && u.Username == "lynx" {
+		return true
+	}
+	return false
+}
 
 func main() {
 	log.Println("lynxd starting...")
@@ -21,7 +36,7 @@ func main() {
 	server := transport.NewServer()
 
 	// Register all handlers
-	privileged := os.Geteuid() == 0
+	privileged := isSystemDaemon()
 	daemon.RegisterHandlers(server, mgr, privileged)
 
 	// Restore state
