@@ -370,6 +370,8 @@ func (p *Process) prepareIsolation(ctx context.Context, cmd *exec.Cmd) (*exec.Cm
 		// We use cmd.Env which contains merged envs
 		envContent := strings.Join(cmd.Env, "\n")
 		if err := os.WriteFile(envPath, []byte(envContent), 0600); err != nil {
+			// Clean up the directory we just created to avoid secrets leaking on disk.
+			_ = os.RemoveAll(credsDir)
 			return nil, fmt.Errorf("failed to write env creds: %w", err)
 		}
 
@@ -483,11 +485,12 @@ func (p *Process) setupLogs(cmd *exec.Cmd) error {
 func (p *Process) monitor() {
 	err := p.cmd.Wait()
 
+	p.mu.Lock()
+	// Close log files under lock to prevent races with concurrent Start() calls.
 	for _, f := range p.logFiles {
 		_ = f.Close()
 	}
-
-	p.mu.Lock()
+	p.logFiles = nil
 	p.exitError = err
 
 	exitCode := 0
@@ -555,6 +558,7 @@ func (p *Process) handleRestart(exitCode int) {
 		p.restartCount = 0
 	}
 	p.restartCount++
+	p.info.Restarts++
 	count := p.restartCount
 	p.lastRestart = time.Now()
 	p.mu.Unlock()
