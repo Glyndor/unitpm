@@ -6,6 +6,8 @@ import (
 	"errors"
 	"fmt"
 	"net"
+	"os"
+	"strings"
 	"time"
 
 	"github.com/Jaro-c/Lynx/internal/ipc/protocol"
@@ -29,7 +31,7 @@ func NewClient() (IPCClient, error) {
 
 	conn, err := dial(path, 5*time.Second)
 	if err != nil {
-		return nil, err
+		return nil, daemonUnreachable(path, err)
 	}
 
 	scanner := bufio.NewScanner(conn)
@@ -156,4 +158,29 @@ func (c *Client) checkStatus(resp *protocol.Response) error {
 
 func generateID() string {
 	return uuid.Must(uuid.NewV7()).String()
+}
+
+// daemonUnreachable replaces the raw Unix-socket error with a message that
+// tells the user how to start lynxd. Falls through to the original error for
+// unrelated failures.
+func daemonUnreachable(path string, err error) error {
+	msg := err.Error()
+	connectionRefused := strings.Contains(msg, "connection refused")
+	noSocket := strings.Contains(msg, "no such file or directory")
+	if !connectionRefused && !noSocket {
+		return err
+	}
+
+	userMode := strings.Contains(path, "/run/user/") || strings.Contains(path, os.Getenv("XDG_RUNTIME_DIR"))
+	var hint string
+	if userMode {
+		hint = "Start the daemon in the background:\n    lynxd &\n  Or enable user-mode startup:\n    lynx startup"
+	} else {
+		hint = "Start the system daemon:\n    sudo systemctl start lynx.lynxd\n  If you just installed, also run:\n    sudo lynx startup"
+	}
+
+	return fmt.Errorf(
+		"cannot reach the Lynx daemon at %s\n  %s\n\n  Original error: %s",
+		path, hint, msg,
+	)
 }
