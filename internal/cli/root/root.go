@@ -12,6 +12,7 @@ import (
 	"github.com/Jaro-c/Lynx/internal/cli/commands/apply"
 	deletecmd "github.com/Jaro-c/Lynx/internal/cli/commands/delete"
 	"github.com/Jaro-c/Lynx/internal/cli/commands/execenv"
+	"github.com/Jaro-c/Lynx/internal/cli/commands/execsandbox"
 	"github.com/Jaro-c/Lynx/internal/cli/commands/export"
 	"github.com/Jaro-c/Lynx/internal/cli/commands/flush"
 	"github.com/Jaro-c/Lynx/internal/cli/commands/installtools"
@@ -51,6 +52,7 @@ const (
 	cmdUpdate       = "update"
 	cmdInstallTools = "install-tools"
 	cmdExecEnv      = "_exec-env"
+	cmdExecSandbox  = "_exec-sandbox"
 	cmdHelp         = "help"
 	flagHelp        = "--help"
 )
@@ -136,6 +138,8 @@ func runCommand(name string, args []string) error {
 		return export.Run(args)
 	case cmdExecEnv:
 		return execenv.Run(args)
+	case cmdExecSandbox:
+		return execsandbox.Run(args)
 	case cmdStartup:
 		return startup.Run(nil, args)
 	case cmdLogs:
@@ -258,6 +262,7 @@ func registerCommands() {
 	registry.Register(update.GetSpec())
 	registry.Register(installtools.GetSpec())
 	registry.Register(execenv.GetSpec())
+	registry.Register(execsandbox.GetSpec())
 	registry.Register(apply.GetSpec())
 	registry.Register(export.GetSpec())
 	registry.Register(show.GetSpec())

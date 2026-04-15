@@ -487,7 +487,7 @@ func GetSpec() help.CommandSpec {
 				Description: "Runtime for entry file (e.g., node, python)",
 			},
 			{Short: "", Long: "--env-file <file>", Description: "Path to environment file"},
-			{Short: "", Long: "--isolation <mode>", Description: "Isolation mode (self, dynamic)"},
+			{Short: "", Long: "--isolation <mode>", Description: "Isolation mode (self, dynamic, sandbox)"},
 			{Short: "", Long: "--scale <N>", Description: "Number of instances to start"},
 		},
 	}
