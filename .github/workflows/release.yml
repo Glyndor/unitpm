@@ -1,0 +1,54 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+
+      - name: Run tests
+        run: go test ./...
+
+      - name: Build binaries
+        run: |
+          VERSION="${GITHUB_REF_NAME}"
+          COMMIT="$(git rev-parse --short HEAD)"
+          BUILD_DATE="$(date -u +'%Y-%m-%dT%H:%M:%SZ')"
+          LDFLAGS="-s -w \
+            -X 'github.com/Jaro-c/Lynx/internal/version.Version=${VERSION}' \
+            -X 'github.com/Jaro-c/Lynx/internal/version.Commit=${COMMIT}' \
+            -X 'github.com/Jaro-c/Lynx/internal/version.BuildDate=${BUILD_DATE}'"
+
+          GOOS=linux GOARCH=amd64 go build -trimpath -ldflags="${LDFLAGS}" -o lynx_linux_amd64 ./cmd/lynx
+          GOOS=linux GOARCH=arm64 go build -trimpath -ldflags="${LDFLAGS}" -o lynx_linux_arm64 ./cmd/lynx
+
+      - name: Sign binaries
+        env:
+          RELEASE_SIGNING_KEY: ${{ secrets.RELEASE_SIGNING_KEY }}
+        run: |
+          go run scripts/sign.go lynx_linux_amd64
+          go run scripts/sign.go lynx_linux_arm64
+
+      - name: Create release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release create "${GITHUB_REF_NAME}" \
+            --title "${GITHUB_REF_NAME}" \
+            --generate-notes \
+            lynx_linux_amd64 \
+            lynx_linux_amd64.sig \
+            lynx_linux_arm64 \
+            lynx_linux_arm64.sig
