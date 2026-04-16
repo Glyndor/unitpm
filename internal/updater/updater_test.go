@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
-	"strings"
 	"testing"
 
 	"github.com/Jaro-c/Lynx/internal/version"
@@ -35,8 +34,6 @@ func newServer(t *testing.T, release Release, status int) *httptest.Server {
 }
 
 func TestCheck_UpToDate(t *testing.T) {
-	// Return the same version we're currently running — Check should
-	// report nil (no update available).
 	newServer(t, Release{TagName: version.Version}, 0)
 	r, err := Check(context.Background())
 	if err != nil {
@@ -48,7 +45,6 @@ func TestCheck_UpToDate(t *testing.T) {
 }
 
 func TestCheck_OlderAvailable_NoDowngrade(t *testing.T) {
-	// Server offers an older version — Check must not recommend downgrade.
 	newServer(t, Release{TagName: "v0.0.1"}, 0)
 	r, err := Check(context.Background())
 	if err != nil {
@@ -60,9 +56,6 @@ func TestCheck_OlderAvailable_NoDowngrade(t *testing.T) {
 }
 
 func TestCheck_NewerAvailable(t *testing.T) {
-	// Bump major so we always test a newer version regardless of
-	// current version.Version at build time.
-	current := parseVersion(strings.TrimPrefix(version.Version, "v"))
 	newer := Release{
 		TagName: "v99.99.99",
 		HTMLURL: "https://example.com/release",
@@ -81,7 +74,6 @@ func TestCheck_NewerAvailable(t *testing.T) {
 	if r.TagName != "v99.99.99" {
 		t.Errorf("tag: %s", r.TagName)
 	}
-	_ = current
 }
 
 func TestCheck_HTTPError(t *testing.T) {
@@ -120,7 +112,7 @@ func TestIsNewer(t *testing.T) {
 		{"1.2.3", "1.2.3", false},
 		{"1.0.1", "1.0.0", true},
 		{"2.0.0", "1.99.99", true},
-		{"1.10.0", "1.2.0", true}, // semver, not lexical
+		{"1.10.0", "1.2.0", true},
 	}
 	for _, c := range cases {
 		if got := isNewer(c.a, c.b); got != c.want {
@@ -136,8 +128,8 @@ func TestParseVersion(t *testing.T) {
 	}{
 		{"1.2.3", [3]int{1, 2, 3}},
 		{"0.4.11", [3]int{0, 4, 11}},
-		{"1.0", [3]int{1, 0, 0}}, // short is OK
-		{"abc", [3]int{0, 0, 0}}, // non-numeric falls back
+		{"1.0", [3]int{1, 0, 0}},
+		{"abc", [3]int{0, 0, 0}},
 	}
 	for _, c := range cases {
 		got := parseVersion(c.in)
@@ -148,8 +140,5 @@ func TestParseVersion(t *testing.T) {
 }
 
 func TestIsManagedByPackageSystem_NoPanic(t *testing.T) {
-	// We can't deterministically control what dpkg-query returns on the
-	// test host, but we can confirm the function does not panic and
-	// returns a bool.
 	_ = IsManagedByPackageSystem()
 }

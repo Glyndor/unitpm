@@ -8,10 +8,8 @@ import (
 	"github.com/Jaro-c/Lynx/internal/ipc/transport"
 )
 
-// TestRegisterHandlers_WiresEveryVerb verifies that the public surface of
-// the IPC server — the verb set — contains every command we ship, and no
-// verb is silently missing after a refactor. This is a schema check, not
-// a behaviour test; the per-handler behaviour lives with each command.
+// TestRegisterHandlers_WiresEveryVerb catches silent removal of a verb
+// after a refactor. Update wantVerbs when adding a new command.
 func TestRegisterHandlers_WiresEveryVerb(t *testing.T) {
 	server := transport.NewServer()
 	mgr := manager.NewManager()
@@ -28,8 +26,6 @@ func TestRegisterHandlers_WiresEveryVerb(t *testing.T) {
 	}
 }
 
-// TestRegisterHandlers_Privileged covers the privileged=true branch so
-// the coverage tool doesn't flag the toggled behaviour as dead.
 func TestRegisterHandlers_Privileged(t *testing.T) {
 	server := transport.NewServer()
 	mgr := manager.NewManager()
