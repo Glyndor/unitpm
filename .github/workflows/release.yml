@@ -36,8 +36,8 @@ jobs:
 
       - name: Build Debian package
         run: |
-          sudo apt-get update && sudo apt-get install -y --no-install-recommends debhelper
-          dpkg-buildpackage -us -uc -b
+          sudo apt-get update && sudo apt-get install -y --no-install-recommends debhelper build-essential
+          dpkg-buildpackage -us -uc -b -d
           cp ../lynx-pm_*.deb .
 
       - name: Sign binaries
