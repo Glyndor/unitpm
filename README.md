@@ -45,20 +45,30 @@ It is impossible to achieve this level of security with one command in other man
 
 Getting your app running has never been this easy.
 
-### 1. Install the Pre-built Package
-Forget about compiling source code. Just download the Debian package!
+### Option A: Download the binary (fastest)
 
 ```bash
-# Download the package (check the Releases tab for the latest version)
-curl -L -o lynxd.deb "$(curl -s https://api.github.com/repos/Jaro-c/Lynx/releases/latest | grep browser_download_url | grep amd64.deb | cut -d '"' -f 4)"
+# Download the latest binary
+curl -L -o lynx "$(curl -s https://api.github.com/repos/Jaro-c/Lynx/releases/latest \
+  | grep browser_download_url | grep 'lynx_linux_amd64"' | cut -d '"' -f 4)"
+chmod +x lynx
 
-# Install it
-sudo apt install ./lynxd.deb
+# Install system-wide (requires sudo):
+sudo mv lynx /usr/local/bin/
 
-# Clean up the downloaded file
-rm lynxd.deb
+# OR install for your user only (no sudo):
+mkdir -p ~/.local/bin && mv lynx ~/.local/bin/
+# Make sure ~/.local/bin is in your PATH
+```
 
-# Add yourself to the lynx admin group & enable the backend engine
+### Option B: Install the Debian package
+
+If you have the `.deb` (built from source or from a previous release):
+
+```bash
+sudo apt install ./lynx-pm_*.deb
+
+# Add yourself to the lynx admin group & enable the daemon
 sudo usermod -aG lynxadm $USER
 newgrp lynxadm
 sudo systemctl enable --now lynx.lynxd
@@ -208,7 +218,7 @@ dpkg-buildpackage -us -uc -b
 sudo dpkg -i ../lynx-pm_*.deb
 ```
 
-### User Mode (Optional)
+### User Mode (Optional, no sudo)
 If you prefer per-user isolation without system-wide privileges:
 ```bash
 # Run lynxd as your user in the background
@@ -216,6 +226,11 @@ lynxd &
 # Then use lynx with the default user-mode socket ($XDG_RUNTIME_DIR/lynx-<uid>/lynx.sock)
 lynx list
 ```
+
+> **Note (v0.5.0+)**: User mode requires `XDG_RUNTIME_DIR` to be set (standard
+> on systemd-logind sessions: SSH, desktop, `su -l`). Cron jobs and bare
+> non-login shells must export `LYNX_SOCKET` to an absolute path in a
+> private directory instead.
 
 > **Note on `--isolation dynamic`**: this mode uses `systemd-run DynamicUser=yes`, which requires the system
 > systemd instance (not user-systemd). In **system mode**, the Polkit rule installed by the `.deb` package
