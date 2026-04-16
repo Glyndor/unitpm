@@ -68,6 +68,15 @@ func (s *Server) Register(command string, handler CommandHandler) {
 	s.handlers[command] = handler
 }
 
+// HasHandler reports whether a handler is registered for the given command.
+// Used by tests to verify wiring.
+func (s *Server) HasHandler(command string) bool {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	_, ok := s.handlers[command]
+	return ok
+}
+
 // Start begins listening for connections.
 func (s *Server) Start() error {
 	path, err := GetSocketPath()

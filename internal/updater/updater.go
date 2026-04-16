@@ -26,6 +26,10 @@ const (
 	maxDownloadSize = 500 * 1024 * 1024
 )
 
+// releasesURL is the endpoint Check queries. Package-level var so tests
+// can point it at an httptest.Server.
+var releasesURL = fmt.Sprintf("https://api.github.com/repos/%s/%s/releases/latest", repoOwner, repoName)
+
 // Release represents a GitHub release.
 type Release struct {
 	TagName string  `json:"tag_name"`
@@ -43,10 +47,9 @@ type Asset struct {
 // Check checks for updates on GitHub.
 // Returns the release info if a new version is available, or nil if up to date.
 func Check(ctx context.Context) (*Release, error) {
-	url := fmt.Sprintf("https://api.github.com/repos/%s/%s/releases/latest", repoOwner, repoName)
 	client := &http.Client{Timeout: 10 * time.Second}
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, releasesURL, nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create request: %w", err)
 	}
