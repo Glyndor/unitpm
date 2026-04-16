@@ -219,6 +219,24 @@ func RegisterHandlers(server *transport.Server, mgr *manager.Manager, privileged
 	registerIDHandler(server, mgr, auditor, "reset", "reset", (*manager.Manager).Reset)
 	registerIDHandler(server, mgr, auditor, "reload", "reloaded", (*manager.Manager).Reload)
 
+	server.Register("scale", func(ctx context.Context, params jsonx.RawMessage) (jsonx.RawMessage, error) {
+		var args struct {
+			Name      string `json:"name"`
+			Namespace string `json:"namespace"`
+			Target    int    `json:"target"`
+		}
+		if err := jsonx.Unmarshal(params, &args); err != nil {
+			return nil, err
+		}
+		res, err := mgr.Scale(args.Namespace, args.Name, args.Target)
+		if err != nil {
+			auditEvent(auditor, ctx, "scale", args.Name, args.Name, args.Namespace, false, err)
+			return nil, err
+		}
+		auditEvent(auditor, ctx, "scale", args.Name, args.Name, args.Namespace, true, nil)
+		return jsonx.Marshal(res)
+	})
+
 	server.Register("flush", func(
 		ctx context.Context,
 		params jsonx.RawMessage,

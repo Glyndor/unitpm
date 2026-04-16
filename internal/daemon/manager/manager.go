@@ -6,9 +6,11 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"sort"
 	"strconv"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/Jaro-c/Lynx/internal/ipc/protocol"
 	spec2 "github.com/Jaro-c/Lynx/internal/spec"
@@ -198,6 +200,141 @@ func (m *Manager) Reset(id string) error {
 	}
 	proc.resetMetrics()
 	return nil
+}
+
+// ScaleResult describes the outcome of a scale operation.
+type ScaleResult struct {
+	BaseName  string   `json:"base_name"`
+	Namespace string   `json:"namespace"`
+	Before    int      `json:"before"`
+	After     int      `json:"after"`
+	Created   []string `json:"created,omitempty"` // new names
+	Deleted   []string `json:"deleted,omitempty"` // removed names
+}
+
+// Scale brings the number of running processes whose name matches
+// "<base>" or "<base>-N" (within the given namespace) to target. It uses
+// the spec of an existing instance as the template for new instances.
+// Returns an error if no instance exists to use as template.
+func (m *Manager) Scale(namespace, base string, target int) (*ScaleResult, error) {
+	if target < 0 {
+		return nil, fmt.Errorf("ERR_BAD_REQUEST: target count must be >= 0")
+	}
+	if target > 1024 {
+		return nil, fmt.Errorf("ERR_LIMITS: target count must be <= 1024")
+	}
+	if namespace == "" {
+		namespace = DefaultNamespace
+	}
+
+	members := m.scaleMembers(namespace, base)
+	res := &ScaleResult{BaseName: base, Namespace: namespace, Before: len(members)}
+
+	switch {
+	case target == len(members):
+		res.After = target
+		return res, nil
+	case target < len(members):
+		// Stop+delete the highest-indexed members first so the lower
+		// indices stay stable for the caller's mental model.
+		for i := len(members) - 1; i >= target; i-- {
+			name := members[i].info.Name
+			id := members[i].info.ID
+			if err := m.Delete(id); err != nil {
+				return res, fmt.Errorf("scale down: delete %s: %w", name, err)
+			}
+			res.Deleted = append(res.Deleted, name)
+		}
+	case target > len(members):
+		if len(members) == 0 {
+			return nil, fmt.Errorf(
+				"ERR_NOT_FOUND: no existing instance of %q in namespace %q to use as template",
+				base, namespace,
+			)
+		}
+		template := members[0].spec
+		taken := make(map[string]bool, len(members))
+		for _, m := range members {
+			taken[m.info.Name] = true
+		}
+		next := 1
+		for added := 0; added < target-len(members); added++ {
+			name := fmt.Sprintf("%s-%d", base, next)
+			for taken[name] {
+				next++
+				name = fmt.Sprintf("%s-%d", base, next)
+			}
+			taken[name] = true
+			newSpec := template
+			newSpec.Name = name
+			newSpec.Namespace = namespace
+			id, err := spec2.GenerateID()
+			if err != nil {
+				return res, fmt.Errorf("scale up: generate id: %w", err)
+			}
+			newSpec.ID = id
+			newSpec.CreatedAt = time.Now().Format(time.RFC3339)
+			if newSpec.Env == nil {
+				newSpec.Env = map[string]string{}
+			}
+			newSpec.Env["LYNX_INSTANCE"] = strconv.Itoa(added + len(members))
+
+			if _, err := spec2.SaveSpec(newSpec.ID, newSpec); err != nil {
+				return res, fmt.Errorf("scale up: save spec: %w", err)
+			}
+			if _, err := m.StartWithSpec(newSpec); err != nil {
+				_ = spec2.DeleteSpec(newSpec.ID)
+				return res, fmt.Errorf("scale up: start %s: %w", name, err)
+			}
+			res.Created = append(res.Created, name)
+			next++
+		}
+	}
+
+	res.After = target
+	return res, nil
+}
+
+// scaleMembers returns processes in namespace whose name is exactly `base`
+// or matches `base-<N>`, sorted by the numeric suffix (bare `base` first,
+// then 1, 2, …).
+func (m *Manager) scaleMembers(namespace, base string) []*Process {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+
+	var bare *Process
+	indexed := []*Process{}
+	type idx struct {
+		p *Process
+		n int
+	}
+	withIdx := []idx{}
+	prefix := base + "-"
+	for _, p := range m.processes {
+		if p.info.Namespace != namespace {
+			continue
+		}
+		if p.info.Name == base {
+			bare = p
+			continue
+		}
+		if strings.HasPrefix(p.info.Name, prefix) {
+			suffix := p.info.Name[len(prefix):]
+			n, err := strconv.Atoi(suffix)
+			if err != nil {
+				continue
+			}
+			withIdx = append(withIdx, idx{p, n})
+		}
+	}
+	sort.Slice(withIdx, func(i, j int) bool { return withIdx[i].n < withIdx[j].n })
+	for _, w := range withIdx {
+		indexed = append(indexed, w.p)
+	}
+	if bare != nil {
+		return append([]*Process{bare}, indexed...)
+	}
+	return indexed
 }
 
 // Reload reloads a process configuration from its spec file and restarts the process.
