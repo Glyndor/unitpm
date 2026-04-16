@@ -1,5 +1,34 @@
-lynx-pm (0.4.11-1) unstable; urgency=medium
+lynx-pm (0.5.0-1) unstable; urgency=high
 
+  [SECURITY]
+  * security(H1): ed25519 release signing — 'lynx update --apply' now
+    verifies a .sig companion asset before replacing the binary. Refuses
+    unsigned releases unless --insecure-skip-signature is passed.
+  * security(H2): unconditional PR_SET_NO_NEW_PRIVS in sandbox wrapper,
+    closes setuid escape on kernels without landlock (< 5.13).
+  * security(H3): reject absolute logs.stdout/stderr paths; add O_NOFOLLOW
+    on log file open to prevent symlink-mediated arbitrary file writes.
+  * security(H4): env_file ownership check — absolute env files must be
+    owned by the calling UID (blocks cross-tenant secret exfiltration).
+  * security(H5): abort sandbox if MS_PRIVATE mount fails — prevents host
+    /proc unmount via shared mount propagation.
+  * security(H6): per-sandbox private tmpfs over /tmp — isolates same-user
+    sandboxes from planting binaries for each other.
+  * security(M1): exact asset-name match in updater (was strings.Contains).
+  * security(M2): broader package-system detection (dpkg+rpm+pacman, pre-
+    and post-symlink paths).
+  * security(M3): reject non-absolute cwd in sandbox config.
+  * security(M4): refuse XDG_RUNTIME_DIR fallback to /tmp for socket path.
+    XDG_RUNTIME_DIR now required; LYNX_SOCKET remains as override.
+
+  [BREAKING CHANGES]
+  * 'lynx update --apply' requires --insecure-skip-signature until the
+    release workflow publishes signed assets.
+  * User-mode daemon now requires XDG_RUNTIME_DIR to be set (standard on
+    systemd-logind sessions). Non-login shells (cron, bare ssh) must
+    export LYNX_SOCKET to an absolute path in a private directory.
+
+  [FEATURES]
   * feat(cli): --isolation sandbox using user namespaces + landlock + rlimit
     (unprivileged container isolation, no sudo required).
   * feat(cli): global --quiet / -q flag.
@@ -8,6 +37,21 @@ lynx-pm (0.4.11-1) unstable; urgency=medium
   * feat(cli): lynx completion <bash|zsh|fish> emits shell completion scripts.
   * feat(install-tools): default to ~/.local/bin, add --system flag for the
     /usr/local/bin path (no longer requires root in the common case).
+  * feat(cli): add 'reset' command to zero Restarts counter without restart.
+  * feat(cli): add 'scale' command to grow/shrink an app post-hoc.
+  * feat(list): add --json flag for machine-readable output.
+  * feat(ipc): per-UID token-bucket rate limit on every IPC request (ON by
+    default, 200 burst / 100 req/s per UID).
+  * feat(daemon): audit log (JSON-lines) for every destructive action.
+    ON in system mode to /var/log/lynx-pm/audit.log.
+  * feat(start): configurable stop signal (--stop-signal) and graceful
+    timeout (--stop-timeout, default 10s).
+  * feat(start): resource limits via --memory-max, --cpu-max, --tasks-max.
+    Enforced via cgroup v2 (dynamic) or rlimit (sandbox).
+  * feat(daemon): size-based log rotation (50 MiB default, 3 backups).
+  * ci: GitHub Actions release workflow with ed25519 binary signing.
+
+  [FIXES]
   * fix(daemon): detect system mode by uid 0 OR lynx user. --isolation
     dynamic now works on the shipped .deb (previously rejected because
     lynxd runs as the lynx user, uid != 0).
@@ -23,20 +67,8 @@ lynx-pm (0.4.11-1) unstable; urgency=medium
     daemon connection error before the usage message.
   * fix(ipc): replace cryptic dial error with actionable daemon-off hint.
   * docs: add SECURITY.md, ARCHITECTURE.md, runnable examples in --help.
-  * feat(cli): add 'reset' command to zero Restarts counter without restart.
-  * feat(cli): add 'scale' command to grow/shrink an app post-hoc.
-  * feat(list): add --json flag for machine-readable output.
-  * feat(ipc): per-UID token-bucket rate limit on every IPC request (ON by
-    default, 200 burst / 100 req/s per UID).
-  * feat(daemon): audit log (JSON-lines) for every destructive action.
-    ON in system mode to /var/log/lynx-pm/audit.log.
-  * feat(start): configurable stop signal (--stop-signal) and graceful
-    timeout (--stop-timeout, default 10s).
-  * feat(start): resource limits via --memory-max, --cpu-max, --tasks-max.
-    Enforced via cgroup v2 (dynamic) or rlimit (sandbox).
-  * feat(daemon): size-based log rotation (50 MiB default, 3 backups).
 
- -- Jaro-c <jaro-c@users.noreply.github.com>  Tue, 15 Apr 2026 20:00:00 -0500
+ -- Jaro-c <jaro-c@users.noreply.github.com>  Wed, 16 Apr 2026 18:00:00 -0500
 
 lynx-pm (0.4.10-1) unstable; urgency=medium
 
