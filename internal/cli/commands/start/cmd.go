@@ -170,6 +170,22 @@ type specParser struct {
 	logFormat     string
 	logTimestamp  string
 
+	// Stop policy
+	stopSignal    string
+	stopTimeoutMs int
+
+	// Resource limits
+	memoryMax    string
+	cpuMaxPct    int
+	tasksMax     int
+
+	// Health probe
+	healthURL           string
+	healthExec          string
+	healthIntervalMs    int
+	healthTimeoutMs     int
+	healthFailThreshold int
+
 	parsingFlags bool
 	scale        int
 }
@@ -273,6 +289,26 @@ func (p *specParser) handleFlag(arg string) error {
 		return p.readStringValue(&p.logTimestamp)
 	case "--scale", "--instances":
 		return p.readIntValue(&p.scale)
+	case "--stop-signal":
+		return p.readStringValue(&p.stopSignal)
+	case "--stop-timeout":
+		return p.readIntValue(&p.stopTimeoutMs)
+	case "--memory-max":
+		return p.readStringValue(&p.memoryMax)
+	case "--cpu-max":
+		return p.readIntValue(&p.cpuMaxPct)
+	case "--tasks-max":
+		return p.readIntValue(&p.tasksMax)
+	case "--health-url":
+		return p.readStringValue(&p.healthURL)
+	case "--health-exec":
+		return p.readStringValue(&p.healthExec)
+	case "--health-interval":
+		return p.readIntValue(&p.healthIntervalMs)
+	case "--health-timeout":
+		return p.readIntValue(&p.healthTimeoutMs)
+	case "--health-fails":
+		return p.readIntValue(&p.healthFailThreshold)
 	default:
 		return fmt.Errorf("unknown flag: %s", arg)
 	}
@@ -374,9 +410,74 @@ func (p *specParser) finalize() (protocol.AppSpec, error) {
 		EnvFile: p.envFile,
 	}
 
+	if p.stopSignal != "" || p.stopTimeoutMs != 0 {
+		spec.Stop = &protocol.AppStop{
+			Signal:    p.stopSignal,
+			TimeoutMs: p.stopTimeoutMs,
+		}
+	}
+
+	if p.memoryMax != "" || p.cpuMaxPct != 0 || p.tasksMax != 0 {
+		memBytes, err := parseMemorySize(p.memoryMax)
+		if err != nil {
+			return protocol.AppSpec{}, err
+		}
+		spec.Resources = &protocol.AppResources{
+			MemoryMaxBytes: memBytes,
+			CPUMaxPercent:  p.cpuMaxPct,
+			TasksMax:       p.tasksMax,
+		}
+	}
+
+	if p.healthURL != "" || p.healthExec != "" {
+		h := &protocol.AppHealth{
+			URL:           p.healthURL,
+			Exec:          p.healthExec,
+			IntervalMs:    p.healthIntervalMs,
+			TimeoutMs:     p.healthTimeoutMs,
+			FailThreshold: p.healthFailThreshold,
+		}
+		if p.healthURL != "" {
+			h.Type = "http"
+		} else {
+			h.Type = "exec"
+		}
+		spec.Health = h
+	}
+
 	p.resolveExec(&spec)
 
 	return spec, nil
+}
+
+// parseMemorySize accepts values like "512M", "2G", "1024k", "10485760".
+// Returns 0 on empty string. K, M, G are base 1024. Case-insensitive.
+func parseMemorySize(s string) (int64, error) {
+	if s == "" {
+		return 0, nil
+	}
+	s = strings.TrimSpace(s)
+	if s == "" {
+		return 0, nil
+	}
+	mult := int64(1)
+	last := s[len(s)-1]
+	switch last {
+	case 'k', 'K':
+		mult = 1024
+		s = s[:len(s)-1]
+	case 'm', 'M':
+		mult = 1024 * 1024
+		s = s[:len(s)-1]
+	case 'g', 'G':
+		mult = 1024 * 1024 * 1024
+		s = s[:len(s)-1]
+	}
+	n, err := strconv.ParseInt(strings.TrimSpace(s), 10, 64)
+	if err != nil || n <= 0 {
+		return 0, fmt.Errorf("invalid memory size %q (expected e.g. 512M or 2G)", s)
+	}
+	return n * mult, nil
 }
 
 func (p *specParser) resolveExec(spec *protocol.AppSpec) {
@@ -549,6 +650,16 @@ func GetSpec() help.CommandSpec {
 			{Short: "", Long: "--env-file <file>", Description: "Path to environment file"},
 			{Short: "", Long: "--isolation <mode>", Description: "Isolation mode (self, dynamic, sandbox)"},
 			{Short: "", Long: "--scale <N>", Description: "Number of instances to start"},
+			{Short: "", Long: "--stop-signal <name>", Description: "Signal sent on stop (SIGTERM, SIGINT, SIGHUP, SIGQUIT, SIGUSR1, SIGUSR2)"},
+			{Short: "", Long: "--stop-timeout <ms>", Description: "Grace period before SIGKILL (default 10000, range 1000-300000)"},
+			{Short: "", Long: "--memory-max <size>", Description: "Hard memory ceiling: 512M, 2G, or bytes"},
+			{Short: "", Long: "--cpu-max <percent>", Description: "CPU cap as percent of one core (100 = 1 core, 200 = 2 cores)"},
+			{Short: "", Long: "--tasks-max <N>", Description: "Maximum number of tasks (threads + subprocesses)"},
+			{Short: "", Long: "--health-url <url>", Description: "HTTP liveness probe; restart on consecutive failures"},
+			{Short: "", Long: "--health-exec <cmd>", Description: "Command-based liveness probe (exit 0 = healthy)"},
+			{Short: "", Long: "--health-interval <ms>", Description: "Interval between probes (default 10000)"},
+			{Short: "", Long: "--health-timeout <ms>", Description: "Per-probe timeout (default 3000)"},
+			{Short: "", Long: "--health-fails <N>", Description: "Consecutive failures before restart (default 3)"},
 			{Short: "-n", Long: "--dry-run", Description: "Print the resolved spec without starting anything"},
 			{Short: "-q", Long: "--quiet", Description: "Suppress success messages (errors still printed)"},
 		},

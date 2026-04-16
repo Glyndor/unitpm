@@ -73,8 +73,56 @@ type AppSpec struct {
 	Restart   *AppRestart       `json:"restart,omitempty"`
 	Cron      string            `json:"cron,omitempty"`
 	RunAs     *RunAsPolicy      `json:"runAs,omitempty"`
+	Stop      *AppStop          `json:"stop,omitempty"`
+	Resources *AppResources     `json:"resources,omitempty"`
+	Health    *AppHealth        `json:"health,omitempty"`
 	CreatedAt string            `json:"created_at,omitempty"`
 	Disabled  bool              `json:"disabled,omitempty"`
+}
+
+// AppStop controls how the process is terminated. Zero values use sensible
+// defaults (SIGTERM, 10s grace period).
+type AppStop struct {
+	// Signal is the signal name to deliver first. "SIGTERM" if empty.
+	// Accepted: SIGTERM, SIGINT, SIGHUP, SIGQUIT, SIGUSR1, SIGUSR2.
+	Signal string `json:"signal,omitempty"`
+	// TimeoutMs is how long to wait for the process to exit after the
+	// first signal before sending SIGKILL. Bounded to [1000, 300000].
+	TimeoutMs int `json:"timeout_ms,omitempty"`
+}
+
+// AppResources bounds the runtime resources a managed process may use.
+// When the process runs under --isolation dynamic these map to systemd-run
+// -p MemoryMax/CPUQuota/TasksMax. Under --isolation sandbox they map to
+// setrlimit RLIMIT_AS/RLIMIT_NPROC (CPU% has no rlimit equivalent).
+type AppResources struct {
+	// MemoryMaxBytes is the hard memory ceiling. 0 means unlimited.
+	MemoryMaxBytes int64 `json:"memory_max_bytes,omitempty"`
+	// CPUMaxPercent caps CPU as a fraction of one core (0-100) or >100
+	// for multi-core. 0 means unlimited.
+	CPUMaxPercent int `json:"cpu_max_percent,omitempty"`
+	// TasksMax is the maximum number of tasks (pthreads + subprocesses).
+	// 0 means unlimited.
+	TasksMax int `json:"tasks_max,omitempty"`
+}
+
+// AppHealth configures periodic liveness probing. When N consecutive
+// probes fail the daemon restarts the process (subject to Restart policy).
+type AppHealth struct {
+	// Type is "http" (GET a URL and require 2xx) or "exec" (run a command
+	// and require exit code 0).
+	Type string `json:"type"`
+	// URL for type=http. Only http:// and https:// are permitted.
+	URL string `json:"url,omitempty"`
+	// Exec for type=exec. Runs relative to the process cwd.
+	Exec string `json:"exec,omitempty"`
+	// IntervalMs between probes. Bounded to [1000, 600000]. Default 10000.
+	IntervalMs int `json:"interval_ms,omitempty"`
+	// TimeoutMs per probe. Bounded to [100, 60000]. Default 3000.
+	TimeoutMs int `json:"timeout_ms,omitempty"`
+	// FailThreshold is how many consecutive failures before restart.
+	// Bounded to [1, 20]. Default 3.
+	FailThreshold int `json:"fail_threshold,omitempty"`
 }
 
 // AppExec defines execution details.

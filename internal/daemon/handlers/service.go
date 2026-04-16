@@ -189,5 +189,97 @@ func validateSpec(spec protocol.AppSpec) error {
 			return errors.New("ERR_LIMITS: env value too long")
 		}
 	}
+
+	if err := validateStop(spec.Stop); err != nil {
+		return err
+	}
+	if err := validateResources(spec.Resources); err != nil {
+		return err
+	}
+	if err := validateHealth(spec.Health); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// stopSignals is the allow-list of signal names accepted on AppStop.Signal.
+// Anything outside this set is rejected — SIGKILL/SIGSTOP/etc. are not
+// user-controllable because the daemon already escalates to SIGKILL.
+var stopSignals = map[string]struct{}{
+	"SIGTERM": {}, "SIGINT": {}, "SIGHUP": {}, "SIGQUIT": {},
+	"SIGUSR1": {}, "SIGUSR2": {},
+}
+
+func validateStop(s *protocol.AppStop) error {
+	if s == nil {
+		return nil
+	}
+	if s.Signal != "" {
+		if _, ok := stopSignals[s.Signal]; !ok {
+			return errors.New("ERR_BAD_REQUEST: invalid stop signal; allowed: SIGTERM, SIGINT, SIGHUP, SIGQUIT, SIGUSR1, SIGUSR2")
+		}
+	}
+	if s.TimeoutMs != 0 && (s.TimeoutMs < 1000 || s.TimeoutMs > 300000) {
+		return errors.New("ERR_LIMITS: stop.timeout_ms must be between 1000 and 300000 (1s to 5min)")
+	}
+	return nil
+}
+
+func validateResources(r *protocol.AppResources) error {
+	if r == nil {
+		return nil
+	}
+	if r.MemoryMaxBytes < 0 {
+		return errors.New("ERR_BAD_REQUEST: resources.memory_max_bytes must be >= 0")
+	}
+	// 1 MiB floor when set — anything smaller is almost certainly a mistake
+	// and many runtimes cannot even load.
+	if r.MemoryMaxBytes != 0 && r.MemoryMaxBytes < 1024*1024 {
+		return errors.New("ERR_LIMITS: resources.memory_max_bytes must be >= 1 MiB when set")
+	}
+	if r.CPUMaxPercent < 0 || r.CPUMaxPercent > 10000 {
+		return errors.New("ERR_LIMITS: resources.cpu_max_percent must be between 0 and 10000")
+	}
+	if r.TasksMax < 0 {
+		return errors.New("ERR_BAD_REQUEST: resources.tasks_max must be >= 0")
+	}
+	return nil
+}
+
+func validateHealth(h *protocol.AppHealth) error {
+	if h == nil {
+		return nil
+	}
+	switch h.Type {
+	case "http":
+		if h.URL == "" {
+			return errors.New("ERR_BAD_REQUEST: health.url is required for type=http")
+		}
+		if !strings.HasPrefix(h.URL, "http://") && !strings.HasPrefix(h.URL, "https://") {
+			return errors.New("ERR_BAD_REQUEST: health.url must be http:// or https://")
+		}
+		if len(h.URL) > 4096 {
+			return errors.New("ERR_LIMITS: health.url too long")
+		}
+	case "exec":
+		if h.Exec == "" {
+			return errors.New("ERR_BAD_REQUEST: health.exec is required for type=exec")
+		}
+		if len(h.Exec) > 4096 {
+			return errors.New("ERR_LIMITS: health.exec too long")
+		}
+	default:
+		return errors.New("ERR_BAD_REQUEST: health.type must be 'http' or 'exec'")
+	}
+	if h.IntervalMs != 0 && (h.IntervalMs < 1000 || h.IntervalMs > 600000) {
+		return errors.New("ERR_LIMITS: health.interval_ms must be between 1000 and 600000")
+	}
+	if h.TimeoutMs != 0 && (h.TimeoutMs < 100 || h.TimeoutMs > 60000) {
+		return errors.New("ERR_LIMITS: health.timeout_ms must be between 100 and 60000")
+	}
+	if h.FailThreshold != 0 && (h.FailThreshold < 1 || h.FailThreshold > 20) {
+		return errors.New("ERR_LIMITS: health.fail_threshold must be between 1 and 20")
+	}
 	return nil
 }

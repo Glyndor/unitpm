@@ -620,12 +620,45 @@ func (p *Process) handleRestart(exitCode int) {
 	}()
 }
 
-// gracefulStopTimeout is the time to wait for SIGTERM before sending SIGKILL.
-const gracefulStopTimeout = 10 * time.Second
+// defaultStopTimeout is the time to wait after the stop signal before
+// sending SIGKILL when the spec does not override it.
+const defaultStopTimeout = 10 * time.Second
 
-// Stop terminates the process gracefully. It sends SIGTERM first, waits up to
-// gracefulStopTimeout for the process to exit, then sends SIGKILL if needed.
-// If byUser is true, automatic restarts are disabled.
+// stopSignalByName maps the accepted signal names to their syscall value.
+// Restricted list — we never want users directing SIGSEGV/SIGKILL here.
+var stopSignalByName = map[string]syscall.Signal{
+	"SIGTERM": syscall.SIGTERM,
+	"SIGINT":  syscall.SIGINT,
+	"SIGHUP":  syscall.SIGHUP,
+	"SIGQUIT": syscall.SIGQUIT,
+	"SIGUSR1": syscall.SIGUSR1,
+	"SIGUSR2": syscall.SIGUSR2,
+}
+
+// resolveStop returns the signal and timeout to apply based on spec.Stop,
+// falling back to SIGTERM / defaultStopTimeout. Unknown signals silently
+// degrade to SIGTERM.
+func (p *Process) resolveStop() (syscall.Signal, time.Duration) {
+	sig := syscall.SIGTERM
+	timeout := defaultStopTimeout
+	if p.spec.Stop == nil {
+		return sig, timeout
+	}
+	if name := p.spec.Stop.Signal; name != "" {
+		if s, ok := stopSignalByName[name]; ok {
+			sig = s
+		}
+	}
+	if ms := p.spec.Stop.TimeoutMs; ms > 0 {
+		timeout = time.Duration(ms) * time.Millisecond
+	}
+	return sig, timeout
+}
+
+// Stop terminates the process gracefully. It sends the configured stop
+// signal first, waits up to the configured timeout for the process to
+// exit, then sends SIGKILL if needed. If byUser is true, automatic
+// restarts are disabled.
 func (p *Process) Stop(byUser bool) error {
 	p.mu.Lock()
 
@@ -651,28 +684,29 @@ func (p *Process) Stop(byUser bool) error {
 		p.info.PID = 0
 	}
 	proc := p.cmd.Process
+	sig, timeout := p.resolveStop()
 	p.mu.Unlock()
 
 	if proc == nil {
 		return nil
 	}
 
-	return gracefulKill(proc)
+	return gracefulKill(proc, sig, timeout)
 }
 
-// gracefulKill sends SIGTERM and waits for the process to exit. If the process
-// does not exit within gracefulStopTimeout, it sends SIGKILL.
-// It polls the process with Signal(0) to avoid a double-Wait conflict with the
-// monitor goroutine which already calls cmd.Wait().
-func gracefulKill(proc *os.Process) error {
-	// 1. Send SIGTERM to allow the process to clean up.
-	if err := proc.Signal(syscall.SIGTERM); err != nil {
+// gracefulKill sends the configured stop signal and waits for the process
+// to exit. If it does not exit within timeout, it sends SIGKILL.
+// It polls the process with Signal(0) to avoid a double-Wait conflict with
+// the monitor goroutine which already calls cmd.Wait().
+func gracefulKill(proc *os.Process, stopSignal syscall.Signal, timeout time.Duration) error {
+	// 1. Send the stop signal to allow the process to clean up.
+	if err := proc.Signal(stopSignal); err != nil {
 		// Process may have already exited; try Kill as last resort.
 		return proc.Kill()
 	}
 
 	// 2. Poll until process exits or timeout expires.
-	deadline := time.After(gracefulStopTimeout)
+	deadline := time.After(timeout)
 	ticker := time.NewTicker(200 * time.Millisecond)
 	defer ticker.Stop()
 
