@@ -16,6 +16,7 @@ Show Lynx version information for the CLI, Daemon, and IPC Protocol.
 
 | Flag | Type | Default | Description |
 |------|------|---------|-------------|
+| `--json` | - | - | Output version info as JSON (CLI, daemon, protocol). |
 | `-h`, `--help` | - | - | Show help message. |
 
 ## 🚀 Examples

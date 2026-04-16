@@ -142,8 +142,8 @@ Lynx supports two modes of operation:
 
 | Command | Description | Documentation |
 |---------|-------------|---------------|
-| `start` | Start a new process with monitoring, scheduling, and restart policies. | [Docs](docs/commands/start.md) |
-| `list` | List all managed processes with real-time status and metrics. | [Docs](docs/commands/list.md) |
+| `start` | Start a new process with monitoring, scheduling, isolation, and restart policies. | [Docs](docs/commands/start.md) |
+| `list` | List all managed processes (`--json` for machine-readable output). | [Docs](docs/commands/list.md) |
 | `logs` | View and follow process logs (stdout/stderr). | [Docs](docs/commands/logs.md) |
 | `show` | Show detailed information about a process. | [Docs](docs/commands/show.md) |
 | `stop` | Stop one or more running processes. | [Docs](docs/commands/stop.md) |
@@ -151,13 +151,36 @@ Lynx supports two modes of operation:
 | `reload` | Reload process configuration and restart. | [Docs](docs/commands/reload.md) |
 | `flush` | Truncate process log files. | [Docs](docs/commands/flush.md) |
 | `delete` | Delete one or more processes and their configurations. | [Docs](docs/commands/delete.md) |
+| `reset` | Zero the Restarts counter without touching the running process. | [Docs](docs/commands/reset.md) |
+| `scale` | Scale an app to N instances post-hoc. | [Docs](docs/commands/scale.md) |
+| `monit` | Live dashboard of all managed processes. | [Docs](docs/commands/monit.md) |
 | `apply` | Apply a declarative Lynxfile.yml and start apps. | [Docs](docs/commands/apply.md) |
 | `export` | Export a namespace to Lynxfile.yml. | [Docs](docs/commands/export.md) |
 | `startup` | Enable system startup for the daemon (systemd). | [Docs](docs/commands/startup.md) |
-| `version` | Display CLI, Daemon, and Protocol version information. | [Docs](docs/commands/version.md) |
+| `version` | Display CLI, Daemon, and Protocol version information (`--json`). | [Docs](docs/commands/version.md) |
 | `update` | Check for updates and apply them. | [Docs](docs/commands/update.md) |
-| `install-tools` | Automatically link dev tools (bun, node, etc) to system path. | [Docs](docs/commands/install-tools.md) |
+| `install-tools` | Symlink dev tools to `~/.local/bin` (or `--system` for `/usr/local/bin`). | [Docs](docs/commands/install-tools.md) |
+| `completion` | Generate shell completion scripts (bash, zsh, fish). | [Docs](docs/commands/completion.md) |
 | `help` | Show help for any command. | [Docs](docs/commands/help.md) |
+
+### Global Flags
+
+| Flag | Description |
+|------|-------------|
+| `-q`, `--quiet` | Suppress success messages; errors still go to stderr. |
+
+### Notable `start` Flags
+
+| Flag | Description |
+|------|-------------|
+| `--isolation <mode>` | `self` (default), `dynamic` (DynamicUser), `sandbox` (landlock + user ns) |
+| `--memory-max <size>` | Hard memory ceiling: `512M`, `2G`, or raw bytes |
+| `--cpu-max <percent>` | CPU cap as percent of one core (100 = 1 core) |
+| `--tasks-max <N>` | Max threads + subprocesses |
+| `--stop-signal <name>` | Signal on stop: SIGTERM (default), SIGINT, SIGHUP, etc. |
+| `--stop-timeout <ms>` | Grace before SIGKILL (default 10000) |
+| `--dry-run` / `-n` | Preview the resolved spec without starting |
+| `--scale <N>` | Start N instances (or use `lynx scale` post-hoc) |
 
 ## ⚙️ Advanced Installation & Build from Source
 

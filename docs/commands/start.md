@@ -17,6 +17,7 @@ Start a new process managed by Lynx. This command creates a new application spec
 | Flag | Type | Default | Description | Example |
 |------|------|---------|-------------|---------|
 | `--name` | string | auto | Assign a name to the process. | `--name my-api` |
+| `--namespace` | string | default | Namespace for grouping and resolution. | `--namespace prod` |
 | `--cwd` | string | CWD | Working directory for the process. | `--cwd /var/www` |
 | `--shell` | boolean | false | Execute command inside a shell (`/bin/sh -c`). | `--shell` |
 | `--schedule`, `--cron` | string | - | Cron schedule for restart (e.g. "@hourly"). | `--schedule "0 0 * * *"` |
@@ -34,6 +35,11 @@ Start a new process managed by Lynx. This command creates a new application spec
 | `--env-file` | string | - | Path to a file containing environment variables. | `--env-file .env` |
 | `--isolation` | string | self | Isolation mode (`self`, `dynamic`, `sandbox`). | `--isolation sandbox` |
 | `--scale`, `--instances` | int | 1 | Number of instances to start. | `--scale 4` |
+| `--stop-signal` | string | SIGTERM | Signal on stop (SIGTERM, SIGINT, SIGHUP, SIGQUIT, SIGUSR1, SIGUSR2). | `--stop-signal SIGINT` |
+| `--stop-timeout` | int | 10000 | Grace period before SIGKILL, in ms (1000–300000). | `--stop-timeout 30000` |
+| `--memory-max` | string | unlimited | Hard memory ceiling: `512M`, `2G`, or raw bytes. | `--memory-max 512M` |
+| `--cpu-max` | int | unlimited | CPU cap as percent of one core (100=1 core, 200=2 cores). | `--cpu-max 100` |
+| `--tasks-max` | int | unlimited | Maximum tasks (threads + subprocesses). | `--tasks-max 64` |
 | `-n`, `--dry-run` | - | - | Print the resolved spec without starting. | `--dry-run` |
 | `-q`, `--quiet` | - | - | Suppress success messages; errors still printed. | `--quiet` |
 | `-h`, `--help` | - | - | Show help message. | — |

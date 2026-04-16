@@ -19,6 +19,7 @@ List all processes managed by Lynx. Displays status, uptime, resource usage metr
 | `--long` | boolean | false | Show full process IDs. |
 | `--namespace` | string | - | Filter by namespace. |
 | `--sort` | string | - | Sort order (comma‑separated): fields `namespace`, `name`, `createdAt`, `id` with `asc|desc`. |
+| `--json` | boolean | false | Emit the process list as a JSON array on stdout. |
 | `-h`, `--help` | - | - | Show help message. |
 
 ## 🚀 Examples
@@ -41,6 +42,11 @@ lynx list --namespace default
 Custom sort:
 ```bash
 lynx list --sort "namespace:asc,name:asc,createdAt:desc"
+```
+
+JSON output (for scripting):
+```bash
+lynx list --json | jq '.[] | {name, state, pid}'
 ```
 
 ## 📋 Example Output

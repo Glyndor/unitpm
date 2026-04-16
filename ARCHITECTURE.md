@@ -21,9 +21,10 @@ internal/
     help/         Shared help rendering (Hidden flag, Examples slot)
     errs/         Usage error type
   daemon/         Daemon runtime
-    manager/      Process lifecycle (spawn, monitor, restart, cron)
+    manager/      Process lifecycle (spawn, monitor, restart, cron, scale)
     handlers/     IPC request handlers (start, stop, list, …)
     policy/       Authorization + restart policy + backoff calculators
+    audit/        JSON-lines audit log for destructive actions (system mode)
     runtime/      Isolation glue; thin wrappers around:
       landlock/    Landlock ruleset (unprivileged filesystem sandbox)
       rlimit/      setrlimit for sandbox resource caps
@@ -158,7 +159,7 @@ Set via `--isolation`:
 |-----------|-----------------------------------------|---------------------------------------|
 | `self`    | Plain `exec.Cmd`                        | Runs as daemon user (`lynx` or user)  |
 | `dynamic` | `systemd-run DynamicUser=yes` transient | Synthetic UID/GID per process         |
-| `sandbox` | _Planned_: namespaces + landlock        | Unprivileged, no sudo required        |
+| `sandbox` | user ns + landlock + rlimit + NO_NEW_PRIVS | Unprivileged, no sudo required        |
 
 `--isolation dynamic` only works in system mode (the user's systemd instance
 cannot create synthetic users). `--isolation sandbox` will fill the gap for
@@ -206,7 +207,8 @@ RemoteError{
 ```
 
 Codes used: `ERR_BAD_REQUEST`, `ERR_NOT_FOUND`, `ERR_CONFLICT`,
-`ERR_LIMITS`, `ERR_UNSUPPORTED`, `PROTOCOL_MISMATCH`, `INTERNAL_ERROR`.
+`ERR_LIMITS`, `ERR_UNSUPPORTED`, `ERR_RATE_LIMIT`, `ERR_TIMEOUT`,
+`PROTOCOL_MISMATCH`, `INTERNAL_ERROR`.
 
 The CLI maps these to exit codes in `internal/cli/errs`.
 

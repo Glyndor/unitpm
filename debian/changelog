@@ -23,8 +23,20 @@ lynx-pm (0.4.11-1) unstable; urgency=medium
     daemon connection error before the usage message.
   * fix(ipc): replace cryptic dial error with actionable daemon-off hint.
   * docs: add SECURITY.md, ARCHITECTURE.md, runnable examples in --help.
+  * feat(cli): add 'reset' command to zero Restarts counter without restart.
+  * feat(cli): add 'scale' command to grow/shrink an app post-hoc.
+  * feat(list): add --json flag for machine-readable output.
+  * feat(ipc): per-UID token-bucket rate limit on every IPC request (ON by
+    default, 200 burst / 100 req/s per UID).
+  * feat(daemon): audit log (JSON-lines) for every destructive action.
+    ON in system mode to /var/log/lynx-pm/audit.log.
+  * feat(start): configurable stop signal (--stop-signal) and graceful
+    timeout (--stop-timeout, default 10s).
+  * feat(start): resource limits via --memory-max, --cpu-max, --tasks-max.
+    Enforced via cgroup v2 (dynamic) or rlimit (sandbox).
+  * feat(daemon): size-based log rotation (50 MiB default, 3 backups).
 
- -- Jaro-c <jaro-c@users.noreply.github.com>  Wed, 15 Apr 2026 14:00:00 -0500
+ -- Jaro-c <jaro-c@users.noreply.github.com>  Tue, 15 Apr 2026 20:00:00 -0500
 
 lynx-pm (0.4.10-1) unstable; urgency=medium
 

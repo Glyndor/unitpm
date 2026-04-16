@@ -113,22 +113,28 @@ All specs are validated in the daemon *after* IPC, never trusting the CLI:
   with `lynx version --json`.
 - Releases are built via `scripts/build_deb.sh` from a clean checkout.
 
+## Mitigations Shipped
+
+1. **IPC rate limiting (v0.4.11).** Per-UID token-bucket (200 burst,
+   100 req/s by default). Requests over limit receive `ERR_RATE_LIMIT`.
+   Configurable via `LYNX_IPC_RATE_BURST` / `LYNX_IPC_RATE_PER_SEC`.
+2. **Audit log (v0.4.11).** Every destructive action (start/stop/delete/
+   reload/restart/reset/flush/scale) writes a JSON-line to
+   `/var/log/lynx-pm/audit.log` (system mode, 0600). Includes caller
+   UID/GID/PID, target ID+name+namespace, success/error, UTC timestamp.
+
 ## Known Limitations
 
-These are tracked but not yet fixed. Contributions welcome.
+Contributions welcome.
 
-1. **No IPC rate limiting.** A malicious `lynxadm` member can flood the daemon
-   with `start` requests. Partial mitigation: per-process cgroups restrict
-   resource use.
-2. **No seccomp filter on managed processes.** Only `NoNewPrivileges` is
+1. **No seccomp filter on managed processes.** Only `NoNewPrivileges` is
    applied. Per-app seccomp profiles are a planned feature.
-3. **No audit log** of destructive actions beyond systemd journal output.
-4. **PID namespace visibility in `--isolation sandbox`.** The sandbox creates
+2. **PID namespace visibility in `--isolation sandbox`.** The sandbox creates
    a new PID namespace, but remounting `/proc` inside is blocked by locked
    mounts and AppArmor policies on modern Ubuntu. `ps`, `top`, etc. still
    read the host `/proc` and see host processes. Filesystem access and UID
    isolation are unaffected (landlock + user namespace remain fully enforced).
-5. **No signature verification** of the `lynxd` binary on startup.
+3. **No signature verification** of the `lynxd` binary on startup.
 
 ## Security Contacts
 
