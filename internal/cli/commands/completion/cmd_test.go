@@ -11,7 +11,8 @@ import (
 )
 
 // captureStdout runs fn with os.Stdout rerouted to an in-memory buffer and
-// returns what was written.
+// returns what was written. Panic-safe: os.Stdout is always restored and the
+// reader goroutine always terminates, even if fn panics.
 func captureStdout(t *testing.T, fn func()) string {
 	t.Helper()
 	orig := os.Stdout
@@ -20,7 +21,7 @@ func captureStdout(t *testing.T, fn func()) string {
 		t.Fatal(err)
 	}
 	os.Stdout = w
-	defer func() { os.Stdout = orig }()
+	t.Cleanup(func() { os.Stdout = orig })
 
 	done := make(chan struct{})
 	var buf bytes.Buffer
@@ -29,8 +30,10 @@ func captureStdout(t *testing.T, fn func()) string {
 		close(done)
 	}()
 
-	fn()
-	_ = w.Close()
+	func() {
+		defer func() { _ = w.Close() }() // unblock the copier even on panic
+		fn()
+	}()
 	<-done
 	return buf.String()
 }

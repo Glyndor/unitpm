@@ -4,7 +4,6 @@
 package list
 
 import (
-	"encoding/json"
 	"flag"
 	"fmt"
 	"io"
@@ -18,6 +17,7 @@ import (
 	"github.com/Jaro-c/Lynx/internal/cli/errs"
 	"github.com/Jaro-c/Lynx/internal/cli/help"
 	"github.com/Jaro-c/Lynx/internal/ipc/transport"
+	"github.com/Jaro-c/Lynx/internal/jsonx"
 	"github.com/Jaro-c/Lynx/internal/term"
 	"github.com/Jaro-c/Lynx/internal/types"
 	xterm "golang.org/x/term"
@@ -82,9 +82,12 @@ func Run(client transport.IPCClient, args []string) error {
 		if processes == nil {
 			processes = []types.ProcessInfo{}
 		}
-		enc := json.NewEncoder(os.Stdout)
-		enc.SetIndent("", "  ")
-		return enc.Encode(processes)
+		b, err := jsonx.Marshal(processes)
+		if err != nil {
+			return err
+		}
+		_, err = fmt.Fprintln(os.Stdout, string(b))
+		return err
 	}
 
 	renderTable(processes, showLong)

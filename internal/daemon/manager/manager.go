@@ -196,7 +196,7 @@ func (m *Manager) Reset(id string) error {
 	if !exists {
 		return fmt.Errorf("process not found: %s", id)
 	}
-	proc.ResetMetrics()
+	proc.resetMetrics()
 	return nil
 }
 

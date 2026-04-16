@@ -312,43 +312,57 @@ func TestRun_InvalidSort(t *testing.T) {
 	}
 }
 
-func TestRun_JSON(t *testing.T) {
-	// Capture stdout to verify JSON shape.
+// captureStdout runs fn with os.Stdout rerouted and returns what was
+// written. Panic-safe.
+func captureStdout(t *testing.T, fn func()) string {
+	t.Helper()
 	orig := os.Stdout
-	r, w, _ := os.Pipe()
+	r, w, err := os.Pipe()
+	if err != nil {
+		t.Fatal(err)
+	}
 	os.Stdout = w
-	defer func() { os.Stdout = orig }()
+	t.Cleanup(func() { os.Stdout = orig })
 
 	done := make(chan struct{})
 	var buf strings.Builder
 	go func() {
 		b := make([]byte, 4096)
 		for {
-			n, err := r.Read(b)
+			n, rerr := r.Read(b)
 			if n > 0 {
 				buf.Write(b[:n])
 			}
-			if err != nil {
+			if rerr != nil {
 				break
 			}
 		}
 		close(done)
 	}()
 
+	func() {
+		defer func() { _ = w.Close() }()
+		fn()
+	}()
+	<-done
+	return buf.String()
+}
+
+func TestRun_JSON(t *testing.T) {
 	procs := []types.ProcessInfo{
 		{ID: "id1", Name: "api", Namespace: "prod", State: types.StateRunning, PID: 1},
 		{ID: "id2", Name: "worker", Namespace: "prod", State: types.StateStopped},
 	}
 	mc := &mockClient{response: procs}
-	if err := list.Run(mc, []string{"--json"}); err != nil {
-		t.Fatalf("run --json: %v", err)
-	}
-	_ = w.Close()
-	<-done
+	out := captureStdout(t, func() {
+		if err := list.Run(mc, []string{"--json"}); err != nil {
+			t.Fatalf("run --json: %v", err)
+		}
+	})
 
 	var got []types.ProcessInfo
-	if err := json.Unmarshal([]byte(buf.String()), &got); err != nil {
-		t.Fatalf("output not valid JSON: %v\n%s", err, buf.String())
+	if err := json.Unmarshal([]byte(out), &got); err != nil {
+		t.Fatalf("output not valid JSON: %v\n%s", err, out)
 	}
 	if len(got) != 2 {
 		t.Errorf("want 2 procs, got %d", len(got))
@@ -359,36 +373,15 @@ func TestRun_JSON(t *testing.T) {
 }
 
 func TestRun_JSON_Empty(t *testing.T) {
-	orig := os.Stdout
-	r, w, _ := os.Pipe()
-	os.Stdout = w
-	defer func() { os.Stdout = orig }()
-	done := make(chan struct{})
-	var buf strings.Builder
-	go func() {
-		b := make([]byte, 1024)
-		for {
-			n, err := r.Read(b)
-			if n > 0 {
-				buf.Write(b[:n])
-			}
-			if err != nil {
-				break
-			}
-		}
-		close(done)
-	}()
-
 	mc := &mockClient{response: []types.ProcessInfo{}}
-	if err := list.Run(mc, []string{"--json"}); err != nil {
-		t.Fatalf("run: %v", err)
-	}
-	_ = w.Close()
-	<-done
-
+	out := captureStdout(t, func() {
+		if err := list.Run(mc, []string{"--json"}); err != nil {
+			t.Fatalf("run: %v", err)
+		}
+	})
 	var got []types.ProcessInfo
-	if err := json.Unmarshal([]byte(buf.String()), &got); err != nil {
-		t.Fatalf("want '[]', got %q (err=%v)", buf.String(), err)
+	if err := json.Unmarshal([]byte(out), &got); err != nil {
+		t.Fatalf("want '[]', got %q (err=%v)", out, err)
 	}
 	if len(got) != 0 {
 		t.Errorf("expected empty, got %v", got)

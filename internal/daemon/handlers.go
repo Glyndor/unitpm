@@ -67,29 +67,8 @@ func RegisterHandlers(server *transport.Server, mgr *manager.Manager, privileged
 		return jsonx.Marshal(map[string]any{"status": "stopped", "id": id, "was_running": wasRunning})
 	})
 
-	// Register restart handler
-	server.Register("restart", func(
-		_ context.Context,
-		params jsonx.RawMessage,
-	) (jsonx.RawMessage, error) {
-		var args struct {
-			ID string `json:"id"`
-		}
-		if err := jsonx.Unmarshal(params, &args); err != nil {
-			return nil, err
-		}
-
-		id, err := mgr.ResolveID(args.ID)
-		if err != nil {
-			return nil, err
-		}
-
-		if err := mgr.Restart(id); err != nil {
-			return nil, err
-		}
-
-		return jsonx.Marshal(map[string]string{"status": "restarted", "id": id})
-	})
+	// Simple id-in / {status,id}-out handlers.
+	registerIDHandler(server, mgr, "restart", "restarted", (*manager.Manager).Restart)
 
 	// Register delete handler
 	server.Register("delete", func(
@@ -208,51 +187,8 @@ func RegisterHandlers(server *transport.Server, mgr *manager.Manager, privileged
 		return jsonx.Marshal(resp)
 	})
 
-	server.Register("reset", func(
-		_ context.Context,
-		params jsonx.RawMessage,
-	) (jsonx.RawMessage, error) {
-		var args struct {
-			ID string `json:"id"`
-		}
-		if err := jsonx.Unmarshal(params, &args); err != nil {
-			return nil, err
-		}
-
-		id, err := mgr.ResolveID(args.ID)
-		if err != nil {
-			return nil, err
-		}
-
-		if err := mgr.Reset(id); err != nil {
-			return nil, err
-		}
-
-		return jsonx.Marshal(map[string]string{"status": "reset", "id": id})
-	})
-
-	server.Register("reload", func(
-		_ context.Context,
-		params jsonx.RawMessage,
-	) (jsonx.RawMessage, error) {
-		var args struct {
-			ID string `json:"id"`
-		}
-		if err := jsonx.Unmarshal(params, &args); err != nil {
-			return nil, err
-		}
-
-		id, err := mgr.ResolveID(args.ID)
-		if err != nil {
-			return nil, err
-		}
-
-		if err := mgr.Reload(id); err != nil {
-			return nil, err
-		}
-
-		return jsonx.Marshal(map[string]string{"status": "reloaded", "id": id})
-	})
+	registerIDHandler(server, mgr, "reset", "reset", (*manager.Manager).Reset)
+	registerIDHandler(server, mgr, "reload", "reloaded", (*manager.Manager).Reload)
 
 	server.Register("flush", func(
 		_ context.Context,
@@ -385,4 +321,31 @@ func RegisterHandlers(server *transport.Server, mgr *manager.Manager, privileged
 			return jsonx.Marshal(version.Get())
 		},
 	)
+}
+
+// registerIDHandler wires a verb whose request is {id} and response is
+// {status, id}. Used for the simple id-in / action-out verbs: restart,
+// reload, reset. Flush/delete/stop do extra per-verb work and stay open-coded.
+func registerIDHandler(
+	server *transport.Server,
+	mgr *manager.Manager,
+	verb, pastTense string,
+	action func(*manager.Manager, string) error,
+) {
+	server.Register(verb, func(_ context.Context, params jsonx.RawMessage) (jsonx.RawMessage, error) {
+		var args struct {
+			ID string `json:"id"`
+		}
+		if err := jsonx.Unmarshal(params, &args); err != nil {
+			return nil, err
+		}
+		id, err := mgr.ResolveID(args.ID)
+		if err != nil {
+			return nil, err
+		}
+		if err := action(mgr, id); err != nil {
+			return nil, err
+		}
+		return jsonx.Marshal(map[string]string{"status": pastTense, "id": id})
+	})
 }

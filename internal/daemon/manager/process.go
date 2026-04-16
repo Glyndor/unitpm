@@ -476,9 +476,8 @@ func (p *Process) setupLogs(cmd *exec.Cmd) error {
 		return fmt.Errorf("failed to create log dir: %w", err)
 	}
 
-	// Size-based rotation (safety net for user mode where logrotate is
-	// typically not configured). Triggered on every spawn so it kicks in
-	// after crash/restart cycles.
+	// Size-based rotation — safety net for user mode where logrotate is
+	// typically not configured.
 	rotateIfLarge(stdoutPath)
 	if stderrPath != stdoutPath {
 		rotateIfLarge(stderrPath)
@@ -764,10 +763,10 @@ func (p *Process) ResetBackoff() {
 	p.noAutoRestart = false
 }
 
-// ResetMetrics zeroes the user-visible Restarts counter and the internal
+// resetMetrics zeroes the user-visible Restarts counter and the internal
 // backoff bucket without touching the running process. Useful after fixing
 // a crash loop and wanting to observe stability from a clean baseline.
-func (p *Process) ResetMetrics() {
+func (p *Process) resetMetrics() {
 	p.mu.Lock()
 	defer p.mu.Unlock()
 	p.info.Restarts = 0

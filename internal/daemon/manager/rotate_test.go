@@ -10,18 +10,13 @@ import (
 func TestRotateIfLarge(t *testing.T) {
 	tmp := t.TempDir()
 	log := filepath.Join(tmp, "stdout.log")
-
-	// Override knobs for the test
-	oldBytes, oldKeep := rotateMaxBytes, rotateKeep
-	rotateMaxBytes = 20
-	rotateKeep = 2
-	t.Cleanup(func() { rotateMaxBytes, rotateKeep = oldBytes, oldKeep })
+	cfg := rotateConfig{maxBytes: 20, keep: 2}
 
 	// Below threshold — no rotation
 	if err := os.WriteFile(log, []byte("small"), 0o600); err != nil {
 		t.Fatal(err)
 	}
-	rotateIfLarge(log)
+	rotateIfLargeCfg(log, cfg)
 	if _, err := os.Stat(log + ".1"); err == nil {
 		t.Error("unexpected .1 created on small file")
 	}
@@ -31,7 +26,7 @@ func TestRotateIfLarge(t *testing.T) {
 	if err := os.WriteFile(log, []byte(big), 0o600); err != nil {
 		t.Fatal(err)
 	}
-	rotateIfLarge(log)
+	rotateIfLargeCfg(log, cfg)
 	if _, err := os.Stat(log); !os.IsNotExist(err) {
 		t.Errorf("original log should be gone, got %v", err)
 	}
@@ -43,7 +38,7 @@ func TestRotateIfLarge(t *testing.T) {
 	if err := os.WriteFile(log, []byte(big+"2"), 0o600); err != nil {
 		t.Fatal(err)
 	}
-	rotateIfLarge(log)
+	rotateIfLargeCfg(log, cfg)
 	if b, _ := os.ReadFile(log + ".2"); string(b) != big {
 		t.Errorf(".2 expected old content, got %q", string(b))
 	}
@@ -55,7 +50,7 @@ func TestRotateIfLarge(t *testing.T) {
 	if err := os.WriteFile(log, []byte(big+"3"), 0o600); err != nil {
 		t.Fatal(err)
 	}
-	rotateIfLarge(log)
+	rotateIfLargeCfg(log, cfg)
 	if _, err := os.Stat(log + ".3"); err == nil {
 		t.Error(".3 should never exist with keep=2")
 	}
