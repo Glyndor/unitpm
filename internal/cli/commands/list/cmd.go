@@ -266,7 +266,7 @@ func renderTable(processes []types.ProcessInfo, showLong bool) {
 	}
 	t.maxColWidths = []int{
 		idColWidth, // id — dynamic width to avoid short-ID collisions
-		30,         // name
+		40,         // name — 128-char max upstream; 40 covers most labels
 		20,         // namespace
 		10,         // version
 		10,         // mode

@@ -17,7 +17,15 @@ import (
 	"github.com/Jaro-c/Lynx/internal/types"
 )
 
-var nameRegex = regexp.MustCompile(`^[a-zA-Z0-9][a-zA-Z0-9 ._-]{0,63}$`)
+// nameRegex accepts human-friendly labels: letters, digits, spaces, dots,
+// underscores, hyphens, and a small set of shell-safe punctuation
+// (:, #, @, !, ,, (, ), +, =, &). 128 chars max. The colon is permitted
+// because ResolveID splits on the FIRST colon only — addressing a name
+// that contains colons still works via the explicit `namespace:name`
+// form (e.g. `lynx show prod:TEST: Release 1`).
+// namespaceRegex stays strict — no colon/space/# so `ns:name` parsing
+// is unambiguous.
+var nameRegex = regexp.MustCompile(`^[a-zA-Z0-9][a-zA-Z0-9 ._:#@!,()+=&-]{0,127}$`)
 var namespaceRegex = regexp.MustCompile(`^[a-zA-Z0-9][a-zA-Z0-9._-]{0,63}$`)
 
 // StartProcess handles the process start request with full validation and policy enforcement.

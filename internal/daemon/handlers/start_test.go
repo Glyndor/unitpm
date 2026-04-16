@@ -118,7 +118,7 @@ func TestStartHandler_Validation(t *testing.T) {
 			name: "invalid name",
 			spec: protocol.AppSpec{
 				ID:   "123e4567-e89b-12d3-a456-426614174007",
-				Name: "Invalid Name!",
+				Name: "Invalid;Name", // ';' is not in the allow-list
 				Exec: protocol.AppExec{
 					Type:    "command",
 					Command: "echo",
