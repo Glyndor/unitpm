@@ -13,6 +13,7 @@ import (
 	"runtime"
 	"strings"
 
+	"github.com/Jaro-c/Lynx/internal/daemon/audit"
 	"github.com/Jaro-c/Lynx/internal/daemon/handlers"
 	"github.com/Jaro-c/Lynx/internal/daemon/manager"
 	"github.com/Jaro-c/Lynx/internal/ipc/protocol"
@@ -26,19 +27,37 @@ import (
 // DataDir is the standard data directory on Linux (/var/lib/lynx-pm).
 const DataDir = paths.DataDir
 
-// RegisterHandlers registers all daemon IPC handlers.
-func RegisterHandlers(server *transport.Server, mgr *manager.Manager, privileged bool) {
+// RegisterHandlers registers all daemon IPC handlers. Pass audit.Disabled()
+// to disable audit logging (user mode); pass an audit.Open(path) logger to
+// emit a JSONL line per destructive action.
+func RegisterHandlers(server *transport.Server, mgr *manager.Manager, privileged bool, auditor *audit.Logger) {
 	// Register ping handler
 	server.Register("ping", func(_ context.Context, _ jsonx.RawMessage) (jsonx.RawMessage, error) {
 		return jsonx.Marshal(map[string]string{"response": "pong"})
 	})
 
-	// Register start handler
-	server.Register("start", handlers.StartHandler(mgr, privileged))
+	// Register start handler (audited via wrapping)
+	startH := handlers.StartHandler(mgr, privileged)
+	server.Register("start", func(ctx context.Context, params jsonx.RawMessage) (jsonx.RawMessage, error) {
+		res, err := startH(ctx, params)
+		if err != nil {
+			auditEvent(auditor, ctx, "start", "", "", "", false, err)
+			return nil, err
+		}
+		var data protocol.StartResponseData
+		_ = jsonx.Unmarshal(res, &data)
+		id := data.ProcID
+		if id == "" {
+			id = data.ID
+		}
+		name, ns := processMeta(mgr, id)
+		auditEvent(auditor, ctx, "start", id, name, ns, true, nil)
+		return res, nil
+	})
 
 	// Register stop handler
 	server.Register("stop", func(
-		_ context.Context,
+		ctx context.Context,
 		params jsonx.RawMessage,
 	) (jsonx.RawMessage, error) {
 		var args struct {
@@ -50,9 +69,11 @@ func RegisterHandlers(server *transport.Server, mgr *manager.Manager, privileged
 
 		id, err := mgr.ResolveID(args.ID)
 		if err != nil {
+			auditEvent(auditor, ctx, "stop", args.ID, "", "", false, err)
 			return nil, err
 		}
 
+		name, ns := processMeta(mgr, id)
 		// Check state before stopping to determine if the process was running
 		wasRunning := false
 		if proc, ok := mgr.Get(id); ok {
@@ -61,18 +82,20 @@ func RegisterHandlers(server *transport.Server, mgr *manager.Manager, privileged
 		}
 
 		if err := mgr.Stop(id); err != nil {
+			auditEvent(auditor, ctx, "stop", id, name, ns, false, err)
 			return nil, err
 		}
 
+		auditEvent(auditor, ctx, "stop", id, name, ns, true, nil)
 		return jsonx.Marshal(map[string]any{"status": "stopped", "id": id, "was_running": wasRunning})
 	})
 
 	// Simple id-in / {status,id}-out handlers.
-	registerIDHandler(server, mgr, "restart", "restarted", (*manager.Manager).Restart)
+	registerIDHandler(server, mgr, auditor, "restart", "restarted", (*manager.Manager).Restart)
 
 	// Register delete handler
 	server.Register("delete", func(
-		_ context.Context,
+		ctx context.Context,
 		params jsonx.RawMessage,
 	) (jsonx.RawMessage, error) {
 		var args struct {
@@ -85,8 +108,12 @@ func RegisterHandlers(server *transport.Server, mgr *manager.Manager, privileged
 
 		id, err := mgr.ResolveID(args.ID)
 		if err != nil {
+			auditEvent(auditor, ctx, "delete", args.ID, "", "", false, err)
 			return nil, err
 		}
+
+		// Snapshot name+ns BEFORE deletion so audit line has useful metadata.
+		delName, delNS := processMeta(mgr, id)
 
 		// Prepare for purge (resolve log dir)
 		var appLogDir string
@@ -117,11 +144,13 @@ func RegisterHandlers(server *transport.Server, mgr *manager.Manager, privileged
 		}
 
 		if err := mgr.Delete(id); err != nil {
+			auditEvent(auditor, ctx, "delete", id, delName, delNS, false, err)
 			return nil, err
 		}
 
 		// Delete spec
 		_ = spec.DeleteSpec(id) //nolint:errcheck // Ignore error if spec missing
+		auditEvent(auditor, ctx, "delete", id, delName, delNS, true, nil)
 
 		// Delete logs if requested
 		if args.Purge && appLogDir != "" {
@@ -187,11 +216,11 @@ func RegisterHandlers(server *transport.Server, mgr *manager.Manager, privileged
 		return jsonx.Marshal(resp)
 	})
 
-	registerIDHandler(server, mgr, "reset", "reset", (*manager.Manager).Reset)
-	registerIDHandler(server, mgr, "reload", "reloaded", (*manager.Manager).Reload)
+	registerIDHandler(server, mgr, auditor, "reset", "reset", (*manager.Manager).Reset)
+	registerIDHandler(server, mgr, auditor, "reload", "reloaded", (*manager.Manager).Reload)
 
 	server.Register("flush", func(
-		_ context.Context,
+		ctx context.Context,
 		params jsonx.RawMessage,
 	) (jsonx.RawMessage, error) {
 		var args struct {
@@ -203,8 +232,11 @@ func RegisterHandlers(server *transport.Server, mgr *manager.Manager, privileged
 
 		id, err := mgr.ResolveID(args.ID)
 		if err != nil {
+			auditEvent(auditor, ctx, "flush", args.ID, "", "", false, err)
 			return nil, err
 		}
+		flushName, flushNS := processMeta(mgr, id)
+		defer func() { auditEvent(auditor, ctx, "flush", id, flushName, flushNS, err == nil, err) }()
 
 		var s *protocol.AppSpec
 		if proc, ok := mgr.Get(id); ok {
@@ -329,10 +361,11 @@ func RegisterHandlers(server *transport.Server, mgr *manager.Manager, privileged
 func registerIDHandler(
 	server *transport.Server,
 	mgr *manager.Manager,
+	auditor *audit.Logger,
 	verb, pastTense string,
 	action func(*manager.Manager, string) error,
 ) {
-	server.Register(verb, func(_ context.Context, params jsonx.RawMessage) (jsonx.RawMessage, error) {
+	server.Register(verb, func(ctx context.Context, params jsonx.RawMessage) (jsonx.RawMessage, error) {
 		var args struct {
 			ID string `json:"id"`
 		}
@@ -341,11 +374,46 @@ func registerIDHandler(
 		}
 		id, err := mgr.ResolveID(args.ID)
 		if err != nil {
+			auditEvent(auditor, ctx, verb, id, "", "", false, err)
 			return nil, err
 		}
 		if err := action(mgr, id); err != nil {
+			auditEvent(auditor, ctx, verb, id, "", "", false, err)
 			return nil, err
 		}
+		name, ns := processMeta(mgr, id)
+		auditEvent(auditor, ctx, verb, id, name, ns, true, nil)
 		return jsonx.Marshal(map[string]string{"status": pastTense, "id": id})
 	})
+}
+
+// auditEvent populates caller identity from ctx and forwards to the logger.
+// Safe to call with a Disabled logger.
+func auditEvent(l *audit.Logger, ctx context.Context, action, target, name, ns string, ok bool, err error) {
+	e := audit.Event{
+		Action:  action,
+		Target:  target,
+		Name:    name,
+		NS:      ns,
+		Success: ok,
+	}
+	if err != nil {
+		e.Error = err.Error()
+	}
+	if id, okc := ctx.Value(transport.ContextKeyIdentity).(*transport.Identity); okc && id != nil {
+		e.UID = id.UID
+		e.GID = id.GID
+		e.PID = id.PID
+	}
+	l.Log(e)
+}
+
+// processMeta best-effort fetches name+namespace for audit enrichment. Empty
+// strings if the process is already gone (e.g. post-delete).
+func processMeta(mgr *manager.Manager, id string) (name, ns string) {
+	if p, ok := mgr.Get(id); ok {
+		info := p.Info()
+		return info.Name, info.Namespace
+	}
+	return "", ""
 }

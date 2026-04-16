@@ -11,9 +11,20 @@ import (
 	"syscall"
 
 	"github.com/Jaro-c/Lynx/internal/daemon"
+	"github.com/Jaro-c/Lynx/internal/daemon/audit"
 	"github.com/Jaro-c/Lynx/internal/daemon/manager"
 	"github.com/Jaro-c/Lynx/internal/ipc/transport"
 )
+
+// auditPath returns the destination for the JSON-lines audit log. Empty
+// string means audit is disabled (user mode, where the daemon is scoped
+// to one user already).
+func auditPath(systemDaemon bool) string {
+	if !systemDaemon {
+		return ""
+	}
+	return "/var/log/lynx-pm/audit.log"
+}
 
 // isSystemDaemon reports whether lynxd is the system-mode daemon, with
 // the polkit grants to call systemd-run with DynamicUser. Covers both
@@ -37,7 +48,8 @@ func main() {
 
 	// Register all handlers
 	privileged := isSystemDaemon()
-	daemon.RegisterHandlers(server, mgr, privileged)
+	auditor := audit.Open(auditPath(privileged))
+	daemon.RegisterHandlers(server, mgr, privileged, auditor)
 
 	// Restore state
 	log.Println("Restoring processes...")
