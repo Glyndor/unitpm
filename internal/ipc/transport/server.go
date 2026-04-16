@@ -167,24 +167,29 @@ func (s *Server) handleRequest(
 		return false
 	}
 
-	// Per-UID token-bucket rate limit. Caller's UID comes from SO_PEERCRED
-	// via validateIdentity; we only skip the check if we somehow have no
-	// identity attached (shouldn't happen, but failing open here would be
-	// safer than rejecting legitimate local admin work).
-	if id, ok := ctx.Value(ContextKeyIdentity).(*Identity); ok && id != nil && s.rateLimit != nil {
-		if uid, err := strconv.ParseUint(id.UID, 10, 32); err == nil {
-			if !s.rateLimit.allow(uint32(uid)) {
-				s.sendError(encoder, "ERR_RATE_LIMIT", "IPC rate limit exceeded for this UID")
-				return true // keep connection open; caller can retry
-			}
-		}
-	}
-
 	// Decode into UniversalRequest to determine type
 	var univReq UniversalRequest
 	if err := jsonx.Unmarshal(scanner.Bytes(), &univReq); err != nil {
 		s.sendError(encoder, "ERR_BAD_REQUEST", "Invalid JSON")
 		return false
+	}
+
+	// Per-UID token-bucket rate limit. Caller's UID comes from SO_PEERCRED
+	// via validateIdentity. Run after unmarshal so we can include the
+	// request ID in the error response (otherwise the client sees a
+	// confusing ID-mismatch error instead of the ERR_RATE_LIMIT code).
+	if id, ok := ctx.Value(ContextKeyIdentity).(*Identity); ok && id != nil && s.rateLimit != nil {
+		if uid, err := strconv.ParseUint(id.UID, 10, 32); err == nil {
+			if !s.rateLimit.allow(uint32(uid)) {
+				s.sendErrorWithID(
+					encoder,
+					univReq.ID,
+					"ERR_RATE_LIMIT",
+					"IPC rate limit exceeded for this UID",
+				)
+				return true // keep connection open; caller can retry
+			}
+		}
 	}
 
 	var resp any
@@ -214,7 +219,14 @@ func (s *Server) handleRequest(
 }
 
 func (s *Server) sendError(encoder jsonx.Encoder, code, message string) {
+	s.sendErrorWithID(encoder, "", code, message)
+}
+
+// sendErrorWithID preserves the caller's request ID so the client's
+// response-ID check passes and the real error surfaces.
+func (s *Server) sendErrorWithID(encoder jsonx.Encoder, reqID, code, message string) {
 	resp := &protocol.Response{
+		ID:     reqID,
 		Status: statusError,
 		Error: &protocol.Error{
 			Code:    code,
