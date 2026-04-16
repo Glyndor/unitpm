@@ -235,4 +235,3 @@ func validateResources(r *protocol.AppResources) error {
 	}
 	return nil
 }
-

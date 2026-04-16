@@ -55,4 +55,3 @@ func TestRotateIfLarge(t *testing.T) {
 		t.Error(".3 should never exist with keep=2")
 	}
 }
-

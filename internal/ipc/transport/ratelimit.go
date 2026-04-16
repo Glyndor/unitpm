@@ -11,8 +11,8 @@ import (
 // interactive CLI use (rapid-fire 'lynx start' in scripts) still works.
 // Overridable via env vars on daemon startup.
 const (
-	defaultRateCapacity = 200          // burst
-	defaultRateRefill   = 100          // tokens per second
+	defaultRateCapacity = 200 // burst
+	defaultRateRefill   = 100 // tokens per second
 	minRefillInterval   = 1 * time.Millisecond
 )
 
@@ -96,4 +96,3 @@ func (r *rateLimiter) maybeSweep(now time.Time) {
 		}
 	}
 }
-

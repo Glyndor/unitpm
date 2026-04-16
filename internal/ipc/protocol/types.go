@@ -116,7 +116,6 @@ type AppResources struct {
 	TasksMax int `json:"tasks_max,omitempty"`
 }
 
-
 // AppExec defines execution details.
 type AppExec struct {
 	Type    string   `json:"type"` // "command" | "entry"
