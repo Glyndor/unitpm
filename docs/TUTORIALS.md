@@ -1,0 +1,435 @@
+# Tutorials
+
+Real-world recipes. Copy-paste and adapt.
+
+---
+
+## Next.js
+
+### Development
+
+```bash
+# Inside your Next.js project directory
+lynx start "npm run dev" --name nextjs-dev --cwd /srv/myapp --shell
+lynx logs nextjs-dev --follow
+```
+
+### Production (standalone build)
+
+```bash
+# 1. Build first
+cd /srv/myapp && npm run build
+
+# 2. Start the standalone server
+lynx start "node .next/standalone/server.js" \
+    --name nextjs-prod \
+    --cwd /srv/myapp \
+    --restart always \
+    --env-file .env.production \
+    --memory-max 512M
+
+# 3. Verify
+lynx show nextjs-prod
+```
+
+### Production + multiple instances (cluster-like)
+
+Next.js standalone doesn't support Node cluster natively. Use `--scale`
+instead — each instance listens on a different port:
+
+```bash
+# Start 3 instances; each reads LYNX_INSTANCE to pick a port
+lynx start "node .next/standalone/server.js" \
+    --name nextjs \
+    --cwd /srv/myapp \
+    --scale 3 \
+    --restart always \
+    --env-file .env.production
+
+# In your server.js or next.config.js:
+#   const port = 3000 + Number(process.env.LYNX_INSTANCE || 0);
+```
+
+Then put Nginx or Caddy in front:
+
+```nginx
+upstream nextjs {
+    server 127.0.0.1:3000;
+    server 127.0.0.1:3001;
+    server 127.0.0.1:3002;
+}
+server {
+    listen 80;
+    location / { proxy_pass http://nextjs; }
+}
+```
+
+### Scale up / down on the fly
+
+```bash
+lynx scale nextjs 5    # add 2 more instances
+lynx scale nextjs 2    # drop back to 2
+```
+
+---
+
+## Express / Fastify (Node.js)
+
+```bash
+# Simple
+lynx start "node server.js" --name api --cwd /srv/api --restart always
+
+# With env file
+lynx start "node server.js" \
+    --name api \
+    --cwd /srv/api \
+    --env-file .env \
+    --restart always \
+    --memory-max 256M
+
+# Cluster (4 workers)
+lynx start "node server.js" --name api --scale 4 --cwd /srv/api
+# Your app reads process.env.LYNX_INSTANCE to bind to port 3000+N
+```
+
+### Graceful shutdown (Express)
+
+Express needs SIGINT to close connections cleanly:
+
+```bash
+lynx start "node server.js" \
+    --name api \
+    --stop-signal SIGINT \
+    --stop-timeout 30000 \
+    --restart always
+```
+
+In your Express app:
+
+```js
+process.on('SIGINT', () => {
+    server.close(() => process.exit(0));
+});
+```
+
+---
+
+## Bun
+
+```bash
+# Dev
+lynx start "bun run dev" --name bun-dev --cwd /srv/app
+
+# Production
+lynx start "bun run src/index.ts" \
+    --name bun-prod \
+    --cwd /srv/app \
+    --restart always \
+    --memory-max 256M
+
+# Hot reload: Bun already watches files by default in dev
+```
+
+---
+
+## Python — FastAPI + Uvicorn
+
+```bash
+# Development (with reload)
+lynx start "uvicorn main:app --reload --host 0.0.0.0 --port 8000" \
+    --name fastapi-dev \
+    --cwd /srv/api \
+    --shell
+
+# Production (with uv)
+lynx start "uv run uvicorn main:app --host 0.0.0.0 --port 8000 --workers 4" \
+    --name fastapi-prod \
+    --cwd /srv/api \
+    --restart always \
+    --memory-max 1G \
+    --env-file .env
+
+# Production with venv (direct path)
+lynx start "/srv/api/.venv/bin/uvicorn main:app --host 0.0.0.0 --port 8000" \
+    --name fastapi-prod \
+    --cwd /srv/api \
+    --restart always
+```
+
+---
+
+## Python — Django + Gunicorn
+
+```bash
+# Via uv
+lynx start "uv run gunicorn myproject.wsgi:application --bind 0.0.0.0:8000 --workers 4" \
+    --name django \
+    --cwd /srv/django \
+    --restart always \
+    --env-file .env \
+    --stop-signal SIGINT \
+    --stop-timeout 30000
+
+# Via venv
+lynx start "/srv/django/.venv/bin/gunicorn myproject.wsgi:application -b 0.0.0.0:8000" \
+    --name django \
+    --cwd /srv/django \
+    --restart always
+```
+
+---
+
+## Go web server
+
+```bash
+# Compiled binary (recommended for production)
+cd /srv/api && go build -o bin/api ./cmd/api
+lynx start ./bin/api \
+    --name go-api \
+    --cwd /srv/api \
+    --restart always \
+    --memory-max 128M \
+    --stop-signal SIGINT \
+    --stop-timeout 15000
+
+# Development (go run)
+lynx start "go run ./cmd/api" --name go-dev --cwd /srv/api
+```
+
+Go servers typically handle SIGINT for graceful shutdown:
+
+```go
+ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)
+defer stop()
+srv.Shutdown(ctx)
+```
+
+---
+
+## Rust (Actix / Axum)
+
+```bash
+# Build and run
+cd /srv/api && cargo build --release
+lynx start ./target/release/api \
+    --name rust-api \
+    --cwd /srv/api \
+    --restart always \
+    --memory-max 64M
+```
+
+---
+
+## Static site server (Caddy / Nginx)
+
+```bash
+# Caddy (auto-HTTPS)
+lynx start "caddy run --config /srv/site/Caddyfile" \
+    --name caddy \
+    --restart always \
+    --stop-signal SIGINT
+
+# Python simple server (quick sharing)
+lynx start "python3 -m http.server 8080" \
+    --name static \
+    --cwd /srv/site
+```
+
+---
+
+## Cron / scheduled tasks
+
+```bash
+# Run a backup script every 6 hours
+lynx start "/srv/scripts/backup.sh" \
+    --name backup \
+    --schedule "0 */6 * * *" \
+    --restart never
+
+# Run a health probe every 10 seconds (sidecar pattern)
+lynx start "curl -sSf http://localhost:3000/healthz || exit 1" \
+    --name probe \
+    --schedule "@every 10s" \
+    --restart on-failure \
+    --shell
+```
+
+---
+
+## Secure isolation (production)
+
+### DynamicUser (system mode, strongest)
+
+Each process runs as a unique synthetic user. Secrets never appear in
+`/proc/<pid>/environ`.
+
+```bash
+lynx start "node server.js" \
+    --name api \
+    --cwd /srv/api \
+    --isolation dynamic \
+    --env-file .env.production \
+    --restart always \
+    --memory-max 512M \
+    --stop-signal SIGINT \
+    --stop-timeout 15000
+```
+
+### Sandbox (user mode, no sudo)
+
+Runs inside user namespace + landlock. Can't write to `/home`, `/etc`,
+`/usr`. Can write to cwd + `/tmp`.
+
+```bash
+lynx start "node server.js" \
+    --name api \
+    --cwd /srv/api \
+    --isolation sandbox \
+    --restart always
+```
+
+---
+
+## Full production deploy (step by step)
+
+A complete workflow for deploying a Node.js API:
+
+```bash
+# 1. Install Lynx
+sudo apt install ./lynx-pm_0.4.11-1_amd64.deb
+sudo usermod -aG lynxadm $USER && newgrp lynxadm
+
+# 2. Make dev tools visible to the daemon
+lynx install-tools
+
+# 3. Prepare app directory
+sudo mkdir -p /srv/api && sudo chown $USER:$USER /srv/api
+cd /srv/api && git clone https://github.com/you/api.git .
+npm install && npm run build
+
+# 4. Create env file (secrets stay on disk, not in ps)
+cat > .env.production <<EOF
+DATABASE_URL=postgres://user:pass@db:5432/app
+PORT=3000
+NODE_ENV=production
+EOF
+
+# 5. Start with all hardening
+lynx start "node dist/server.js" \
+    --name api \
+    --namespace prod \
+    --cwd /srv/api \
+    --env-file .env.production \
+    --isolation dynamic \
+    --restart always \
+    --memory-max 512M \
+    --stop-signal SIGINT \
+    --stop-timeout 30000
+
+# 6. Scale to 3 workers
+lynx scale prod:api 3
+
+# 7. Verify
+lynx list --namespace prod
+lynx logs prod:api --follow
+
+# 8. Enable boot persistence
+sudo lynx startup
+```
+
+---
+
+## Lynxfile.yml — declarative multi-app deploy
+
+Instead of individual `start` commands, declare everything in a file:
+
+```yaml
+# Lynxfile.yml
+version: "1"
+namespace: prod
+apps:
+  - name: api
+    command: node dist/server.js
+    cwd: /srv/api
+    env_file: .env.production
+    restart:
+      policy: always
+      max_restarts: 10
+      backoff: expo
+
+  - name: worker
+    command: node dist/worker.js
+    cwd: /srv/api
+    env_file: .env.production
+    restart:
+      policy: always
+
+  - name: scheduler
+    command: node dist/scheduler.js
+    cwd: /srv/api
+    restart:
+      policy: always
+```
+
+```bash
+lynx apply Lynxfile.yml
+lynx list --namespace prod
+```
+
+Update later:
+
+```bash
+# Edit Lynxfile.yml, then:
+lynx delete prod:api prod:worker prod:scheduler
+lynx apply Lynxfile.yml
+```
+
+---
+
+## Monitoring and debugging
+
+```bash
+# Live dashboard
+lynx monit
+
+# JSON output for scripting
+lynx list --json | jq '.[] | select(.state == "running") | {name, pid, memory}'
+
+# Check restart history
+lynx show api
+
+# Reset counter after fixing a bug
+lynx reset api
+
+# View logs
+lynx logs api --follow           # both stdout+stderr
+lynx logs api --stdout --lines 50  # only stdout, last 50 lines
+
+# Flush old logs
+lynx flush api
+```
+
+---
+
+## Tips
+
+1. **Name your processes.** `--name api` is easier to type than a UUID.
+2. **Use namespaces.** `--namespace prod` + `--namespace staging` keeps
+   things clean. Filter with `lynx list --namespace prod`.
+3. **Use `namespace:name` syntax.** `lynx show prod:api`, `lynx stop
+   staging:worker`.
+4. **Always set `--restart always` in production.** Default `on-failure`
+   doesn't restart on clean exit.
+5. **Set `--memory-max` in production.** Prevents a single leak from
+   killing the host. The daemon auto-restarts when the OOM kills the
+   process.
+6. **Use `--stop-signal SIGINT` for Node.js/Python.** These runtimes
+   handle SIGINT more gracefully than SIGTERM by default.
+7. **Use `--dry-run` when unsure.** `lynx start "complex command" --dry-run`
+   prints the resolved spec without touching the daemon.
+8. **Use `--quiet` in scripts.** `lynx start ... -q && echo ok` keeps
+   CI output clean.
+9. **Export + apply for backups.** `lynx export --namespace prod > backup.yml`
+   saves your running config. Restore with `lynx apply backup.yml`.
+10. **Shell completion saves keystrokes.**
+    `lynx completion bash > ~/.local/share/bash-completion/completions/lynx`

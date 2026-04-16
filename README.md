@@ -110,6 +110,10 @@ See [`docs/RUNTIMES.md`](docs/RUNTIMES.md) for the full playbook —
 version-managed runtimes (fnm/nvm/pyenv/rbenv), virtualenvs, env-file
 injection, clustering with `--scale`, and the isolation-mode picker.
 
+**Step-by-step tutorials** for common frameworks (Next.js, Express, FastAPI,
+Django, Go, Bun, Rust) plus production deploy, Lynxfile.yml, cron jobs,
+and isolation modes: [`docs/TUTORIALS.md`](docs/TUTORIALS.md).
+
 If lynxd can't find your interpreter run `lynx install-tools` (user
 install to `~/.local/bin`) or `sudo lynx install-tools --system`.
 
