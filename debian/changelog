@@ -1,4 +1,4 @@
-lynx-pm (0.5.0-1) unstable; urgency=high
+lynx-pm (0.5.1-1) unstable; urgency=high
 
   [SECURITY]
   * security(H1): ed25519 release signing — 'lynx update --apply' now
