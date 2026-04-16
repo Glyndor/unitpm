@@ -34,10 +34,8 @@ const (
 var releasesURL = fmt.Sprintf("https://api.github.com/repos/%s/%s/releases/latest", repoOwner, repoName)
 
 // releasePublicKeyB64 is the ed25519 public key used to verify release
-// signatures. Base64 (std) encoding of the 32-byte public key. Empty until
-// the release workflow publishes its key — while empty, Apply refuses to
-// run unless the caller passes AllowUnsigned=true.
-const releasePublicKeyB64 = ""
+// signatures. Base64 (std) encoding of the 32-byte public key.
+const releasePublicKeyB64 = "3eSCGskGd4rjnsVcBfKM5a25SNkJayBHcqZ6dpCfWIw="
 
 // ErrSignatureRequired is returned when signature verification is required
 // but the release does not ship a signature asset.
