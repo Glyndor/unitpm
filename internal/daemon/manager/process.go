@@ -373,6 +373,16 @@ func (p *Process) prepareIsolation(ctx context.Context, cmd *exec.Cmd) (*exec.Cm
 		if p.spec.Logs != nil {
 			opts.LogDir = p.spec.Logs.Dir
 		}
+		if r := p.spec.Resources; r != nil {
+			// CPUMaxPercent has no rlimit equivalent; it applies to dynamic
+			// mode only. Memory and tasks translate directly.
+			if r.MemoryMaxBytes > 0 {
+				opts.Limits.MemoryBytes = uint64(r.MemoryMaxBytes)
+			}
+			if r.TasksMax > 0 {
+				opts.Limits.MaxProcs = uint64(r.TasksMax)
+			}
+		}
 		return daemonRuntime.WrapSandbox(ctx, cmd, opts)
 	}
 
@@ -410,6 +420,18 @@ func (p *Process) prepareIsolation(ctx context.Context, cmd *exec.Cmd) (*exec.Cm
 
 		if p.spec.Cwd != "" {
 			sdArgs = append(sdArgs, "-p", "WorkingDirectory="+p.spec.Cwd)
+		}
+
+		if r := p.spec.Resources; r != nil {
+			if r.MemoryMaxBytes > 0 {
+				sdArgs = append(sdArgs, "-p", fmt.Sprintf("MemoryMax=%d", r.MemoryMaxBytes))
+			}
+			if r.CPUMaxPercent > 0 {
+				sdArgs = append(sdArgs, "-p", fmt.Sprintf("CPUQuota=%d%%", r.CPUMaxPercent))
+			}
+			if r.TasksMax > 0 {
+				sdArgs = append(sdArgs, "-p", fmt.Sprintf("TasksMax=%d", r.TasksMax))
+			}
 		}
 
 		sdArgs = append(sdArgs, "--")
