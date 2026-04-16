@@ -1,10 +1,33 @@
-# Tutorials
+# 🦁 Tutorials
 
 Real-world recipes. Copy-paste and adapt.
 
+## 🎯 Pick your stack
+
+| Stack | Jump to | Time |
+|-------|---------|------|
+| ▲ Next.js | [Next.js](#-nextjs) | 3 min |
+| 🟢 Express / Fastify | [Express / Fastify (Node.js)](#-express--fastify-nodejs) | 2 min |
+| 🥟 Bun | [Bun](#-bun) | 1 min |
+| 🐍 FastAPI + Uvicorn | [Python — FastAPI + Uvicorn](#-python--fastapi--uvicorn) | 2 min |
+| 🦄 Django + Gunicorn | [Python — Django + Gunicorn](#-python--django--gunicorn) | 2 min |
+| 🐹 Go web server | [Go web server](#-go-web-server) | 2 min |
+| 🦀 Rust (Actix/Axum) | [Rust (Actix / Axum)](#-rust-actix--axum) | 2 min |
+| 📄 Static site | [Static site server (Caddy / Nginx)](#-static-site-server-caddy--nginx) | 1 min |
+| ⏰ Cron / scheduled | [Cron / scheduled tasks](#-cron--scheduled-tasks) | 1 min |
+| 🔒 Production hardening | [Secure isolation (production)](#-secure-isolation-production) | 3 min |
+| 🚀 Full deploy walkthrough | [Full production deploy (step by step)](#-full-production-deploy-step-by-step) | 10 min |
+| 📜 Lynxfile (declarative) | [Lynxfile.yml — declarative multi-app deploy](#-lynxfileyml--declarative-multi-app-deploy) | 5 min |
+| 📊 Monitor & debug | [Monitoring and debugging](#-monitoring-and-debugging) | 1 min |
+| 💡 Daily-use tips | [Tips](#-tips) | - |
+
+> 💡 **Tip**: all examples use `lynx` commands that work identically in
+> user mode (`lynxd &`) and system mode (`sudo systemctl start lynx.lynxd`).
+> The only difference in prod: swap `--isolation self` for `--isolation dynamic`.
+
 ---
 
-## Next.js
+## ▲ Next.js
 
 ### Development
 
@@ -12,6 +35,15 @@ Real-world recipes. Copy-paste and adapt.
 # Inside your Next.js project directory
 lynx start "npm run dev" --name nextjs-dev --cwd /srv/myapp --shell
 lynx logs nextjs-dev --follow
+```
+
+**What you see:**
+```
+Started nextjs-dev
+  ID: 019d93ab-...  PID: 12345  Status: running
+[STDOUT]   ▲ Next.js 15.0.0
+[STDOUT]   - Local:        http://localhost:3000
+[STDOUT]   ✓ Ready in 2.1s
 ```
 
 ### Production (standalone build)
@@ -71,9 +103,19 @@ lynx scale nextjs 5    # add 2 more instances
 lynx scale nextjs 2    # drop back to 2
 ```
 
+**Output:**
+```
+Scaled nextjs: 3 → 5
+  + nextjs-4
+  + nextjs-5
+```
+
+> ⚠️ **Warning**: Each instance must bind a unique port. Read `LYNX_INSTANCE`
+> (0-based) and compute `port = 3000 + LYNX_INSTANCE`.
+
 ---
 
-## Express / Fastify (Node.js)
+## 🟢 Express / Fastify (Node.js)
 
 ```bash
 # Simple
@@ -114,7 +156,7 @@ process.on('SIGINT', () => {
 
 ---
 
-## Bun
+## 🥟 Bun
 
 ```bash
 # Dev
@@ -132,7 +174,7 @@ lynx start "bun run src/index.ts" \
 
 ---
 
-## Python — FastAPI + Uvicorn
+## 🐍 Python — FastAPI + Uvicorn
 
 ```bash
 # Development (with reload)
@@ -158,7 +200,7 @@ lynx start "/srv/api/.venv/bin/uvicorn main:app --host 0.0.0.0 --port 8000" \
 
 ---
 
-## Python — Django + Gunicorn
+## 🦄 Python — Django + Gunicorn
 
 ```bash
 # Via uv
@@ -179,7 +221,7 @@ lynx start "/srv/django/.venv/bin/gunicorn myproject.wsgi:application -b 0.0.0.0
 
 ---
 
-## Go web server
+## 🐹 Go web server
 
 ```bash
 # Compiled binary (recommended for production)
@@ -206,7 +248,7 @@ srv.Shutdown(ctx)
 
 ---
 
-## Rust (Actix / Axum)
+## 🦀 Rust (Actix / Axum)
 
 ```bash
 # Build and run
@@ -220,7 +262,7 @@ lynx start ./target/release/api \
 
 ---
 
-## Static site server (Caddy / Nginx)
+## 📄 Static site server (Caddy / Nginx)
 
 ```bash
 # Caddy (auto-HTTPS)
@@ -237,7 +279,7 @@ lynx start "python3 -m http.server 8080" \
 
 ---
 
-## Cron / scheduled tasks
+## ⏰ Cron / scheduled tasks
 
 ```bash
 # Run a backup script every 6 hours
@@ -256,7 +298,7 @@ lynx start "curl -sSf http://localhost:3000/healthz || exit 1" \
 
 ---
 
-## Secure isolation (production)
+## 🔒 Secure isolation (production)
 
 ### DynamicUser (system mode, strongest)
 
@@ -290,7 +332,7 @@ lynx start "node server.js" \
 
 ---
 
-## Full production deploy (step by step)
+## 🚀 Full production deploy (step by step)
 
 A complete workflow for deploying a Node.js API:
 
@@ -337,9 +379,24 @@ lynx logs prod:api --follow
 sudo lynx startup
 ```
 
+**What `lynx list --namespace prod` shows after step 6:**
+```
+┌──────────┬───────┬───────────┬─────────┬────────┬───────┬─────────┬─────┬────────┐
+│ id       │ name  │ namespace │ version │ mode   │ pid   │ status  │ cpu │ mem    │
+├──────────┼───────┼───────────┼─────────┼────────┼───────┼─────────┼─────┼────────┤
+│ 019d9... │ api-1 │ prod      │ 0.0.1   │ forked │ 12340 │ running │ 0%  │ 52 MB  │
+│ 019d9... │ api-2 │ prod      │ 0.0.1   │ forked │ 12341 │ running │ 0%  │ 48 MB  │
+│ 019d9... │ api-3 │ prod      │ 0.0.1   │ forked │ 12342 │ running │ 0%  │ 50 MB  │
+└──────────┴───────┴───────────┴─────────┴────────┴───────┴─────────┴─────┴────────┘
+```
+
+> 💡 **Tip**: `sudo lynx startup` wires the `lynx.lynxd.service` into
+> systemd so apps restart after reboot. All specs in `~/.config/lynx/apps/`
+> are restored automatically at boot.
+
 ---
 
-## Lynxfile.yml — declarative multi-app deploy
+## 📜 Lynxfile.yml — declarative multi-app deploy
 
 Instead of individual `start` commands, declare everything in a file:
 
@@ -386,10 +443,10 @@ lynx apply Lynxfile.yml
 
 ---
 
-## Monitoring and debugging
+## 📊 Monitoring and debugging
 
 ```bash
-# Live dashboard
+# Live dashboard (refreshes every 2s, Ctrl+C to exit)
 lynx monit
 
 # JSON output for scripting
@@ -411,7 +468,7 @@ lynx flush api
 
 ---
 
-## Tips
+## 💡 Tips
 
 1. **Name your processes.** `--name api` is easier to type than a UUID.
 2. **Use namespaces.** `--namespace prod` + `--namespace staging` keeps
