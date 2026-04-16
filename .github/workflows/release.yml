@@ -34,6 +34,12 @@ jobs:
           GOOS=linux GOARCH=amd64 go build -trimpath -ldflags="${LDFLAGS}" -o lynx_linux_amd64 ./cmd/lynx
           GOOS=linux GOARCH=arm64 go build -trimpath -ldflags="${LDFLAGS}" -o lynx_linux_arm64 ./cmd/lynx
 
+      - name: Build Debian package
+        run: |
+          sudo apt-get update && sudo apt-get install -y --no-install-recommends debhelper
+          dpkg-buildpackage -us -uc -b
+          cp ../lynx-pm_*.deb .
+
       - name: Sign binaries
         env:
           RELEASE_SIGNING_KEY: ${{ secrets.RELEASE_SIGNING_KEY }}
@@ -41,14 +47,28 @@ jobs:
           go run scripts/sign.go lynx_linux_amd64
           go run scripts/sign.go lynx_linux_arm64
 
+      - name: Extract release notes
+        run: |
+          # Extract notes for current version from debian/changelog
+          VERSION_NUM="${GITHUB_REF_NAME#v}"
+          awk -v ver="$VERSION_NUM" '
+            /^lynx-pm \(/ {
+              if (found) exit
+              if ($0 ~ "\\(" ver "-") { found=1; next }
+            }
+            found && /^ --/ { exit }
+            found { print }
+          ' debian/changelog > release_notes.txt
+
       - name: Create release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           gh release create "${GITHUB_REF_NAME}" \
-            --title "${GITHUB_REF_NAME}" \
-            --generate-notes \
+            --title "Lynx ${GITHUB_REF_NAME}" \
+            --notes-file release_notes.txt \
             lynx_linux_amd64 \
             lynx_linux_amd64.sig \
             lynx_linux_arm64 \
-            lynx_linux_arm64.sig
+            lynx_linux_arm64.sig \
+            lynx-pm_*.deb
