@@ -175,16 +175,9 @@ type specParser struct {
 	stopTimeoutMs int
 
 	// Resource limits
-	memoryMax    string
-	cpuMaxPct    int
-	tasksMax     int
-
-	// Health probe
-	healthURL           string
-	healthExec          string
-	healthIntervalMs    int
-	healthTimeoutMs     int
-	healthFailThreshold int
+	memoryMax string
+	cpuMaxPct int
+	tasksMax  int
 
 	parsingFlags bool
 	scale        int
@@ -299,16 +292,6 @@ func (p *specParser) handleFlag(arg string) error {
 		return p.readIntValue(&p.cpuMaxPct)
 	case "--tasks-max":
 		return p.readIntValue(&p.tasksMax)
-	case "--health-url":
-		return p.readStringValue(&p.healthURL)
-	case "--health-exec":
-		return p.readStringValue(&p.healthExec)
-	case "--health-interval":
-		return p.readIntValue(&p.healthIntervalMs)
-	case "--health-timeout":
-		return p.readIntValue(&p.healthTimeoutMs)
-	case "--health-fails":
-		return p.readIntValue(&p.healthFailThreshold)
 	default:
 		return fmt.Errorf("unknown flag: %s", arg)
 	}
@@ -427,22 +410,6 @@ func (p *specParser) finalize() (protocol.AppSpec, error) {
 			CPUMaxPercent:  p.cpuMaxPct,
 			TasksMax:       p.tasksMax,
 		}
-	}
-
-	if p.healthURL != "" || p.healthExec != "" {
-		h := &protocol.AppHealth{
-			URL:           p.healthURL,
-			Exec:          p.healthExec,
-			IntervalMs:    p.healthIntervalMs,
-			TimeoutMs:     p.healthTimeoutMs,
-			FailThreshold: p.healthFailThreshold,
-		}
-		if p.healthURL != "" {
-			h.Type = "http"
-		} else {
-			h.Type = "exec"
-		}
-		spec.Health = h
 	}
 
 	p.resolveExec(&spec)
@@ -655,11 +622,6 @@ func GetSpec() help.CommandSpec {
 			{Short: "", Long: "--memory-max <size>", Description: "Hard memory ceiling: 512M, 2G, or bytes"},
 			{Short: "", Long: "--cpu-max <percent>", Description: "CPU cap as percent of one core (100 = 1 core, 200 = 2 cores)"},
 			{Short: "", Long: "--tasks-max <N>", Description: "Maximum number of tasks (threads + subprocesses)"},
-			{Short: "", Long: "--health-url <url>", Description: "HTTP liveness probe; restart on consecutive failures"},
-			{Short: "", Long: "--health-exec <cmd>", Description: "Command-based liveness probe (exit 0 = healthy)"},
-			{Short: "", Long: "--health-interval <ms>", Description: "Interval between probes (default 10000)"},
-			{Short: "", Long: "--health-timeout <ms>", Description: "Per-probe timeout (default 3000)"},
-			{Short: "", Long: "--health-fails <N>", Description: "Consecutive failures before restart (default 3)"},
 			{Short: "-n", Long: "--dry-run", Description: "Print the resolved spec without starting anything"},
 			{Short: "-q", Long: "--quiet", Description: "Suppress success messages (errors still printed)"},
 		},

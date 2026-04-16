@@ -75,7 +75,6 @@ type AppSpec struct {
 	RunAs     *RunAsPolicy      `json:"runAs,omitempty"`
 	Stop      *AppStop          `json:"stop,omitempty"`
 	Resources *AppResources     `json:"resources,omitempty"`
-	Health    *AppHealth        `json:"health,omitempty"`
 	CreatedAt string            `json:"created_at,omitempty"`
 	Disabled  bool              `json:"disabled,omitempty"`
 }
@@ -106,24 +105,6 @@ type AppResources struct {
 	TasksMax int `json:"tasks_max,omitempty"`
 }
 
-// AppHealth configures periodic liveness probing. When N consecutive
-// probes fail the daemon restarts the process (subject to Restart policy).
-type AppHealth struct {
-	// Type is "http" (GET a URL and require 2xx) or "exec" (run a command
-	// and require exit code 0).
-	Type string `json:"type"`
-	// URL for type=http. Only http:// and https:// are permitted.
-	URL string `json:"url,omitempty"`
-	// Exec for type=exec. Runs relative to the process cwd.
-	Exec string `json:"exec,omitempty"`
-	// IntervalMs between probes. Bounded to [1000, 600000]. Default 10000.
-	IntervalMs int `json:"interval_ms,omitempty"`
-	// TimeoutMs per probe. Bounded to [100, 60000]. Default 3000.
-	TimeoutMs int `json:"timeout_ms,omitempty"`
-	// FailThreshold is how many consecutive failures before restart.
-	// Bounded to [1, 20]. Default 3.
-	FailThreshold int `json:"fail_threshold,omitempty"`
-}
 
 // AppExec defines execution details.
 type AppExec struct {

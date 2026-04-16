@@ -196,9 +196,6 @@ func validateSpec(spec protocol.AppSpec) error {
 	if err := validateResources(spec.Resources); err != nil {
 		return err
 	}
-	if err := validateHealth(spec.Health); err != nil {
-		return err
-	}
 
 	return nil
 }
@@ -247,39 +244,3 @@ func validateResources(r *protocol.AppResources) error {
 	return nil
 }
 
-func validateHealth(h *protocol.AppHealth) error {
-	if h == nil {
-		return nil
-	}
-	switch h.Type {
-	case "http":
-		if h.URL == "" {
-			return errors.New("ERR_BAD_REQUEST: health.url is required for type=http")
-		}
-		if !strings.HasPrefix(h.URL, "http://") && !strings.HasPrefix(h.URL, "https://") {
-			return errors.New("ERR_BAD_REQUEST: health.url must be http:// or https://")
-		}
-		if len(h.URL) > 4096 {
-			return errors.New("ERR_LIMITS: health.url too long")
-		}
-	case "exec":
-		if h.Exec == "" {
-			return errors.New("ERR_BAD_REQUEST: health.exec is required for type=exec")
-		}
-		if len(h.Exec) > 4096 {
-			return errors.New("ERR_LIMITS: health.exec too long")
-		}
-	default:
-		return errors.New("ERR_BAD_REQUEST: health.type must be 'http' or 'exec'")
-	}
-	if h.IntervalMs != 0 && (h.IntervalMs < 1000 || h.IntervalMs > 600000) {
-		return errors.New("ERR_LIMITS: health.interval_ms must be between 1000 and 600000")
-	}
-	if h.TimeoutMs != 0 && (h.TimeoutMs < 100 || h.TimeoutMs > 60000) {
-		return errors.New("ERR_LIMITS: health.timeout_ms must be between 100 and 60000")
-	}
-	if h.FailThreshold != 0 && (h.FailThreshold < 1 || h.FailThreshold > 20) {
-		return errors.New("ERR_LIMITS: health.fail_threshold must be between 1 and 20")
-	}
-	return nil
-}
