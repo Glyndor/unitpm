@@ -9,6 +9,7 @@ import (
 	"log"
 	"net"
 	"os"
+	"strconv"
 	"sync"
 	"time"
 
@@ -44,17 +45,19 @@ const (
 
 // Server accepts connections and dispatches commands.
 type Server struct {
-	handlers map[string]CommandHandler
-	mu       sync.RWMutex
-	listener net.Listener
-	sem      chan struct{} // semaphore for connection limiting
+	handlers  map[string]CommandHandler
+	mu        sync.RWMutex
+	listener  net.Listener
+	sem       chan struct{} // semaphore for connection limiting
+	rateLimit *rateLimiter
 }
 
 // NewServer creates a new IPC server.
 func NewServer() *Server {
 	return &Server{
-		handlers: make(map[string]CommandHandler),
-		sem:      make(chan struct{}, MaxConnections),
+		handlers:  make(map[string]CommandHandler),
+		sem:       make(chan struct{}, MaxConnections),
+		rateLimit: newRateLimiter(),
 	}
 }
 
@@ -162,6 +165,19 @@ func (s *Server) handleRequest(
 			}
 		}
 		return false
+	}
+
+	// Per-UID token-bucket rate limit. Caller's UID comes from SO_PEERCRED
+	// via validateIdentity; we only skip the check if we somehow have no
+	// identity attached (shouldn't happen, but failing open here would be
+	// safer than rejecting legitimate local admin work).
+	if id, ok := ctx.Value(ContextKeyIdentity).(*Identity); ok && id != nil && s.rateLimit != nil {
+		if uid, err := strconv.ParseUint(id.UID, 10, 32); err == nil {
+			if !s.rateLimit.allow(uint32(uid)) {
+				s.sendError(encoder, "ERR_RATE_LIMIT", "IPC rate limit exceeded for this UID")
+				return true // keep connection open; caller can retry
+			}
+		}
 	}
 
 	// Decode into UniversalRequest to determine type
