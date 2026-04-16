@@ -32,7 +32,7 @@ func Run(client transport.IPCClient, args []string) error {
 	if err != nil {
 		return fmt.Errorf("failed to open Lynxfile: %w", err)
 	}
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 
 	file, err := lynxfile.Parse(f)
 	if err != nil {
@@ -86,7 +86,7 @@ func Run(client transport.IPCClient, args []string) error {
 			return fmt.Errorf("apply failed for %s: %w", s.Name, err)
 		}
 
-		term.Printf("Applied %s/%s\n", s.Namespace, s.Name)
+		_, _ = term.Printf("Applied %s/%s\n", s.Namespace, s.Name)
 	}
 
 	return nil

@@ -26,9 +26,9 @@ func setupTestEnv(t *testing.T) func() {
 
 	restore := func() {
 		_ = os.RemoveAll(tempDir)
-		os.Unsetenv("XDG_CONFIG_HOME")
-		os.Unsetenv("XDG_STATE_HOME")
-		os.Unsetenv("HOME")
+		_ = os.Unsetenv("XDG_CONFIG_HOME")
+		_ = os.Unsetenv("XDG_STATE_HOME")
+		_ = os.Unsetenv("HOME")
 	}
 
 	logDir := filepath.Join(tempDir, "lynx", "logs")

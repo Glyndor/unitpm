@@ -549,14 +549,14 @@ func printDryRun(spec protocol.AppSpec, scale int) error {
 }
 
 func printSuccessResponse(data *protocol.StartResponseData, name string) {
-	term.Printf("Started %s\n", name)
+	_, _ = term.Printf("Started %s\n", name)
 	if len(data.ProcID) > 8 {
-		term.Printf("  ID: %s (short: %s)\n", data.ProcID, data.ProcID[:8])
+		_, _ = term.Printf("  ID: %s (short: %s)\n", data.ProcID, data.ProcID[:8])
 	} else {
-		term.Printf("  ID: %s\n", data.ProcID)
+		_, _ = term.Printf("  ID: %s\n", data.ProcID)
 	}
-	term.Printf("  PID: %d\n", data.PID)
-	term.Printf("  Status: %s\n", data.Status)
+	_, _ = term.Printf("  PID: %d\n", data.PID)
+	_, _ = term.Printf("  Status: %s\n", data.Status)
 }
 
 // GetSpec returns the command specification.

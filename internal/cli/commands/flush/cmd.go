@@ -34,10 +34,10 @@ func Run(client transport.IPCClient, args []string) error {
 
 		err := client.Call("flush", map[string]string{"id": id}, &resp)
 		if err != nil {
-			term.Printf("Failed to flush %s: %v\n", id, err)
+			_, _ = term.Printf("Failed to flush %s: %v\n", id, err)
 			continue
 		}
-		term.Printf("Flushed logs for %s\n", resp.ID)
+		_, _ = term.Printf("Flushed logs for %s\n", resp.ID)
 	}
 	return nil
 }

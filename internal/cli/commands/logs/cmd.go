@@ -122,9 +122,9 @@ func runWithContext(ctx context.Context, args []string) error {
 		return fmt.Errorf("failed to resolve log paths: %w", err)
 	}
 
-	term.Printf("Showing logs for %s (%s)\n", match.Name, match.ID)
-	term.Printf("Stdout: %s\n", stdoutPath)
-	term.Printf("Stderr: %s\n\n", stderrPath)
+	_, _ = term.Printf("Showing logs for %s (%s)\n", match.Name, match.ID)
+	_, _ = term.Printf("Stdout: %s\n", stdoutPath)
+	_, _ = term.Printf("Stderr: %s\n\n", stderrPath)
 
 	var wg sync.WaitGroup
 
@@ -181,7 +181,7 @@ func tailFile(ctx context.Context, path, label string, n int, follow bool, sleep
 			return
 		}
 	}
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 
 	// Initial Read: Last N lines
 	printLastNLines(f, label, n)

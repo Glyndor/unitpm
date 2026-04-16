@@ -22,7 +22,7 @@ func TestGetInfo(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create temp dir: %v", err)
 	}
-	defer os.RemoveAll(tempDir)
+	defer func() { _ = os.RemoveAll(tempDir) }()
 
 	// Case 1: Not a git repo
 	info, err := git.GetInfo(tempDir)

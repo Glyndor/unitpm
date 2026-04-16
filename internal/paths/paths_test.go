@@ -14,8 +14,7 @@ import (
 // for non-root users (euid != 0).
 func TestResolveLogPaths_DefaultPaths(t *testing.T) {
 	tmp := t.TempDir()
-	os.Setenv("XDG_STATE_HOME", tmp)
-	defer os.Unsetenv("XDG_STATE_HOME")
+	t.Setenv("XDG_STATE_HOME", tmp)
 
 	specID := "test-proc-id"
 	stdout, stderr, err := paths.ResolveLogPaths(specID, "", "", "")
@@ -37,8 +36,7 @@ func TestResolveLogPaths_DefaultPaths(t *testing.T) {
 
 func TestResolveLogPaths_CustomDir(t *testing.T) {
 	tmp := t.TempDir()
-	os.Setenv("XDG_STATE_HOME", tmp)
-	defer os.Unsetenv("XDG_STATE_HOME")
+	t.Setenv("XDG_STATE_HOME", tmp)
 
 	customDir := filepath.Join(tmp, "myapp/logs")
 	specID := "proc-abc"
@@ -59,8 +57,7 @@ func TestResolveLogPaths_CustomDir(t *testing.T) {
 
 func TestResolveLogPaths_CustomFilenames(t *testing.T) {
 	tmp := t.TempDir()
-	os.Setenv("XDG_STATE_HOME", tmp)
-	defer os.Unsetenv("XDG_STATE_HOME")
+	t.Setenv("XDG_STATE_HOME", tmp)
 
 	stdout, stderr, err := paths.ResolveLogPaths("proc-1", "", "out.txt", "err.txt")
 	if err != nil {
@@ -77,8 +74,7 @@ func TestResolveLogPaths_CustomFilenames(t *testing.T) {
 
 func TestResolveLogPaths_AbsoluteCustomFilename(t *testing.T) {
 	tmp := t.TempDir()
-	os.Setenv("XDG_STATE_HOME", tmp)
-	defer os.Unsetenv("XDG_STATE_HOME")
+	t.Setenv("XDG_STATE_HOME", tmp)
 
 	absStdout := filepath.Join(tmp, "custom", "out.log")
 	stdout, _, err := paths.ResolveLogPaths("proc-1", "", absStdout, "")
@@ -100,8 +96,7 @@ func TestResolveLogPaths_PathTooLong(t *testing.T) {
 
 func TestResolveLogPaths_DotDotDir(t *testing.T) {
 	tmp := t.TempDir()
-	os.Setenv("XDG_STATE_HOME", tmp)
-	defer os.Unsetenv("XDG_STATE_HOME")
+	t.Setenv("XDG_STATE_HOME", tmp)
 
 	_, _, err := paths.ResolveLogPaths("proc-1", "../escape", "", "")
 	if err == nil {
@@ -111,8 +106,7 @@ func TestResolveLogPaths_DotDotDir(t *testing.T) {
 
 func TestGetLogDir_XDGStateHome(t *testing.T) {
 	tmp := t.TempDir()
-	os.Setenv("XDG_STATE_HOME", tmp)
-	defer os.Unsetenv("XDG_STATE_HOME")
+	t.Setenv("XDG_STATE_HOME", tmp)
 
 	dir, err := paths.GetLogDir("")
 	if err != nil {
@@ -126,7 +120,8 @@ func TestGetLogDir_XDGStateHome(t *testing.T) {
 }
 
 func TestGetLogDir_FallbackToHome(t *testing.T) {
-	os.Unsetenv("XDG_STATE_HOME")
+	t.Setenv("XDG_STATE_HOME", "")
+	_ = os.Unsetenv("XDG_STATE_HOME")
 
 	home, err := os.UserHomeDir()
 	if err != nil {
@@ -146,8 +141,7 @@ func TestGetLogDir_FallbackToHome(t *testing.T) {
 
 func TestGetLogDir_CustomDir(t *testing.T) {
 	tmp := t.TempDir()
-	os.Setenv("XDG_STATE_HOME", tmp)
-	defer os.Unsetenv("XDG_STATE_HOME")
+	t.Setenv("XDG_STATE_HOME", tmp)
 
 	customDir := filepath.Join(tmp, "mydir")
 	dir, err := paths.GetLogDir(customDir)

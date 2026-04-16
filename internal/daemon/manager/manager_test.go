@@ -22,18 +22,16 @@ func TestRestoreAndPersistence(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to create temp dir: %v", err)
 	}
-	defer os.RemoveAll(tempDir)
+	defer func() { _ = os.RemoveAll(tempDir) }()
 
-	os.Setenv("XDG_CONFIG_HOME", tempDir)
-	defer os.Unsetenv("XDG_CONFIG_HOME")
+	t.Setenv("XDG_CONFIG_HOME", tempDir)
 
 	// Ensure log directory exists to avoid process start failure
 	logDir := filepath.Join(tempDir, "lynx/logs")
 	if err := os.MkdirAll(logDir, 0700); err != nil {
 		t.Fatalf("failed to create log dir: %v", err)
 	}
-	os.Setenv("XDG_STATE_HOME", tempDir) // Use temp for logs
-	defer os.Unsetenv("XDG_STATE_HOME")
+	t.Setenv("XDG_STATE_HOME", tempDir)
 
 	// 1. Create specs on disk
 	// App A: Enabled, should start
@@ -168,17 +166,15 @@ func TestManager_MaxProcessesLimit(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to create temp dir: %v", err)
 	}
-	defer os.RemoveAll(tempDir)
+	defer func() { _ = os.RemoveAll(tempDir) }()
 
-	os.Setenv("XDG_CONFIG_HOME", tempDir)
-	defer os.Unsetenv("XDG_CONFIG_HOME")
+	t.Setenv("XDG_CONFIG_HOME", tempDir)
 
 	logDir := filepath.Join(tempDir, "lynx/logs")
 	if err := os.MkdirAll(logDir, 0700); err != nil {
 		t.Fatalf("failed to create log dir: %v", err)
 	}
-	os.Setenv("XDG_STATE_HOME", tempDir)
-	defer os.Unsetenv("XDG_STATE_HOME")
+	t.Setenv("XDG_STATE_HOME", tempDir)
 
 	if err := os.Setenv("LYNX_MAX_PROCESSES", "1"); err != nil {
 		t.Fatalf("failed to set LYNX_MAX_PROCESSES: %v", err)
@@ -223,17 +219,15 @@ func TestManager_MaxProcessesLimitInvalidEnv(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to create temp dir: %v", err)
 	}
-	defer os.RemoveAll(tempDir)
+	defer func() { _ = os.RemoveAll(tempDir) }()
 
-	os.Setenv("XDG_CONFIG_HOME", tempDir)
-	defer os.Unsetenv("XDG_CONFIG_HOME")
+	t.Setenv("XDG_CONFIG_HOME", tempDir)
 
 	logDir := filepath.Join(tempDir, "lynx/logs")
 	if err := os.MkdirAll(logDir, 0700); err != nil {
 		t.Fatalf("failed to create log dir: %v", err)
 	}
-	os.Setenv("XDG_STATE_HOME", tempDir)
-	defer os.Unsetenv("XDG_STATE_HOME")
+	t.Setenv("XDG_STATE_HOME", tempDir)
 
 	if err := os.Setenv("LYNX_MAX_PROCESSES", "invalid"); err != nil {
 		t.Fatalf("failed to set LYNX_MAX_PROCESSES: %v", err)
@@ -265,17 +259,15 @@ func TestManager_MaxProcessesLimitNonPositive(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to create temp dir: %v", err)
 	}
-	defer os.RemoveAll(tempDir)
+	defer func() { _ = os.RemoveAll(tempDir) }()
 
-	os.Setenv("XDG_CONFIG_HOME", tempDir)
-	defer os.Unsetenv("XDG_CONFIG_HOME")
+	t.Setenv("XDG_CONFIG_HOME", tempDir)
 
 	logDir := filepath.Join(tempDir, "lynx/logs")
 	if err := os.MkdirAll(logDir, 0700); err != nil {
 		t.Fatalf("failed to create log dir: %v", err)
 	}
-	os.Setenv("XDG_STATE_HOME", tempDir)
-	defer os.Unsetenv("XDG_STATE_HOME")
+	t.Setenv("XDG_STATE_HOME", tempDir)
 
 	if err := os.Setenv("LYNX_MAX_PROCESSES", "0"); err != nil {
 		t.Fatalf("failed to set LYNX_MAX_PROCESSES: %v", err)

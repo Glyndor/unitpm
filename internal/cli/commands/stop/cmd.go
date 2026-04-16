@@ -35,13 +35,13 @@ func Run(client transport.IPCClient, args []string) error {
 
 		err := client.Call("stop", map[string]string{"id": id}, &resp)
 		if err != nil {
-			term.Printf("Failed to stop %s: %v\n", id, err)
+			_, _ = term.Printf("Failed to stop %s: %v\n", id, err)
 			continue
 		}
 		if resp.WasRunning {
-			term.Printf("Stopped %s\n", resp.ID)
+			_, _ = term.Printf("Stopped %s\n", resp.ID)
 		} else {
-			term.Printf("Already stopped: %s\n", resp.ID)
+			_, _ = term.Printf("Already stopped: %s\n", resp.ID)
 		}
 	}
 	return nil

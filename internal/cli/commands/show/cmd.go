@@ -55,13 +55,13 @@ func Run(client transport.IPCClient, args []string) error {
 		return fmt.Errorf("show failed: %w", err)
 	}
 
-	term.Printf("Process %s (%s)\n", resp.Info.Name, resp.Info.ID)
-	term.Printf("Namespace: %s\n", resp.Info.Namespace)
-	term.Printf("State: %s\n", resp.Info.State)
-	term.Printf("PID: %d\n", resp.Info.PID)
-	term.Printf("CPU: %.1f%%  Memory: %d bytes\n", resp.Info.CPU, resp.Info.Memory)
-	term.Printf("Uptime: %d ms  Restarts: %d\n", resp.Info.Uptime, resp.Info.Restarts)
-	term.Printf("User: %s  Mode: %s  Version: %s\n",
+	_, _ = term.Printf("Process %s (%s)\n", resp.Info.Name, resp.Info.ID)
+	_, _ = term.Printf("Namespace: %s\n", resp.Info.Namespace)
+	_, _ = term.Printf("State: %s\n", resp.Info.State)
+	_, _ = term.Printf("PID: %d\n", resp.Info.PID)
+	_, _ = term.Printf("CPU: %.1f%%  Memory: %d bytes\n", resp.Info.CPU, resp.Info.Memory)
+	_, _ = term.Printf("Uptime: %d ms  Restarts: %d\n", resp.Info.Uptime, resp.Info.Restarts)
+	_, _ = term.Printf("User: %s  Mode: %s  Version: %s\n",
 		resp.Info.User, resp.Info.Mode, resp.Info.Version)
 
 	return nil

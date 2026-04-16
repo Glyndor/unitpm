@@ -92,7 +92,7 @@ func TestRun_ExistingSpec_MissingLogFile(t *testing.T) {
 	if err := os.WriteFile(specPath, []byte(specContent), 0o600); err != nil {
 		t.Skip("cannot write spec file")
 	}
-	defer os.Remove(specPath)
+	defer func() { _ = os.Remove(specPath) }()
 
 	// Log files don't exist → logs prints "File not found" and returns nil
 	err = logs.Run([]string{"test-logs-proc"})

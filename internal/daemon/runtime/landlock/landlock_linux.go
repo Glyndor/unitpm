@@ -86,7 +86,7 @@ func Apply(rs Ruleset) error {
 		return fmt.Errorf("landlock_create_ruleset: %w", errno)
 	}
 	rulesetFD := int(r1)
-	defer syscall.Close(rulesetFD)
+	defer func() { _ = syscall.Close(rulesetFD) }()
 
 	for _, a := range rs.Allow {
 		if err := addPathRule(rulesetFD, a, handledFs); err != nil {
@@ -121,7 +121,7 @@ func addPathRule(rulesetFD int, a PathAccess, handledMask uint64) error {
 		// /lib64 on a pure-glibc system doesn't break the sandbox.
 		return nil
 	}
-	defer syscall.Close(fd)
+	defer func() { _ = syscall.Close(fd) }()
 
 	allowed := accessMask(a, handledMask)
 	if allowed == 0 {

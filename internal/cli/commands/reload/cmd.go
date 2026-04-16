@@ -34,10 +34,10 @@ func Run(client transport.IPCClient, args []string) error {
 
 		err := client.Call("reload", map[string]string{"id": id}, &resp)
 		if err != nil {
-			term.Printf("Failed to reload %s: %v\n", id, err)
+			_, _ = term.Printf("Failed to reload %s: %v\n", id, err)
 			continue
 		}
-		term.Printf("Reloaded %s\n", resp.ID)
+		_, _ = term.Printf("Reloaded %s\n", resp.ID)
 	}
 	return nil
 }

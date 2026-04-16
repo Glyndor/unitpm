@@ -33,10 +33,10 @@ EMPTY=
 	}
 
 	defer func() {
-		os.Unsetenv("KEY1")
-		os.Unsetenv("KEY2")
-		os.Unsetenv("KEY3")
-		os.Unsetenv("EMPTY")
+		_ = os.Unsetenv("KEY1")
+		_ = os.Unsetenv("KEY2")
+		_ = os.Unsetenv("KEY3")
+		_ = os.Unsetenv("EMPTY")
 	}()
 
 	if err := loadEnv(envPath); err != nil {
