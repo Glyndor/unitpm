@@ -40,6 +40,10 @@ type Process struct {
 	scheduler     *cron.Cron
 	restartCount  int
 	lastRestart   time.Time
+	// healthCancel cancels the health-probe goroutine when set. Nil means
+	// no probe is active (either the spec has no Health section or the
+	// process is not running).
+	healthCancel context.CancelFunc
 }
 
 // DefaultNamespace is the default namespace for processes.
@@ -158,6 +162,7 @@ func (p *Process) Start() error {
 	}
 
 	go p.monitor()
+	p.startHealthProbe()
 
 	return nil
 }
@@ -539,6 +544,7 @@ func (p *Process) monitor() {
 	}
 	p.logFiles = nil
 	p.exitError = err
+	p.stopHealthProbe()
 
 	exitCode := 0
 	if err != nil {
@@ -687,6 +693,7 @@ func (p *Process) Stop(byUser bool) error {
 	if p.scheduler != nil {
 		p.scheduler.Stop()
 	}
+	p.stopHealthProbe()
 
 	if byUser {
 		p.noAutoRestart = true
