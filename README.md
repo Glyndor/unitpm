@@ -114,6 +114,9 @@ injection, clustering with `--scale`, and the isolation-mode picker.
 Django, Go, Bun, Rust) plus production deploy, Lynxfile.yml, cron jobs,
 and isolation modes: [`docs/TUTORIALS.md`](docs/TUTORIALS.md).
 
+**"Can I…?" FAQ** — rapid-fire yes/no for every common question
+(naming, env vars, limits, isolation, errors): [`docs/FAQ.md`](docs/FAQ.md).
+
 If lynxd can't find your interpreter run `lynx install-tools` (user
 install to `~/.local/bin`) or `sudo lynx install-tools --system`.
 
