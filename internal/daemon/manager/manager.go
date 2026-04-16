@@ -202,21 +202,11 @@ func (m *Manager) Reset(id string) error {
 	return nil
 }
 
-// ScaleResult describes the outcome of a scale operation.
-type ScaleResult struct {
-	BaseName  string   `json:"base_name"`
-	Namespace string   `json:"namespace"`
-	Before    int      `json:"before"`
-	After     int      `json:"after"`
-	Created   []string `json:"created,omitempty"` // new names
-	Deleted   []string `json:"deleted,omitempty"` // removed names
-}
-
 // Scale brings the number of running processes whose name matches
 // "<base>" or "<base>-N" (within the given namespace) to target. It uses
 // the spec of an existing instance as the template for new instances.
 // Returns an error if no instance exists to use as template.
-func (m *Manager) Scale(namespace, base string, target int) (*ScaleResult, error) {
+func (m *Manager) Scale(namespace, base string, target int) (*protocol.ScaleResponse, error) {
 	if target < 0 {
 		return nil, fmt.Errorf("ERR_BAD_REQUEST: target count must be >= 0")
 	}
@@ -227,38 +217,41 @@ func (m *Manager) Scale(namespace, base string, target int) (*ScaleResult, error
 		namespace = DefaultNamespace
 	}
 
-	members := m.scaleMembers(namespace, base)
-	res := &ScaleResult{BaseName: base, Namespace: namespace, Before: len(members)}
+	// Snapshot atomically: names, IDs, and a cloned template spec. This
+	// avoids a race where a concurrent Delete drops members[0] between
+	// scaleMembers() and the template read below.
+	snap := m.scaleSnapshot(namespace, base)
+	res := &protocol.ScaleResponse{BaseName: base, Namespace: namespace, Before: len(snap.names)}
 
 	switch {
-	case target == len(members):
+	case target == len(snap.names):
 		res.After = target
 		return res, nil
-	case target < len(members):
+	case target < len(snap.names):
 		// Stop+delete the highest-indexed members first so the lower
 		// indices stay stable for the caller's mental model.
-		for i := len(members) - 1; i >= target; i-- {
-			name := members[i].info.Name
-			id := members[i].info.ID
+		for i := len(snap.names) - 1; i >= target; i-- {
+			name := snap.names[i]
+			id := snap.ids[i]
 			if err := m.Delete(id); err != nil {
 				return res, fmt.Errorf("scale down: delete %s: %w", name, err)
 			}
 			res.Deleted = append(res.Deleted, name)
 		}
-	case target > len(members):
-		if len(members) == 0 {
+	case target > len(snap.names):
+		if len(snap.names) == 0 {
 			return nil, fmt.Errorf(
 				"ERR_NOT_FOUND: no existing instance of %q in namespace %q to use as template",
 				base, namespace,
 			)
 		}
-		template := members[0].spec
-		taken := make(map[string]bool, len(members))
-		for _, m := range members {
-			taken[m.info.Name] = true
+		template := snap.template
+		taken := make(map[string]bool, len(snap.names))
+		for _, n := range snap.names {
+			taken[n] = true
 		}
 		next := 1
-		for added := 0; added < target-len(members); added++ {
+		for added := 0; added < target-len(snap.names); added++ {
 			name := fmt.Sprintf("%s-%d", base, next)
 			for taken[name] {
 				next++
@@ -277,7 +270,7 @@ func (m *Manager) Scale(namespace, base string, target int) (*ScaleResult, error
 			if newSpec.Env == nil {
 				newSpec.Env = map[string]string{}
 			}
-			newSpec.Env["LYNX_INSTANCE"] = strconv.Itoa(added + len(members))
+			newSpec.Env["LYNX_INSTANCE"] = strconv.Itoa(added + len(snap.names))
 
 			if _, err := spec2.SaveSpec(newSpec.ID, newSpec); err != nil {
 				return res, fmt.Errorf("scale up: save spec: %w", err)
@@ -295,15 +288,23 @@ func (m *Manager) Scale(namespace, base string, target int) (*ScaleResult, error
 	return res, nil
 }
 
-// scaleMembers returns processes in namespace whose name is exactly `base`
-// or matches `base-<N>`, sorted by the numeric suffix (bare `base` first,
-// then 1, 2, …).
-func (m *Manager) scaleMembers(namespace, base string) []*Process {
+// scaleSnapshot takes an atomic read-lock snapshot of all processes in
+// namespace whose name is exactly `base` or matches `base-<N>`. Names/ids
+// are ordered so the bare name (if present) comes first, then numeric
+// suffix ascending. The first member's spec is cloned as the scale-up
+// template while still holding the lock, which prevents a TOCTOU race
+// with a concurrent Delete.
+type scaleSnap struct {
+	names    []string
+	ids      []string
+	template protocol.AppSpec
+}
+
+func (m *Manager) scaleSnapshot(namespace, base string) scaleSnap {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
 
 	var bare *Process
-	indexed := []*Process{}
 	type idx struct {
 		p *Process
 		n int
@@ -319,8 +320,7 @@ func (m *Manager) scaleMembers(namespace, base string) []*Process {
 			continue
 		}
 		if strings.HasPrefix(p.info.Name, prefix) {
-			suffix := p.info.Name[len(prefix):]
-			n, err := strconv.Atoi(suffix)
+			n, err := strconv.Atoi(p.info.Name[len(prefix):])
 			if err != nil {
 				continue
 			}
@@ -328,13 +328,27 @@ func (m *Manager) scaleMembers(namespace, base string) []*Process {
 		}
 	}
 	sort.Slice(withIdx, func(i, j int) bool { return withIdx[i].n < withIdx[j].n })
-	for _, w := range withIdx {
-		indexed = append(indexed, w.p)
-	}
+
+	ordered := make([]*Process, 0, len(withIdx)+1)
 	if bare != nil {
-		return append([]*Process{bare}, indexed...)
+		ordered = append(ordered, bare)
 	}
-	return indexed
+	for _, w := range withIdx {
+		ordered = append(ordered, w.p)
+	}
+
+	snap := scaleSnap{
+		names: make([]string, len(ordered)),
+		ids:   make([]string, len(ordered)),
+	}
+	for i, p := range ordered {
+		snap.names[i] = p.info.Name
+		snap.ids[i] = p.info.ID
+	}
+	if len(ordered) > 0 {
+		snap.template = ordered[0].spec
+	}
+	return snap
 }
 
 // Reload reloads a process configuration from its spec file and restarts the process.

@@ -200,20 +200,12 @@ func validateSpec(spec protocol.AppSpec) error {
 	return nil
 }
 
-// stopSignals is the allow-list of signal names accepted on AppStop.Signal.
-// Anything outside this set is rejected — SIGKILL/SIGSTOP/etc. are not
-// user-controllable because the daemon already escalates to SIGKILL.
-var stopSignals = map[string]struct{}{
-	"SIGTERM": {}, "SIGINT": {}, "SIGHUP": {}, "SIGQUIT": {},
-	"SIGUSR1": {}, "SIGUSR2": {},
-}
-
 func validateStop(s *protocol.AppStop) error {
 	if s == nil {
 		return nil
 	}
 	if s.Signal != "" {
-		if _, ok := stopSignals[s.Signal]; !ok {
+		if _, ok := manager.StopSignalByName[s.Signal]; !ok {
 			return errors.New("ERR_BAD_REQUEST: invalid stop signal; allowed: SIGTERM, SIGINT, SIGHUP, SIGQUIT, SIGUSR1, SIGUSR2")
 		}
 	}

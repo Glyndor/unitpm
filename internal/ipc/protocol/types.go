@@ -90,6 +90,17 @@ type AppStop struct {
 	TimeoutMs int `json:"timeout_ms,omitempty"`
 }
 
+// ScaleResponse is the payload returned by the 'scale' IPC verb.
+// Shared between manager.Scale and the CLI client to avoid struct drift.
+type ScaleResponse struct {
+	BaseName  string   `json:"base_name"`
+	Namespace string   `json:"namespace"`
+	Before    int      `json:"before"`
+	After     int      `json:"after"`
+	Created   []string `json:"created,omitempty"`
+	Deleted   []string `json:"deleted,omitempty"`
+}
+
 // AppResources bounds the runtime resources a managed process may use.
 // When the process runs under --isolation dynamic these map to systemd-run
 // -p MemoryMax/CPUQuota/TasksMax. Under --isolation sandbox they map to

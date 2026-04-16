@@ -3,7 +3,8 @@ package manager
 import (
 	"fmt"
 	"os"
-	"strconv"
+
+	"github.com/Jaro-c/Lynx/internal/env"
 )
 
 // Log-rotation defaults. Overridable per-call (see rotateIfLarge) or globally
@@ -20,27 +21,9 @@ type rotateConfig struct {
 
 func currentRotateConfig() rotateConfig {
 	return rotateConfig{
-		maxBytes: envInt64("LYNX_LOG_MAX_BYTES", defaultRotateMaxBytes),
-		keep:     envInt("LYNX_LOG_KEEP", defaultRotateKeep),
+		maxBytes: env.Int64("LYNX_LOG_MAX_BYTES", defaultRotateMaxBytes),
+		keep:     env.Int("LYNX_LOG_KEEP", defaultRotateKeep),
 	}
-}
-
-func envInt64(key string, fallback int64) int64 {
-	if v := os.Getenv(key); v != "" {
-		if n, err := strconv.ParseInt(v, 10, 64); err == nil && n > 0 {
-			return n
-		}
-	}
-	return fallback
-}
-
-func envInt(key string, fallback int) int {
-	if v := os.Getenv(key); v != "" {
-		if n, err := strconv.Atoi(v); err == nil && n > 0 {
-			return n
-		}
-	}
-	return fallback
 }
 
 // rotateIfLarge checks the given log path and, if it exceeds the size

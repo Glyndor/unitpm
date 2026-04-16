@@ -646,9 +646,10 @@ func (p *Process) handleRestart(exitCode int) {
 // sending SIGKILL when the spec does not override it.
 const defaultStopTimeout = 10 * time.Second
 
-// stopSignalByName maps the accepted signal names to their syscall value.
-// Restricted list — we never want users directing SIGSEGV/SIGKILL here.
-var stopSignalByName = map[string]syscall.Signal{
+// StopSignalByName is the single source of truth for which signal names
+// AppStop.Signal may carry. validateStop uses the key set, resolveStop
+// uses the syscall value. SIGKILL / SIGSEGV / SIGSTOP are never exposed.
+var StopSignalByName = map[string]syscall.Signal{
 	"SIGTERM": syscall.SIGTERM,
 	"SIGINT":  syscall.SIGINT,
 	"SIGHUP":  syscall.SIGHUP,
@@ -667,7 +668,7 @@ func (p *Process) resolveStop() (syscall.Signal, time.Duration) {
 		return sig, timeout
 	}
 	if name := p.spec.Stop.Signal; name != "" {
-		if s, ok := stopSignalByName[name]; ok {
+		if s, ok := StopSignalByName[name]; ok {
 			sig = s
 		}
 	}

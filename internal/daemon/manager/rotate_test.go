@@ -56,16 +56,3 @@ func TestRotateIfLarge(t *testing.T) {
 	}
 }
 
-func TestEnvInt(t *testing.T) {
-	t.Setenv("LYNX_TEST_INT", "42")
-	if v := envInt("LYNX_TEST_INT", 99); v != 42 {
-		t.Errorf("got %d want 42", v)
-	}
-	if v := envInt("LYNX_TEST_INT_MISSING", 99); v != 99 {
-		t.Errorf("got %d want 99", v)
-	}
-	t.Setenv("LYNX_TEST_INT_BAD", "nope")
-	if v := envInt("LYNX_TEST_INT_BAD", 99); v != 99 {
-		t.Errorf("got %d want fallback", v)
-	}
-}

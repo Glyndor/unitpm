@@ -10,18 +10,10 @@ import (
 	"strings"
 
 	"github.com/Jaro-c/Lynx/internal/cli/help"
+	"github.com/Jaro-c/Lynx/internal/ipc/protocol"
 	"github.com/Jaro-c/Lynx/internal/ipc/transport"
 	"github.com/Jaro-c/Lynx/internal/term"
 )
-
-type scaleResp struct {
-	BaseName  string   `json:"base_name"`
-	Namespace string   `json:"namespace"`
-	Before    int      `json:"before"`
-	After     int      `json:"after"`
-	Created   []string `json:"created"`
-	Deleted   []string `json:"deleted"`
-}
 
 // Run executes the scale command. Expects two positional args: <name> <N>.
 // Name may be namespace-qualified as "ns:name".
@@ -55,7 +47,7 @@ func Run(client transport.IPCClient, args []string) error {
 		client = c
 	}
 
-	var resp scaleResp
+	var resp protocol.ScaleResponse
 	req := map[string]any{"name": name, "namespace": namespace, "target": n}
 	if err := client.Call("scale", req, &resp); err != nil {
 		return fmt.Errorf("scale failed: %w", err)
