@@ -346,7 +346,9 @@ func (m *Manager) scaleSnapshot(namespace, base string) scaleSnap {
 		snap.ids[i] = p.info.ID
 	}
 	if len(ordered) > 0 {
-		snap.template = ordered[0].spec
+		// Deep-copy via Spec() so Scale doesn't alias the original's Env map
+		// or pointer fields (Logs, Restart, RunAs, Stop, Resources).
+		snap.template = ordered[0].Spec()
 	}
 	return snap
 }
