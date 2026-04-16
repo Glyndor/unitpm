@@ -1,3 +1,9 @@
+lynx-pm (0.5.2-1) unstable; urgency=medium
+
+  * deps: update all Go dependencies to latest versions
+
+ -- Jaro-c <jaro-c@users.noreply.github.com>  Wed, 16 Apr 2026 18:30:00 -0500
+
 lynx-pm (0.5.1-1) unstable; urgency=high
 
   [SECURITY]
