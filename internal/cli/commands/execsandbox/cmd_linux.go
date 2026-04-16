@@ -14,6 +14,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"strings"
 	"syscall"
 
@@ -51,7 +52,7 @@ func Run(args []string) error {
 	if raw == "" {
 		return errors.New("LYNX_SANDBOX_CONFIG not set")
 	}
-	os.Unsetenv(envConfig) // Don't leak into the child.
+	_ = os.Unsetenv(envConfig)
 
 	var cfg Config
 	if err := json.Unmarshal([]byte(raw), &cfg); err != nil {
@@ -60,22 +61,37 @@ func Run(args []string) error {
 	if cfg.Command == "" {
 		return errors.New("sandbox config missing command")
 	}
+	if cfg.Cwd != "" && !filepath.IsAbs(cfg.Cwd) {
+		return fmt.Errorf("sandbox cwd must be absolute: %q", cfg.Cwd)
+	}
 
-	// Remount /proc so the new PID namespace sees only its own processes
-	// (ps, top, /proc/<pid>/... all become namespace-local). Requires the
-	// CLONE_NEWNS | CLONE_NEWPID flags set by the parent. Best-effort: if it
-	// fails we continue — the sandbox still has landlock+rlimit+user-ns.
-	//
-	// Mark the root mount as private first so our unshare's mount namespace
-	// doesn't propagate back to the host (systemd defaults to shared).
-	_ = unix.Mount("none", "/", "", unix.MS_REC|unix.MS_PRIVATE, "")
-	// Unmount the inherited /proc so we can cover it with a fresh one
-	// scoped to the new PID namespace. MNT_DETACH is used so we don't
-	// block on any open descriptors held by the parent.
+	// Unconditional: applies even if landlock or mount steps below fail,
+	// closing the setuid-binary escape hatch on kernels that don't support
+	// landlock.
+	if err := unix.Prctl(unix.PR_SET_NO_NEW_PRIVS, 1, 0, 0, 0); err != nil {
+		return fmt.Errorf("prctl(PR_SET_NO_NEW_PRIVS): %w", err)
+	}
+
+	// Mark root private first. If this fails, abort — a subsequent unmount
+	// of /proc would propagate back to the host and break every process on
+	// the box (systemd defaults to shared mount propagation).
+	if err := unix.Mount("none", "/", "", unix.MS_REC|unix.MS_PRIVATE, ""); err != nil {
+		return fmt.Errorf("make-rprivate /: %w", err)
+	}
+	// Remount /proc so the new PID namespace sees only its own processes.
+	// MNT_DETACH avoids blocking on descriptors held by the parent.
 	_ = unix.Unmount("/proc", unix.MNT_DETACH)
-	mountFlags := uintptr(unix.MS_NOSUID | unix.MS_NODEV | unix.MS_NOEXEC)
-	if err := unix.Mount("proc", "/proc", "proc", mountFlags, ""); err != nil {
+	procFlags := uintptr(unix.MS_NOSUID | unix.MS_NODEV | unix.MS_NOEXEC)
+	if err := unix.Mount("proc", "/proc", "proc", procFlags, ""); err != nil {
 		fmt.Fprintf(os.Stderr, "lynx: warning: could not remount /proc in sandbox: %v\n", err)
+	}
+
+	// Per-sandbox private /tmp. Without this, two sandboxes of the same host
+	// user share /tmp (landlock grants RWX there by default) — sandbox A can
+	// drop a binary for sandbox B to execute.
+	tmpFlags := uintptr(unix.MS_NOSUID | unix.MS_NODEV)
+	if err := unix.Mount("tmpfs", "/tmp", "tmpfs", tmpFlags, "mode=1777"); err != nil {
+		return fmt.Errorf("mount private /tmp: %w", err)
 	}
 
 	if cfg.Cwd != "" {

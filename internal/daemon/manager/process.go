@@ -505,8 +505,10 @@ func (p *Process) setupLogs(cmd *exec.Cmd) error {
 		rotateIfLarge(stderrPath)
 	}
 
-	// Open Stdout
-	fOut, err := os.OpenFile(stdoutPath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0600)
+	// Open Stdout — O_NOFOLLOW blocks a pre-placed symlink from redirecting
+	// log writes to an arbitrary file owned by (or writable by) the daemon UID.
+	logFlags := os.O_APPEND | os.O_CREATE | os.O_WRONLY | syscall.O_NOFOLLOW
+	fOut, err := os.OpenFile(stdoutPath, logFlags, 0600)
 	if err != nil {
 		return fmt.Errorf("failed to open stdout log: %w", err)
 	}
@@ -517,7 +519,7 @@ func (p *Process) setupLogs(cmd *exec.Cmd) error {
 	if stderrPath == stdoutPath {
 		cmd.Stderr = fOut
 	} else {
-		fErr, err := os.OpenFile(stderrPath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0600)
+		fErr, err := os.OpenFile(stderrPath, logFlags, 0600)
 		if err != nil {
 			return fmt.Errorf("failed to open stderr log: %w", err)
 		}

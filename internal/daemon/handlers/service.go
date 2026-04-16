@@ -8,7 +8,9 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"strconv"
 	"strings"
+	"syscall"
 
 	"github.com/Jaro-c/Lynx/internal/daemon/manager"
 	"github.com/Jaro-c/Lynx/internal/daemon/policy"
@@ -41,6 +43,14 @@ func StartProcess(
 
 	if err := policy.AuthorizeStart(spec, identity, daemonPrivileged); err != nil {
 		return types.ProcessInfo{}, err
+	}
+
+	if spec.EnvFile != "" {
+		resolved, err := validateEnvFile(spec.EnvFile, identity)
+		if err != nil {
+			return types.ProcessInfo{}, err
+		}
+		spec.EnvFile = resolved
 	}
 
 	// Validate Cwd
@@ -89,6 +99,52 @@ func StartProcess(
 	return mgr.StartWithSpec(spec)
 }
 
+// validateEnvFile rejects env files the caller does not own. Prevents a
+// lynxadm user from using the daemon to read another tenant's env staging
+// files (owned by the daemon UID) or root-only secrets.
+func validateEnvFile(path string, identity *transport.Identity) (string, error) {
+	if len(path) > 4096 {
+		return "", errors.New("ERR_LIMITS: env_file path too long")
+	}
+	clean := filepath.Clean(path)
+	if strings.Contains(clean, ".."+string(os.PathSeparator)) ||
+		strings.HasPrefix(clean, ".."+string(os.PathSeparator)) {
+		return "", errors.New("ERR_BAD_REQUEST: env_file must not contain '..'")
+	}
+	if !filepath.IsAbs(clean) {
+		return clean, nil
+	}
+	resolved, err := filepath.EvalSymlinks(clean)
+	if err != nil {
+		return "", errors.New("ERR_BAD_REQUEST: env_file not accessible")
+	}
+	info, err := os.Stat(resolved)
+	if err != nil {
+		return "", errors.New("ERR_BAD_REQUEST: env_file not accessible")
+	}
+	if !info.Mode().IsRegular() {
+		return "", errors.New("ERR_BAD_REQUEST: env_file must be a regular file")
+	}
+	if identity == nil {
+		return resolved, nil
+	}
+	callerUID, err := strconv.ParseUint(identity.UID, 10, 32)
+	if err != nil {
+		return "", errors.New("ERR_BAD_REQUEST: env_file: caller identity invalid")
+	}
+	if callerUID == 0 {
+		return resolved, nil
+	}
+	stat, ok := info.Sys().(*syscall.Stat_t)
+	if !ok {
+		return "", errors.New("ERR_INTERNAL: cannot stat env_file")
+	}
+	if uint64(stat.Uid) != callerUID {
+		return "", errors.New("ERR_BAD_REQUEST: env_file not owned by caller")
+	}
+	return resolved, nil
+}
+
 func validateSpec(spec protocol.AppSpec) error {
 	if spec.Exec.Type == "" {
 		return errors.New("ERR_BAD_REQUEST: exec type is required")
@@ -131,16 +187,6 @@ func validateSpec(spec protocol.AppSpec) error {
 		}
 	}
 
-	if spec.EnvFile != "" {
-		if len(spec.EnvFile) > 4096 {
-			return errors.New("ERR_LIMITS: env_file path too long")
-		}
-		if strings.Contains(spec.EnvFile, ".."+string(os.PathSeparator)) ||
-			strings.Contains(spec.EnvFile, string(os.PathSeparator)+"..") {
-			return errors.New("ERR_BAD_REQUEST: env_file must not contain '..'")
-		}
-	}
-
 	if spec.Logs != nil {
 		if len(spec.Logs.Dir) > 4096 {
 			return errors.New("ERR_LIMITS: log dir too long")
@@ -174,6 +220,15 @@ func validateSpec(spec protocol.AppSpec) error {
 				strings.HasPrefix(clean, ".."+string(os.PathSeparator)) {
 				return errors.New("ERR_BAD_REQUEST: log paths must not contain '..'")
 			}
+		}
+		// Stdout/Stderr must be filenames under the app log dir, not absolute
+		// paths. Logs.Dir may be absolute but is validated against an allowlist
+		// of log roots downstream (GetLogDir).
+		if filepath.IsAbs(filepath.Clean(spec.Logs.Stdout)) {
+			return errors.New("ERR_BAD_REQUEST: logs.stdout must be a relative filename")
+		}
+		if filepath.IsAbs(filepath.Clean(spec.Logs.Stderr)) {
+			return errors.New("ERR_BAD_REQUEST: logs.stderr must be a relative filename")
 		}
 	}
 

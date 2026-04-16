@@ -37,10 +37,15 @@ func GetSocketPath() (string, error) {
 		return "/run/lynxd/lynx.sock", nil
 	}
 
-	// 3. User-specific socket path calculation
+	// 3. User-specific socket path calculation.
+	// XDG_RUNTIME_DIR is 0700 user-owned (systemd-logind managed); falling
+	// back to /tmp would let any local user pre-create a symlink at
+	// /tmp/lynx-<victimUid> and hijack the socket on the victim's next run.
 	baseDir := os.Getenv("XDG_RUNTIME_DIR")
 	if baseDir == "" {
-		baseDir = os.TempDir()
+		return "", fmt.Errorf(
+			"XDG_RUNTIME_DIR is not set; run under a login session (ssh, systemd-user) or export LYNX_SOCKET to an absolute path in a private directory",
+		)
 	}
 
 	sockDir := filepath.Join(baseDir, "lynx-"+u.Uid)

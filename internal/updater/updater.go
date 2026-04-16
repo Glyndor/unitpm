@@ -3,7 +3,10 @@ package updater
 
 import (
 	"context"
+	"crypto/ed25519"
+	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -29,6 +32,25 @@ const (
 // releasesURL is the endpoint Check queries. Package-level var so tests
 // can point it at an httptest.Server.
 var releasesURL = fmt.Sprintf("https://api.github.com/repos/%s/%s/releases/latest", repoOwner, repoName)
+
+// releasePublicKeyB64 is the ed25519 public key used to verify release
+// signatures. Base64 (std) encoding of the 32-byte public key. Empty until
+// the release workflow publishes its key — while empty, Apply refuses to
+// run unless the caller passes AllowUnsigned=true.
+const releasePublicKeyB64 = ""
+
+// ErrSignatureRequired is returned when signature verification is required
+// but the release does not ship a signature asset.
+var ErrSignatureRequired = errors.New("update refused: release is not signed")
+
+// ApplyOptions customizes update application.
+type ApplyOptions struct {
+	// AllowUnsigned permits updates even when no release signing key is
+	// configured or when the release ships without a signature. This is the
+	// only way to update today (until the project publishes a signing key)
+	// and must be set explicitly by the caller.
+	AllowUnsigned bool
+}
 
 // Release represents a GitHub release.
 type Release struct {
@@ -59,7 +81,7 @@ func Check(ctx context.Context) (*Release, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to check for updates: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("github api returned status: %s", resp.Status)
@@ -86,8 +108,8 @@ func Check(ctx context.Context) (*Release, error) {
 	return &release, nil
 }
 
-// Apply downloads and applies the update.
-func Apply(ctx context.Context, release *Release) error {
+// Apply downloads, verifies, and applies the update.
+func Apply(ctx context.Context, release *Release, opts ApplyOptions) error {
 	exePath, err := os.Executable()
 	if err != nil {
 		return fmt.Errorf("failed to determine executable path: %w", err)
@@ -99,18 +121,18 @@ func Apply(ctx context.Context, release *Release) error {
 		return fmt.Errorf("failed to resolve symlinks: %w", err)
 	}
 
-	// Find compatible asset
-	assetURL := ""
 	osName := runtime.GOOS
 	arch := runtime.GOARCH
-
-	// Expected pattern: lynx_linux_amd64 or lynx_linux_arm64
 	target := fmt.Sprintf("lynx_%s_%s", osName, arch)
+	sigTarget := target + ".sig"
 
+	var assetURL, sigURL string
 	for _, asset := range release.Assets {
-		if strings.Contains(asset.Name, target) {
+		switch asset.Name {
+		case target:
 			assetURL = asset.BrowserDownloadURL
-			break
+		case sigTarget:
+			sigURL = asset.BrowserDownloadURL
 		}
 	}
 
@@ -123,45 +145,108 @@ func Apply(ctx context.Context, release *Release) error {
 		)
 	}
 
-	// Download and replace
-	return downloadAndReplace(ctx, assetURL, exePath)
+	pubKey, err := loadReleasePublicKey()
+	if err != nil {
+		return fmt.Errorf("release public key invalid: %w", err)
+	}
+
+	switch {
+	case len(pubKey) == 0:
+		if !opts.AllowUnsigned {
+			return fmt.Errorf(
+				"%w: release signing key is not configured in this build (use AllowUnsigned=true / --insecure-skip-signature to override)",
+				ErrSignatureRequired,
+			)
+		}
+	case sigURL == "":
+		if !opts.AllowUnsigned {
+			return fmt.Errorf("%w: no %s asset in release %s", ErrSignatureRequired, sigTarget, release.TagName)
+		}
+	}
+
+	return downloadAndReplace(ctx, assetURL, sigURL, exePath, pubKey)
 }
 
-func downloadAndReplace(ctx context.Context, assetURL, exePath string) error {
+func loadReleasePublicKey() (ed25519.PublicKey, error) {
+	if releasePublicKeyB64 == "" {
+		return nil, nil
+	}
+	raw, err := base64.StdEncoding.DecodeString(releasePublicKeyB64)
+	if err != nil {
+		return nil, fmt.Errorf("decode pubkey: %w", err)
+	}
+	if len(raw) != ed25519.PublicKeySize {
+		return nil, fmt.Errorf("pubkey wrong size: got %d, want %d", len(raw), ed25519.PublicKeySize)
+	}
+	return ed25519.PublicKey(raw), nil
+}
+
+func downloadSignature(ctx context.Context, sigURL string) ([]byte, error) {
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, sigURL, nil)
+	if err != nil {
+		return nil, fmt.Errorf("signature request: %w", err)
+	}
+	client := &http.Client{Timeout: 30 * time.Second}
+	// #nosec G107 // sigURL is from the GitHub API response
+	resp, err := client.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("signature download: %w", err)
+	}
+	defer func() { _ = resp.Body.Close() }()
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("signature download status: %s", resp.Status)
+	}
+	// 4KB is way more than enough for a raw ed25519 sig or a base64-wrapped one.
+	raw, err := io.ReadAll(io.LimitReader(resp.Body, 4096))
+	if err != nil {
+		return nil, fmt.Errorf("signature read: %w", err)
+	}
+	raw = []byte(strings.TrimSpace(string(raw)))
+	if len(raw) == ed25519.SignatureSize {
+		return raw, nil
+	}
+	// Try base64 (std or url-safe, with or without padding).
+	for _, enc := range []*base64.Encoding{
+		base64.StdEncoding, base64.RawStdEncoding,
+		base64.URLEncoding, base64.RawURLEncoding,
+	} {
+		if decoded, err := enc.DecodeString(string(raw)); err == nil && len(decoded) == ed25519.SignatureSize {
+			return decoded, nil
+		}
+	}
+	return nil, fmt.Errorf("signature malformed: %d bytes", len(raw))
+}
+
+func downloadAndReplace(ctx context.Context, assetURL, sigURL, exePath string, pubKey ed25519.PublicKey) error {
 	tmpFile, err := os.CreateTemp(filepath.Dir(exePath), "lynx-update-*")
 	if err != nil {
 		return fmt.Errorf("failed to create temp file (check permissions): %w", err)
 	}
-	defer os.Remove(tmpFile.Name()) // Clean up on error, but we'll rename if successful
+	tmpPath := tmpFile.Name()
+	defer func() { _ = os.Remove(tmpPath) }()
 
-	// Download
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, assetURL, nil)
 	if err != nil {
 		_ = tmpFile.Close()
 		return fmt.Errorf("failed to create download request: %w", err)
 	}
 
-	// Use a client with a timeout to prevent indefinite hangs.
 	downloadClient := &http.Client{Timeout: 10 * time.Minute}
-
-	// #nosec G704 // assetURL comes from the Github API response
+	// #nosec G107 // assetURL comes from the GitHub API response
 	resp, err := downloadClient.Do(req)
 	if err != nil {
 		_ = tmpFile.Close()
 		return fmt.Errorf("failed to download update: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != http.StatusOK {
 		_ = tmpFile.Close()
 		return fmt.Errorf("download failed with status: %s", resp.Status)
 	}
 
-	// Limit body size to prevent disk exhaustion.
 	n, err := io.Copy(tmpFile, io.LimitReader(resp.Body, maxDownloadSize))
-	tmpPath := tmpFile.Name()
-	closeErr := tmpFile.Close() // Close before chmod/rename
-
+	closeErr := tmpFile.Close()
 	if err != nil {
 		return fmt.Errorf("failed to write update file: %w", err)
 	}
@@ -172,43 +257,81 @@ func downloadAndReplace(ctx context.Context, assetURL, exePath string) error {
 		return fmt.Errorf("failed to close update file: %w", closeErr)
 	}
 
-	// Make executable (use os.Chmod on path since file is already closed).
-	// #nosec G703 // tmpPath is safely generated via os.CreateTemp
+	// Verify signature BEFORE chmod/rename. If pubKey is nil we're in the
+	// explicit-opt-in unsigned path (Apply already gated on AllowUnsigned).
+	if len(pubKey) != 0 && sigURL != "" {
+		if err := verifyFileSignature(ctx, tmpPath, sigURL, pubKey); err != nil {
+			return fmt.Errorf("signature verification failed: %w", err)
+		}
+	}
+
+	// #nosec G302 // binary needs to be executable
 	if err := os.Chmod(tmpPath, 0755); err != nil {
 		return fmt.Errorf("failed to set executable permissions: %w", err)
 	}
 
-	// Replace binary
-	// On Linux, we can rename over a running binary (it stays open for the running process, new process gets new file)
 	cleanExePath := filepath.Clean(exePath)
-	// #nosec G703 // cleanExePath is derived from os.Executable() and sanitized
-	if err := os.Rename(tmpFile.Name(), cleanExePath); err != nil {
+	// #nosec G304 // cleanExePath is derived from os.Executable()
+	if err := os.Rename(tmpPath, cleanExePath); err != nil {
 		return fmt.Errorf("failed to replace binary: %w", err)
 	}
-
 	return nil
 }
 
-// IsManagedByPackageSystem tries to detect if the binary is managed by apt/dpkg.
+func verifyFileSignature(ctx context.Context, filePath, sigURL string, pubKey ed25519.PublicKey) error {
+	sig, err := downloadSignature(ctx, sigURL)
+	if err != nil {
+		return err
+	}
+	// #nosec G304 // filePath is our own CreateTemp output
+	body, err := os.ReadFile(filePath)
+	if err != nil {
+		return fmt.Errorf("read downloaded file: %w", err)
+	}
+	if !ed25519.Verify(pubKey, body, sig) {
+		return errors.New("ed25519 signature does not match downloaded binary")
+	}
+	return nil
+}
+
+// IsManagedByPackageSystem returns true when dpkg/rpm/pacman claim ownership
+// of the running binary. Queries each tool directly with both the original
+// and symlink-resolved paths so dpkg diversions (e.g. /usr/bin/lynx →
+// /opt/lynx/lynx) aren't missed.
 func IsManagedByPackageSystem() bool {
 	exePath, err := os.Executable()
 	if err != nil {
 		return false
 	}
-	exePath, err = filepath.EvalSymlinks(exePath)
+	resolved, err := filepath.EvalSymlinks(exePath)
 	if err != nil {
-		return false
+		resolved = exePath
+	}
+	candidates := []string{exePath}
+	if resolved != exePath {
+		candidates = append(candidates, resolved)
 	}
 
-	// Common system paths
-	if strings.HasPrefix(exePath, "/usr/bin") || strings.HasPrefix(exePath, "/bin") {
-		// Check if dpkg knows about it
-		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-		defer cancel()
-		// #nosec G204 // exePath is safely derived from os.Executable
-		cmd := exec.CommandContext(ctx, "dpkg", "-S", exePath)
-		if err := cmd.Run(); err == nil {
-			return true
+	for _, tool := range []struct {
+		bin  string
+		args []string
+	}{
+		{"dpkg", []string{"-S"}},
+		{"rpm", []string{"-qf"}},
+		{"pacman", []string{"-Qo"}},
+	} {
+		if _, err := exec.LookPath(tool.bin); err != nil {
+			continue
+		}
+		for _, path := range candidates {
+			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+			// #nosec G204 // path is from os.Executable; tool/args are hardcoded
+			cmd := exec.CommandContext(ctx, tool.bin, append(tool.args, path)...)
+			runErr := cmd.Run()
+			cancel()
+			if runErr == nil {
+				return true
+			}
 		}
 	}
 	return false

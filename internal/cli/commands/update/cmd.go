@@ -25,6 +25,7 @@ func Run(w io.Writer, args []string) error {
 	apply := fs.Bool("apply", false, "Apply the update if available")
 	_ = fs.Bool("check", true, "Check for updates (default)")
 	force := fs.Bool("force", false, "Force update even if managed by system package manager")
+	insecureSkipSig := fs.Bool("insecure-skip-signature", false, "Accept unsigned releases (dangerous)")
 
 	if help.IsHelp(args) {
 		PrintHelp()
@@ -51,7 +52,7 @@ func Run(w io.Writer, args []string) error {
 		)
 	}
 
-	fmt.Fprintf(w, "Checking for updates...\n")
+	_, _ = fmt.Fprintf(w, "Checking for updates...\n")
 
 	// 2. Check for updates
 	release, err := updater.Check(context.Background())
@@ -60,7 +61,7 @@ func Run(w io.Writer, args []string) error {
 	}
 
 	if release == nil {
-		fmt.Fprintf(
+		_, _ = fmt.Fprintf(
 			w,
 			"%s You are using the latest version (%s)\n",
 			term.GreenString("✓"),
@@ -69,35 +70,37 @@ func Run(w io.Writer, args []string) error {
 		return nil
 	}
 
-	fmt.Fprintf(
+	_, _ = fmt.Fprintf(
 		w,
 		"%s New version available: %s\n",
 		term.YellowString("!"),
 		term.BoldString("%s", release.TagName),
 	)
-	fmt.Fprintf(w, "  Release notes: %s\n", release.HTMLURL)
+	_, _ = fmt.Fprintf(w, "  Release notes: %s\n", release.HTMLURL)
 
 	// 3. Apply update if requested
 	if *apply {
-		fmt.Fprintf(w, "Downloading and installing update...\n")
-		if err := updater.Apply(context.Background(), release); err != nil {
+		_, _ = fmt.Fprintf(w, "Downloading and installing update...\n")
+		if err := updater.Apply(context.Background(), release, updater.ApplyOptions{
+			AllowUnsigned: *insecureSkipSig,
+		}); err != nil {
 			return fmt.Errorf("update failed: %w", err)
 		}
-		fmt.Fprintf(w, "%s Successfully updated to %s\n", term.GreenString("✓"), release.TagName)
-		fmt.Fprintf(
+		_, _ = fmt.Fprintf(w, "%s Successfully updated to %s\n", term.GreenString("✓"), release.TagName)
+		_, _ = fmt.Fprintf(
 			w,
 			"Please restart the daemon manually if needed: 'systemctl restart lynx.lynxd' or 'lynx reload'\n",
 		)
 	} else {
 		if isManaged {
-			fmt.Fprintf(
+			_, _ = fmt.Fprintf(
 				w,
 				"\nTo update, download the latest .deb release from %s\n",
 				release.HTMLURL,
 			)
-			fmt.Fprintf(w, "and run:\n  sudo apt install ./<downloaded_deb_file>\n")
+			_, _ = fmt.Fprintf(w, "and run:\n  sudo apt install ./<downloaded_deb_file>\n")
 		} else {
-			fmt.Fprintf(w, "\nTo update, run:\n  lynx update --apply\n")
+			_, _ = fmt.Fprintf(w, "\nTo update, run:\n  lynx update --apply\n")
 		}
 	}
 
@@ -121,6 +124,11 @@ func GetSpec() help.CommandSpec {
 				Short:       "-f",
 				Long:        "--force",
 				Description: "Force update even if managed by system package manager.",
+			},
+			{
+				Short:       "",
+				Long:        "--insecure-skip-signature",
+				Description: "Accept unsigned releases. Dangerous: skips integrity/authenticity verification.",
 			},
 			{Short: "-h", Long: "--help", Description: "Show this help message."},
 		},
