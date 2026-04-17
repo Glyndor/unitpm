@@ -75,6 +75,7 @@ type AppSpec struct {
 	RunAs     *RunAsPolicy      `json:"runAs,omitempty"`
 	Stop      *AppStop          `json:"stop,omitempty"`
 	Resources *AppResources     `json:"resources,omitempty"`
+	Watch     *AppWatch          `json:"watch,omitempty"`
 	CreatedAt string            `json:"created_at,omitempty"`
 	Disabled  bool              `json:"disabled,omitempty"`
 }
@@ -99,6 +100,13 @@ type ScaleResponse struct {
 	After     int      `json:"after"`
 	Created   []string `json:"created,omitempty"`
 	Deleted   []string `json:"deleted,omitempty"`
+}
+
+// AppWatch configures filesystem watching. When enabled the daemon monitors
+// the process cwd for changes and restarts the process automatically.
+type AppWatch struct {
+	Enabled bool     `json:"enabled"`
+	Ignore  []string `json:"ignore,omitempty"`
 }
 
 // AppResources bounds the runtime resources a managed process may use.

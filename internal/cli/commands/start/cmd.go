@@ -179,6 +179,10 @@ type specParser struct {
 	cpuMaxPct int
 	tasksMax  int
 
+	// Watch
+	watch       bool
+	watchIgnore string
+
 	parsingFlags bool
 	scale        int
 }
@@ -286,6 +290,11 @@ func (p *specParser) handleFlag(arg string) error {
 		return p.readStringValue(&p.stopSignal)
 	case "--stop-timeout":
 		return p.readIntValue(&p.stopTimeoutMs)
+	case "--watch":
+		p.watch = true
+		return nil
+	case "--watch-ignore":
+		return p.readStringValue(&p.watchIgnore)
 	case "--memory-max":
 		return p.readStringValue(&p.memoryMax)
 	case "--cpu-max":
@@ -397,6 +406,29 @@ func (p *specParser) finalize() (protocol.AppSpec, error) {
 		spec.Stop = &protocol.AppStop{
 			Signal:    p.stopSignal,
 			TimeoutMs: p.stopTimeoutMs,
+		}
+	}
+
+	if p.watch {
+		var ignore []string
+		if p.watchIgnore != "" {
+			for _, pat := range strings.Split(p.watchIgnore, ",") {
+				pat = strings.TrimSpace(pat)
+				if pat == "" {
+					continue
+				}
+				if strings.Contains(pat, "..") || filepath.IsAbs(pat) {
+					return protocol.AppSpec{}, fmt.Errorf("invalid ignore pattern %q: must be relative, no '..'", pat)
+				}
+				ignore = append(ignore, pat)
+			}
+			if len(ignore) > 100 {
+				return protocol.AppSpec{}, fmt.Errorf("too many ignore patterns (max 100)")
+			}
+		}
+		spec.Watch = &protocol.AppWatch{
+			Enabled: true,
+			Ignore:  ignore,
 		}
 	}
 
@@ -622,6 +654,8 @@ func GetSpec() help.CommandSpec {
 			{Short: "", Long: "--memory-max <size>", Description: "Hard memory ceiling: 512M, 2G, or bytes"},
 			{Short: "", Long: "--cpu-max <percent>", Description: "CPU cap as percent of one core (100 = 1 core, 200 = 2 cores)"},
 			{Short: "", Long: "--tasks-max <N>", Description: "Maximum number of tasks (threads + subprocesses)"},
+			{Short: "", Long: "--watch", Description: "Restart on file changes in cwd"},
+			{Short: "", Long: "--watch-ignore <globs>", Description: "Extra ignore patterns (comma-separated)"},
 			{Short: "-n", Long: "--dry-run", Description: "Print the resolved spec without starting anything"},
 			{Short: "-q", Long: "--quiet", Description: "Suppress success messages (errors still printed)"},
 		},

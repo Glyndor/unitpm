@@ -42,6 +42,7 @@ type Process struct {
 	restartCount  int
 	lastRestart   time.Time
 	cancelRestart context.CancelFunc // cancels pending restart backoff goroutine
+	watcher       *fileWatcher
 }
 
 // DefaultNamespace is the default namespace for processes.
@@ -159,7 +160,24 @@ func (p *Process) Start() error {
 		p.scheduler.Start()
 	}
 
+	// Start file watcher if configured (after releasing lock to avoid deadlock
+	// — the onChange callback calls Restart which acquires p.mu).
+	watchEnabled := p.spec.Watch != nil && p.spec.Watch.Enabled && p.spec.Cwd != ""
+	if watchEnabled {
+		p.info.Watch = true
+		if p.watcher != nil {
+			p.watcher.Stop()
+		}
+		p.watcher = newFileWatcher(p.spec.Cwd, p.spec.Watch.Ignore, func() {
+			go func() { _ = p.Restart() }()
+		})
+	}
+
 	go p.monitor()
+
+	if watchEnabled {
+		p.watcher.Start()
+	}
 
 	return nil
 }
@@ -525,18 +543,18 @@ func (p *Process) setupLogs(cmd *exec.Cmd) error {
 		return fmt.Errorf("failed to open stdout log: %w", err)
 	}
 	p.logFiles = append(p.logFiles, fOut)
-	cmd.Stdout = fOut
+	cmd.Stdout = newTimestampWriter(fOut)
 
 	// Open Stderr
 	if stderrPath == stdoutPath {
-		cmd.Stderr = fOut
+		cmd.Stderr = cmd.Stdout
 	} else {
 		fErr, err := os.OpenFile(stderrPath, logFlags, 0600)
 		if err != nil {
 			return fmt.Errorf("failed to open stderr log: %w", err)
 		}
 		p.logFiles = append(p.logFiles, fErr)
-		cmd.Stderr = fErr
+		cmd.Stderr = newTimestampWriter(fErr)
 	}
 
 	return nil
@@ -552,6 +570,9 @@ func (p *Process) monitor() {
 		_ = f.Close()
 	}
 	p.logFiles = nil
+	if p.watcher != nil {
+		p.watcher.Stop()
+	}
 	p.exitError = err
 
 	exitCode := 0
@@ -720,6 +741,11 @@ func (p *Process) Stop(byUser bool) error {
 		p.cancelRestart = nil
 	}
 
+	// Stop file watcher.
+	if p.watcher != nil {
+		p.watcher.Stop()
+	}
+
 	if byUser {
 		p.noAutoRestart = true
 	}
@@ -836,6 +862,14 @@ func (p *Process) Spec() protocol.AppSpec {
 	if p.spec.RunAs != nil {
 		runAsCopy := *p.spec.RunAs
 		s.RunAs = &runAsCopy
+	}
+	if p.spec.Watch != nil {
+		watchCopy := *p.spec.Watch
+		if len(p.spec.Watch.Ignore) > 0 {
+			watchCopy.Ignore = make([]string, len(p.spec.Watch.Ignore))
+			copy(watchCopy.Ignore, p.spec.Watch.Ignore)
+		}
+		s.Watch = &watchCopy
 	}
 
 	return s
