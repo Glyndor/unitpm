@@ -459,19 +459,13 @@ func (m *Manager) List() []types.ProcessInfo {
 // so they are restored on daemon restart (reboot, re-exec, crash recovery).
 func (m *Manager) Shutdown() {
 	m.mu.RLock()
-	ids := make([]string, 0, len(m.processes))
-	for id := range m.processes {
-		ids = append(ids, id)
+	procs := make([]*Process, 0, len(m.processes))
+	for _, p := range m.processes {
+		procs = append(procs, p)
 	}
 	m.mu.RUnlock()
 
-	for _, id := range ids {
-		m.mu.RLock()
-		proc, exists := m.processes[id]
-		m.mu.RUnlock()
-		if !exists {
-			continue
-		}
-		_ = proc.Stop(false)
+	for _, p := range procs {
+		_ = p.Stop(false)
 	}
 }
