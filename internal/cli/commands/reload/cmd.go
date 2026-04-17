@@ -34,10 +34,10 @@ func Run(client transport.IPCClient, args []string) error {
 
 		err := client.Call("reload", map[string]string{"id": id}, &resp)
 		if err != nil {
-			_, _ = term.Printf("Failed to reload %s: %v\n", id, err)
+			_, _ = term.Printf("%s Failed to reload %s: %v\n", term.RedString("✗"), id, err)
 			continue
 		}
-		_, _ = term.Printf("Reloaded %s\n", resp.ID)
+		_, _ = term.Printf("%s Reloaded %s\n", term.GreenString("✓"), resp.ID)
 	}
 	return nil
 }
@@ -48,6 +48,10 @@ func GetSpec() help.CommandSpec {
 		Name:        "reload",
 		Usage:       "lynx reload <id|name>...",
 		Description: "Reload process configuration and restart",
+		Examples: []string{
+			"lynx reload api",
+			"lynx reload prod:api",
+		},
 	}
 }
 

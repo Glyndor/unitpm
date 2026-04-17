@@ -36,4 +36,13 @@ if [ "$1" = "configure" ]; then
     chmod 0700 /var/lib/lynx-pm /var/log/lynx-pm
 fi
 
+# Kill user-mode lynxd instances so they pick up the new binary on next
+# invocation. Skip the system user (lynx) — #DEBHELPER# handles that.
+for pid in $(pgrep -x lynxd 2>/dev/null); do
+    pid_user=$(ps -o user= -p "$pid" 2>/dev/null)
+    if [ "$pid_user" != "lynx" ]; then
+        kill "$pid" 2>/dev/null || true
+    fi
+done
+
 #DEBHELPER#

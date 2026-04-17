@@ -52,12 +52,12 @@ func Run(client transport.IPCClient, args []string) error {
 	if err := client.Call("scale", req, &resp); err != nil {
 		return fmt.Errorf("scale failed: %w", err)
 	}
-	_, _ = term.Printf("Scaled %s: %d → %d\n", name, resp.Before, resp.After)
+	_, _ = term.Printf("%s Scaled %s: %d → %d\n", term.GreenString("✓"), name, resp.Before, resp.After)
 	for _, c := range resp.Created {
-		_, _ = term.Printf("  + %s\n", c)
+		_, _ = term.Printf("  %s %s\n", term.GreenString("+"), c)
 	}
 	for _, d := range resp.Deleted {
-		_, _ = term.Printf("  - %s\n", d)
+		_, _ = term.Printf("  %s %s\n", term.RedString("-"), d)
 	}
 	return nil
 }

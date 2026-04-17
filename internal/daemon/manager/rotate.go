@@ -2,6 +2,7 @@ package manager
 
 import (
 	"fmt"
+	"log"
 	"os"
 
 	"github.com/Jaro-c/Lynx/internal/env"
@@ -42,15 +43,21 @@ func rotateIfLargeCfg(path string, cfg rotateConfig) {
 
 	// Delete the oldest backup if it exists.
 	oldest := fmt.Sprintf("%s.%d", path, cfg.keep)
-	_ = os.Remove(oldest)
+	if err := os.Remove(oldest); err != nil && !os.IsNotExist(err) {
+		log.Printf("log-rotate: remove %s: %v", oldest, err)
+	}
 
 	// Shift: foo.log.(N-1) -> foo.log.N, ..., foo.log.1 -> foo.log.2
 	for i := cfg.keep - 1; i >= 1; i-- {
 		src := fmt.Sprintf("%s.%d", path, i)
 		dst := fmt.Sprintf("%s.%d", path, i+1)
-		_ = os.Rename(src, dst)
+		if err := os.Rename(src, dst); err != nil && !os.IsNotExist(err) {
+			log.Printf("log-rotate: rename %s → %s: %v", src, dst, err)
+		}
 	}
 
 	// Current -> foo.log.1
-	_ = os.Rename(path, path+".1")
+	if err := os.Rename(path, path+".1"); err != nil {
+		log.Printf("log-rotate: rename %s → %s.1: %v", path, path, err)
+	}
 }

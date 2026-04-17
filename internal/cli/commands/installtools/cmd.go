@@ -66,12 +66,12 @@ func Run(args []string) error {
 	if systemMode {
 		sudoUser = os.Getenv("SUDO_USER")
 		if sudoUser == "" {
-			fmt.Println(term.YellowString("Warning: SUDO_USER not set. Scanning root's PATH only."))
-			fmt.Println("Ideally run as: sudo lynx install-tools --system")
+			_, _ = term.Println(term.YellowString("! SUDO_USER not set. Scanning root's PATH only."))
+			_, _ = term.Println("  Ideally run as: sudo lynx install-tools --system")
 		}
 	}
 
-	fmt.Printf("Scanning for development tools to link to %s...\n", destDir)
+	_, _ = term.Printf("Scanning for development tools to link to %s...\n", destDir)
 
 	type plannedLink struct {
 		Tool string
@@ -101,7 +101,7 @@ func Run(args []string) error {
 		// Prevent circular symlinks
 		if resolved, err := filepath.EvalSymlinks(srcPath); err == nil {
 			if resolved == destPath {
-				fmt.Printf("Skipping %s: resolves to destination (loop)\n", tool)
+				_, _ = term.Printf("%s Skipping %s: resolves to destination (loop)\n", term.YellowString("!"), tool)
 				continue
 			}
 		}
@@ -114,15 +114,15 @@ func Run(args []string) error {
 	}
 
 	if len(plan) == 0 {
-		fmt.Println("No new tools found to link. Everything seems up to date.")
+		_, _ = term.Printf("%s No new tools found to link. Everything up to date.\n", term.GreenString("✓"))
 		return nil
 	}
 
-	fmt.Println(term.BoldString("\nPlan of execution:"))
+	_, _ = term.Println(term.BoldString("\nPlan of execution:"))
 	for _, p := range plan {
-		fmt.Printf("  %s %s -> %s\n", term.GreenString("+"), term.CyanString("%s", p.Tool), p.Src)
+		_, _ = term.Printf("  %s %s -> %s\n", term.GreenString("+"), term.CyanString("%s", p.Tool), p.Src)
 	}
-	fmt.Println()
+	_, _ = term.Println()
 
 	if !autoYes {
 		fmt.Printf("Proceed with linking %d tools to %s? [Y/n/choose] ", len(plan), destDir)
@@ -155,25 +155,24 @@ func Run(args []string) error {
 
 	count := 0
 	for _, p := range plan {
-		fmt.Printf("Linking %s... ", p.Tool)
+		_, _ = term.Printf("  Linking %s... ", p.Tool)
 		if err := os.Symlink(p.Src, p.Dest); err != nil {
-			fmt.Print(term.RedString("Failed: %v\n", err))
+			_, _ = term.Printf("%s %v\n", term.RedString("✗"), err)
 			continue
 		}
-		fmt.Println("Done")
+		_, _ = term.Println(term.GreenString("✓"))
 		count++
 	}
 
-	fmt.Print(term.GreenString("\nSuccessfully linked %d tools to %s\n", count, destDir))
+	_, _ = term.Printf("\n%s Linked %d tools to %s\n", term.GreenString("✓"), count, destDir)
 
 	if !systemMode {
-		// Remind user to add ~/.local/bin to PATH if not already present
 		path := os.Getenv("PATH")
 		home, _ := os.UserHomeDir()
 		localBin := filepath.Join(home, ".local", "bin")
 		if !strings.Contains(path, localBin) {
-			fmt.Printf("\n%s\n", term.YellowString("Note: add %s to your PATH:", localBin))
-			fmt.Printf("  echo 'export PATH=\"%s:$PATH\"' >> ~/.bashrc\n", localBin)
+			_, _ = term.Printf("\n%s Add %s to your PATH:\n", term.YellowString("!"), localBin)
+			_, _ = term.Printf("  echo 'export PATH=\"%s:$PATH\"' >> ~/.bashrc\n", localBin)
 		}
 	}
 

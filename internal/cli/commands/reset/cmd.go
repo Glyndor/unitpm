@@ -33,10 +33,10 @@ func Run(client transport.IPCClient, args []string) error {
 			ID     string `json:"id"`
 		}
 		if err := client.Call("reset", map[string]string{"id": id}, &resp); err != nil {
-			_, _ = term.Printf("Failed to reset %s: %v\n", id, err)
+			_, _ = term.Printf("%s Failed to reset %s: %v\n", term.RedString("✗"), id, err)
 			continue
 		}
-		_, _ = term.Printf("Reset %s\n", resp.ID)
+		_, _ = term.Printf("%s Reset %s\n", term.GreenString("✓"), resp.ID)
 	}
 	return nil
 }

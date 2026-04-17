@@ -5,6 +5,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -40,6 +41,7 @@ type Process struct {
 	scheduler     *cron.Cron
 	restartCount  int
 	lastRestart   time.Time
+	cancelRestart context.CancelFunc // cancels pending restart backoff goroutine
 }
 
 // DefaultNamespace is the default namespace for processes.
@@ -194,9 +196,9 @@ func (p *Process) prepareCmd() (*exec.Cmd, error) {
 	if p.spec.Exec.Shell {
 		shellBin := "/bin/sh"
 		shellArgs := []string{"-c"}
-		cmdLine := finalBin
-		if len(finalArgs) > 0 {
-			cmdLine += " " + strings.Join(finalArgs, " ")
+		cmdLine := shellQuote(finalBin)
+		for _, a := range finalArgs {
+			cmdLine += " " + shellQuote(a)
 		}
 		cmd = exec.CommandContext(ctx, shellBin, append(shellArgs, cmdLine)...)
 	} else {
@@ -236,6 +238,12 @@ func (p *Process) prepareCmd() (*exec.Cmd, error) {
 	}
 
 	return cmd, nil
+}
+
+// shellQuote wraps s in single quotes, escaping any embedded single quotes.
+// This prevents shell metacharacter injection when building sh -c command lines.
+func shellQuote(s string) string {
+	return "'" + strings.ReplaceAll(s, "'", `'\''`) + "'"
 }
 
 func (p *Process) resolveCommand() (string, []string, error) {
@@ -298,6 +306,10 @@ func (p *Process) prepareEnv() ([]string, error) {
 			_, allow := allowed[key]
 			if !allow && strings.HasPrefix(key, "LC_") {
 				allow = true
+			}
+			// Block dangerous loader variables even if somehow whitelisted.
+			if strings.HasPrefix(key, "LD_") || strings.HasPrefix(key, "DYLD_") {
+				allow = false
 			}
 			if allow {
 				envs = append(envs, e)
@@ -614,7 +626,7 @@ func (p *Process) handleRestart(exitCode int) {
 	p.mu.Unlock()
 
 	if count > restart.MaxRetries {
-		fmt.Printf("Process %s reached max retries\n", p.info.Name)
+		log.Printf("Process %s reached max retries (%d)", p.info.Name, restart.MaxRetries)
 		p.mu.Lock()
 		p.info.State = types.StateFailed
 		p.mu.Unlock()
@@ -638,9 +650,20 @@ func (p *Process) handleRestart(exitCode int) {
 		delay = time.Duration(count) * delay
 	}
 
+	ctx, cancel := context.WithCancel(context.Background())
+	p.mu.Lock()
+	if p.cancelRestart != nil {
+		p.cancelRestart()
+	}
+	p.cancelRestart = cancel
+	p.mu.Unlock()
+
 	go func() {
-		time.Sleep(delay)
-		_ = p.Restart() //nolint:errcheck
+		select {
+		case <-time.After(delay):
+			_ = p.Restart() //nolint:errcheck
+		case <-ctx.Done():
+		}
 	}()
 }
 
@@ -689,6 +712,12 @@ func (p *Process) Stop(byUser bool) error {
 
 	if p.scheduler != nil {
 		p.scheduler.Stop()
+	}
+
+	// Cancel any pending restart backoff goroutine.
+	if p.cancelRestart != nil {
+		p.cancelRestart()
+		p.cancelRestart = nil
 	}
 
 	if byUser {

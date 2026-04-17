@@ -519,43 +519,43 @@ func PrintHelp() {
 
 // printDryRun renders the resolved spec without talking to the daemon.
 func printDryRun(spec protocol.AppSpec, scale int) error {
-	fmt.Printf("Dry run — would start %d instance(s):\n", scale)
-	fmt.Printf("  command:   %s\n", spec.Exec.Command)
+	_, _ = term.Printf("%s Dry run — would start %d instance(s):\n", term.CyanString("i"), scale)
+	_, _ = term.Printf("  command:   %s\n", spec.Exec.Command)
 	if len(spec.Exec.Args) > 0 {
-		fmt.Printf("  args:      %v\n", spec.Exec.Args)
+		_, _ = term.Printf("  args:      %v\n", spec.Exec.Args)
 	}
 	if spec.Exec.Entry != "" {
-		fmt.Printf("  entry:     %s (%s)\n", spec.Exec.Entry, spec.Exec.Runtime)
+		_, _ = term.Printf("  entry:     %s (%s)\n", spec.Exec.Entry, spec.Exec.Runtime)
 	}
-	fmt.Printf("  cwd:       %s\n", spec.Cwd)
-	fmt.Printf("  namespace: %s\n", spec.Namespace)
+	_, _ = term.Printf("  cwd:       %s\n", spec.Cwd)
+	_, _ = term.Printf("  namespace: %s\n", spec.Namespace)
 	if spec.Name != "" {
-		fmt.Printf("  name:      %s\n", spec.Name)
+		_, _ = term.Printf("  name:      %s\n", spec.Name)
 	}
 	if spec.RunAs != nil && spec.RunAs.Mode != "self" {
-		fmt.Printf("  isolation: %s\n", spec.RunAs.Mode)
+		_, _ = term.Printf("  isolation: %s\n", spec.RunAs.Mode)
 	}
 	if spec.Cron != "" {
-		fmt.Printf("  schedule:  %s\n", spec.Cron)
+		_, _ = term.Printf("  schedule:  %s\n", spec.Cron)
 	}
 	if spec.Restart != nil {
-		fmt.Printf("  restart:   policy=%s max=%d backoff=%s\n",
+		_, _ = term.Printf("  restart:   policy=%s max=%d backoff=%s\n",
 			spec.Restart.Policy, spec.Restart.MaxRetries, spec.Restart.BackoffType)
 	}
 	if spec.EnvFile != "" {
-		fmt.Printf("  env-file:  %s\n", spec.EnvFile)
+		_, _ = term.Printf("  env-file:  %s\n", spec.EnvFile)
 	}
 	return nil
 }
 
 func printSuccessResponse(data *protocol.StartResponseData, name string) {
-	_, _ = term.Printf("Started %s\n", name)
+	_, _ = term.Printf("%s Started %s\n", term.GreenString("✓"), name)
 	if len(data.ProcID) > 8 {
-		_, _ = term.Printf("  ID: %s (short: %s)\n", data.ProcID, data.ProcID[:8])
+		_, _ = term.Printf("  ID:     %s (short: %s)\n", data.ProcID, data.ProcID[:8])
 	} else {
-		_, _ = term.Printf("  ID: %s\n", data.ProcID)
+		_, _ = term.Printf("  ID:     %s\n", data.ProcID)
 	}
-	_, _ = term.Printf("  PID: %d\n", data.PID)
+	_, _ = term.Printf("  PID:    %d\n", data.PID)
 	_, _ = term.Printf("  Status: %s\n", data.Status)
 }
 

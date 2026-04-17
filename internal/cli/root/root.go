@@ -187,8 +187,7 @@ func printCommandHelp(name string) int {
 	case cmdList:
 		list.PrintHelp()
 	case cmdLogs:
-		fmt.Println(logs.GetSpec().Usage)
-		fmt.Println(logs.GetSpec().Description)
+		help.RenderCommandHelp(os.Stdout, logs.GetSpec())
 	case cmdStart:
 		start.PrintHelp()
 	case cmdStop:

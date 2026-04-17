@@ -86,7 +86,7 @@ func Run(client transport.IPCClient, args []string) error {
 			return fmt.Errorf("apply failed for %s: %w", s.Name, err)
 		}
 
-		_, _ = term.Printf("Applied %s/%s\n", s.Namespace, s.Name)
+		_, _ = term.Printf("%s Applied %s/%s\n", term.GreenString("✓"), s.Namespace, s.Name)
 	}
 
 	return nil
@@ -98,6 +98,10 @@ func GetSpec() help.CommandSpec {
 		Name:        "apply",
 		Usage:       "lynx apply <Lynxfile.yml>",
 		Description: "Apply a Lynxfile.yml declarative configuration",
+		Examples: []string{
+			"lynx apply Lynxfile.yml",
+			"lynx apply config/production.yml",
+		},
 	}
 }
 

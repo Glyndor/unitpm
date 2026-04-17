@@ -34,10 +34,10 @@ func Run(client transport.IPCClient, args []string) error {
 
 		err := client.Call("flush", map[string]string{"id": id}, &resp)
 		if err != nil {
-			_, _ = term.Printf("Failed to flush %s: %v\n", id, err)
+			_, _ = term.Printf("%s Failed to flush %s: %v\n", term.RedString("✗"), id, err)
 			continue
 		}
-		_, _ = term.Printf("Flushed logs for %s\n", resp.ID)
+		_, _ = term.Printf("%s Flushed logs for %s\n", term.GreenString("✓"), resp.ID)
 	}
 	return nil
 }
@@ -48,6 +48,10 @@ func GetSpec() help.CommandSpec {
 		Name:        "flush",
 		Usage:       "lynx flush <id|name>...",
 		Description: "Flush logs for a process",
+		Examples: []string{
+			"lynx flush api",
+			"lynx flush prod:api prod:worker",
+		},
 	}
 }
 

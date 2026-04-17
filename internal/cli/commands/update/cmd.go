@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"runtime"
 	"strings"
 
 	"github.com/Jaro-c/Lynx/internal/cli/errs"
@@ -93,12 +94,20 @@ func Run(w io.Writer, args []string) error {
 		)
 	} else {
 		if isManaged {
-			_, _ = fmt.Fprintf(
-				w,
-				"\nTo update, download the latest .deb release from %s\n",
-				release.HTMLURL,
-			)
-			_, _ = fmt.Fprintf(w, "and run:\n  sudo apt install ./<downloaded_deb_file>\n")
+			debURL := findDebAsset(release)
+			if debURL != "" {
+				debFile := debURL[strings.LastIndex(debURL, "/")+1:]
+				_, _ = fmt.Fprintf(w, "\nTo update, run:\n")
+				_, _ = fmt.Fprintf(w, "  wget %s\n", debURL)
+				_, _ = fmt.Fprintf(w, "  sudo apt install ./%s\n", debFile)
+			} else {
+				_, _ = fmt.Fprintf(
+					w,
+					"\nTo update, download the latest .deb release from %s\n",
+					release.HTMLURL,
+				)
+				_, _ = fmt.Fprintf(w, "and run:\n  sudo apt install ./<downloaded_deb_file>\n")
+			}
 		} else {
 			_, _ = fmt.Fprintf(w, "\nTo update, run:\n  lynx update --apply\n")
 		}
@@ -133,6 +142,21 @@ func GetSpec() help.CommandSpec {
 			{Short: "-h", Long: "--help", Description: "Show this help message."},
 		},
 	}
+}
+
+func findDebAsset(release *updater.Release) string {
+	arch := runtime.GOARCH
+	for _, asset := range release.Assets {
+		if strings.HasSuffix(asset.Name, ".deb") && strings.Contains(asset.Name, arch) {
+			return asset.BrowserDownloadURL
+		}
+	}
+	for _, asset := range release.Assets {
+		if strings.HasSuffix(asset.Name, ".deb") {
+			return asset.BrowserDownloadURL
+		}
+	}
+	return ""
 }
 
 // PrintHelp prints the help message for the update command.

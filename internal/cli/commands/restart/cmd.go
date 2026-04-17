@@ -34,10 +34,10 @@ func Run(client transport.IPCClient, args []string) error {
 
 		err := client.Call("restart", map[string]string{"id": id}, &resp)
 		if err != nil {
-			_, _ = term.Printf("Failed to restart %s: %v\n", id, err)
+			_, _ = term.Printf("%s Failed to restart %s: %v\n", term.RedString("✗"), id, err)
 			continue
 		}
-		_, _ = term.Printf("Restarted %s\n", resp.ID)
+		_, _ = term.Printf("%s Restarted %s\n", term.GreenString("✓"), resp.ID)
 	}
 	return nil
 }
@@ -48,6 +48,10 @@ func GetSpec() help.CommandSpec {
 		Name:        "restart",
 		Description: "Restart a process",
 		Usage:       "lynx restart <id|name>...",
+		Examples: []string{
+			"lynx restart api",
+			"lynx restart prod:api worker",
+		},
 	}
 }
 

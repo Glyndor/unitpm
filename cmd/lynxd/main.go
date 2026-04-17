@@ -75,4 +75,5 @@ func main() {
 	log.Println("Shutting down...")
 	mgr.Shutdown()
 	_ = server.Close()
+	_ = auditor.Close()
 }

@@ -60,6 +60,17 @@ func Open(path string) *Logger {
 	return &Logger{w: f}
 }
 
+// Close releases the underlying file handle. Safe to call on a disabled logger.
+func (l *Logger) Close() error {
+	if l == nil || l.w == nil {
+		return nil
+	}
+	if c, ok := l.w.(io.Closer); ok {
+		return c.Close()
+	}
+	return nil
+}
+
 // Log writes one event. Best-effort: write errors are swallowed so a full
 // disk cannot break the IPC path.
 func (l *Logger) Log(e Event) {

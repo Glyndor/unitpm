@@ -49,10 +49,10 @@ func Run(client transport.IPCClient, args []string) error {
 
 		err := client.Call("delete", req, &resp)
 		if err != nil {
-			_, _ = term.Printf("Failed to delete %s: %v\n", id, err)
+			_, _ = term.Printf("%s Failed to delete %s: %v\n", term.RedString("✗"), id, err)
 			continue
 		}
-		_, _ = term.Printf("Deleted %s\n", resp.ID)
+		_, _ = term.Printf("%s Deleted %s\n", term.GreenString("✓"), resp.ID)
 	}
 	return nil
 }
