@@ -69,8 +69,30 @@ func main() {
 
 	// Wait for signal
 	sigCh := make(chan os.Signal, 1)
-	signal.Notify(sigCh, os.Interrupt, syscall.SIGTERM)
-	<-sigCh
+	signal.Notify(sigCh, os.Interrupt, syscall.SIGTERM, syscall.SIGHUP)
+
+	for sig := range sigCh {
+		if sig == syscall.SIGHUP {
+			log.Println("SIGHUP received — re-executing with new binary...")
+			exe, err := os.Executable()
+			if err != nil {
+				log.Printf("re-exec: cannot resolve executable: %v", err)
+				continue
+			}
+			// Close server and audit before exec. If exec fails (unlikely),
+			// the daemon is left without IPC — but this is better than
+			// the alternative of not closing and leaking the socket.
+			_ = server.Close()
+			_ = auditor.Close()
+			// Specs are on disk with Disabled=false for running processes.
+			// Exec replaces this process; child processes are reparented
+			// to init. The new daemon relaunches them via Restore().
+			if err := syscall.Exec(exe, os.Args, os.Environ()); err != nil {
+				log.Fatalf("re-exec failed: %v — daemon exiting", err)
+			}
+		}
+		break
+	}
 
 	log.Println("Shutting down...")
 	mgr.Shutdown()
