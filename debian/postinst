@@ -36,25 +36,9 @@ if [ "$1" = "configure" ]; then
     chmod 0700 /var/lib/lynx-pm /var/log/lynx-pm
 fi
 
-# Restart user-mode lynxd instances so they pick up the new binary and
-# restore their managed processes. Skip the system user (lynx) — systemd
-# handles that via the service unit below.
-_lynx_user_pids=""
-for pid in $(pgrep -x lynxd 2>/dev/null); do
-    pid_user=$(ps -o user= -p "$pid" 2>/dev/null)
-    if [ -n "$pid_user" ] && [ "$pid_user" != "lynx" ]; then
-        _lynx_user_pids="$_lynx_user_pids $pid_user"
-        kill "$pid" 2>/dev/null || true
-    fi
-done
-# Wait briefly for old daemons to exit, then relaunch for each user.
-if [ -n "$_lynx_user_pids" ]; then
-    sleep 1
-    for u in $(echo "$_lynx_user_pids" | tr ' ' '\n' | sort -u); do
-        if command -v runuser >/dev/null; then
-            runuser -l "$u" -c "nohup /usr/sbin/lynxd >/dev/null 2>&1 &" || true
-        fi
-    done
-fi
+# User-mode daemons are NOT restarted here. The binary on disk is already
+# updated; the running daemon and its child processes continue undisturbed.
+# The new binary takes effect on next daemon restart (manual, cron, or crash).
+# The system-mode daemon is restarted by systemd via the unit below.
 
 #DEBHELPER#
