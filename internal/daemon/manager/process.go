@@ -75,7 +75,7 @@ func NewProcess(id string, spec protocol.AppSpec) (*Process, error) {
 			ID:        id,
 			Name:      name,
 			Namespace: ns,
-			Version:   "0.0.1",
+			Version:   detectProjectVersion(spec.Cwd),
 			Mode:      "fork",
 			State:     types.StateStopped,
 			Watch:     false,
