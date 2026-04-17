@@ -1,3 +1,10 @@
+lynx-pm (0.5.12-1) unstable; urgency=medium
+
+  * fix(daemon): SIGHUP re-exec now gracefully stops processes before exec
+    to avoid EADDRINUSE on port-binding apps
+
+ -- Jaro-c <jaro-c@users.noreply.github.com>  Thu, 17 Apr 2026 05:20:00 -0500
+
 lynx-pm (0.5.11-1) unstable; urgency=medium
 
   * fix(daemon): processes auto-restore after reboot — Shutdown no longer
