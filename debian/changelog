@@ -1,3 +1,25 @@
+lynx-pm (0.5.3-1) unstable; urgency=high
+
+  [SECURITY]
+  * Fix shell command injection: quote arguments before sh -c concatenation
+  * Block LD_*/DYLD_* env vars in system mode sanitization
+
+  [FIXES]
+  * Fix goroutine leak: cancel pending restart backoff on Stop()
+  * Add Close() to audit logger, call on daemon shutdown
+  * Log rotation errors now logged instead of silently swallowed
+  * Kill stale user-mode daemons on .deb upgrade
+
+  [UX]
+  * Consistent ✓/✗/! symbols with colors across all CLI commands
+  * All output respects --quiet flag via term.Printf
+  * Update command shows exact wget + apt install for .deb users
+  * Improved error messages: suggest 'lynx list' on process not found
+  * Added examples to reload, restart, flush, apply commands
+  * Fixed logs --help to render full options and examples
+
+ -- Jaro-c <jaro-c@users.noreply.github.com>  Wed, 16 Apr 2026 19:00:00 -0500
+
 lynx-pm (0.5.2-1) unstable; urgency=medium
 
   * deps: update all Go dependencies to latest versions
