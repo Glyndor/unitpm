@@ -1,3 +1,10 @@
+lynx-pm (0.5.8-1) unstable; urgency=medium
+
+  * feat(start): auto-detect project version from package.json,
+    Cargo.toml, pyproject.toml, setup.cfg, mix.exs
+
+ -- Jaro-c <jaro-c@users.noreply.github.com>  Thu, 17 Apr 2026 04:10:00 -0500
+
 lynx-pm (0.5.7-1) unstable; urgency=medium
 
   * refactor: optimize logwriter (batched writes, 1MB buffer cap)
