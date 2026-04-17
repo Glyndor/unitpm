@@ -154,7 +154,7 @@ func tailFile(ctx context.Context, path, label string, n int, follow bool, sleep
 		if os.IsNotExist(err) {
 			// File might not exist yet if process hasn't started/logged
 			if follow {
-				fmt.Printf("[%s] File not found, waiting...\n", label)
+				fmt.Printf("%s File not found, waiting...\n", colorLabel(label))
 				for {
 					select {
 					case <-ctx.Done():
@@ -168,16 +168,16 @@ func tailFile(ctx context.Context, path, label string, n int, follow bool, sleep
 						break
 					}
 					if !os.IsNotExist(err) {
-						fmt.Printf("[%s] Error: %v\n", label, err)
+						fmt.Printf("%s %s\n", colorLabel(label), term.RedString("Error: %v", err))
 						return
 					}
 				}
 			} else {
-				fmt.Printf("[%s] File not found\n", label)
+				fmt.Printf("%s File not found\n", colorLabel(label))
 				return
 			}
 		} else {
-			fmt.Printf("[%s] Error: %v\n", label, err)
+			fmt.Printf("%s %s\n", colorLabel(label), term.RedString("Error: %v", err))
 			return
 		}
 	}
@@ -206,10 +206,10 @@ func tailFile(ctx context.Context, path, label string, n int, follow bool, sleep
 				sleep(200 * time.Millisecond)
 				continue
 			}
-			fmt.Printf("[%s] Error: %v\n", label, err)
+			fmt.Printf("%s %s\n", colorLabel(label), term.RedString("Error: %v", err))
 			return
 		}
-		fmt.Printf("[%s] %s", label, line)
+		fmt.Printf("%s %s", colorLabel(label), line)
 	}
 }
 
@@ -235,16 +235,35 @@ func printLastNLines(f *os.File, label string, n int) {
 		scanner.Scan()
 	}
 
-	var lines []string
+	ring := make([]string, n)
+	idx, count := 0, 0
 	for scanner.Scan() {
-		lines = append(lines, scanner.Text())
-		if len(lines) > n {
-			lines = lines[1:]
-		}
+		ring[idx%n] = scanner.Text()
+		idx++
+		count++
 	}
 
-	for _, line := range lines {
-		fmt.Printf("[%s] %s\n", label, line)
+	total := count
+	if total > n {
+		total = n
+	}
+	start := idx % n
+	if count < n {
+		start = 0
+	}
+	for i := 0; i < total; i++ {
+		fmt.Printf("%s %s\n", colorLabel(label), ring[(start+i)%n])
+	}
+}
+
+func colorLabel(label string) string {
+	switch label {
+	case "STDOUT":
+		return term.CyanString("[STDOUT]")
+	case "STDERR":
+		return term.YellowString("[STDERR]")
+	default:
+		return term.DimString("[%s]", label)
 	}
 }
 
