@@ -258,8 +258,7 @@ func (p *Process) prepareCmd() (*exec.Cmd, error) {
 	return cmd, nil
 }
 
-// shellQuote wraps s in single quotes, escaping any embedded single quotes.
-// This prevents shell metacharacter injection when building sh -c command lines.
+// shellQuote prevents shell metacharacter injection in sh -c command lines.
 func shellQuote(s string) string {
 	return "'" + strings.ReplaceAll(s, "'", `'\''`) + "'"
 }

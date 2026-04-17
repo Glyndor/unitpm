@@ -15,7 +15,6 @@ const (
 	maxWatchFiles        = 50000
 )
 
-// fileWatcher polls the filesystem for changes and triggers a callback.
 type fileWatcher struct {
 	root     string
 	ignore   []string
@@ -92,6 +91,7 @@ func (w *fileWatcher) Stop() {
 func (w *fileWatcher) scan() map[string]fileEntry {
 	entries := make(map[string]fileEntry)
 	count := 0
+	rootLen := len(w.root) + 1
 	_ = filepath.WalkDir(w.root, func(path string, d os.DirEntry, err error) error {
 		if err != nil {
 			return nil
@@ -100,23 +100,28 @@ func (w *fileWatcher) scan() map[string]fileEntry {
 			return filepath.SkipAll
 		}
 
-		rel, _ := filepath.Rel(w.root, path)
-		name := d.Name()
-
-		if d.IsDir() {
-			if d.Type()&os.ModeSymlink != 0 {
+		// WalkDir does not follow symlinks — symlinked dirs have
+		// ModeSymlink set and IsDir() returns false, so they are
+		// naturally skipped. Symlinked files are skipped explicitly.
+		if d.Type()&os.ModeSymlink != 0 {
+			if d.IsDir() {
 				return filepath.SkipDir
 			}
+			return nil
+		}
+
+		name := d.Name()
+		var rel string
+		if len(path) > rootLen {
+			rel = path[rootLen:]
+		}
+
+		if d.IsDir() {
 			for _, pattern := range w.ignore {
 				if matchIgnore(name, rel, pattern) {
 					return filepath.SkipDir
 				}
 			}
-			return nil
-		}
-
-		// Skip symlink files
-		if d.Type()&os.ModeSymlink != 0 {
 			return nil
 		}
 

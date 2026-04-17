@@ -37,13 +37,11 @@ func rotateIfLargeCfg(path string, cfg rotateConfig) {
 		return
 	}
 
-	// Delete oldest backup.
 	oldest := fmt.Sprintf("%s.%d.gz", path, cfg.keep)
 	if err := os.Remove(oldest); err != nil && !os.IsNotExist(err) {
 		log.Printf("log-rotate: remove %s: %v", oldest, err)
 	}
 
-	// Shift: foo.log.(N-1).gz -> foo.log.N.gz
 	for i := cfg.keep - 1; i >= 1; i-- {
 		src := fmt.Sprintf("%s.%d.gz", path, i)
 		dst := fmt.Sprintf("%s.%d.gz", path, i+1)
@@ -52,7 +50,6 @@ func rotateIfLargeCfg(path string, cfg rotateConfig) {
 		}
 	}
 
-	// Current -> foo.log.1.gz (compress)
 	if err := compressFile(path, path+".1.gz"); err != nil {
 		log.Printf("log-rotate: compress %s: %v", path, err)
 		return

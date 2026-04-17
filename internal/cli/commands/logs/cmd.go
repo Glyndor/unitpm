@@ -236,20 +236,19 @@ func printLastNLines(f *os.File, label string, n int) {
 	}
 
 	ring := make([]string, n)
-	idx, count := 0, 0
+	idx := 0
 	for scanner.Scan() {
 		ring[idx%n] = scanner.Text()
 		idx++
-		count++
 	}
 
-	total := count
+	total := idx
 	if total > n {
 		total = n
 	}
-	start := idx % n
-	if count < n {
-		start = 0
+	start := 0
+	if idx > n {
+		start = idx % n
 	}
 	for i := 0; i < total; i++ {
 		fmt.Printf("%s %s\n", colorLabel(label), ring[(start+i)%n])
