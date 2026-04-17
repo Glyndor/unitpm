@@ -455,10 +455,10 @@ func (m *Manager) List() []types.ProcessInfo {
 	return list
 }
 
-// Shutdown stops all processes.
+// Shutdown gracefully stops all processes without marking them as disabled,
+// so they are restored on daemon restart (reboot, re-exec, crash recovery).
 func (m *Manager) Shutdown() {
 	m.mu.RLock()
-	// Create a copy of IDs to avoid holding lock during Stop calls if Stop takes time
 	ids := make([]string, 0, len(m.processes))
 	for id := range m.processes {
 		ids = append(ids, id)
@@ -466,6 +466,12 @@ func (m *Manager) Shutdown() {
 	m.mu.RUnlock()
 
 	for _, id := range ids {
-		_ = m.Stop(id) //nolint:errcheck
+		m.mu.RLock()
+		proc, exists := m.processes[id]
+		m.mu.RUnlock()
+		if !exists {
+			continue
+		}
+		_ = proc.Stop(false)
 	}
 }

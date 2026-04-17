@@ -293,3 +293,51 @@ func TestManager_MaxProcessesLimitNonPositive(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 }
+
+func TestManager_ShutdownPreservesSpecs(t *testing.T) {
+	tempDir, err := os.MkdirTemp("", "lynx-mgr-shutdown")
+	if err != nil {
+		t.Fatalf("failed to create temp dir: %v", err)
+	}
+	defer func() { _ = os.RemoveAll(tempDir) }()
+
+	t.Setenv("XDG_CONFIG_HOME", tempDir)
+	logDir := filepath.Join(tempDir, "lynx/logs")
+	if err := os.MkdirAll(logDir, 0700); err != nil {
+		t.Fatalf("failed to create log dir: %v", err)
+	}
+	t.Setenv("XDG_STATE_HOME", tempDir)
+
+	mgr := manager.NewManager()
+
+	id := uuid.Must(uuid.NewV7()).String()
+	s := protocol.AppSpec{
+		Version: 1, ID: id, Name: "persist-app",
+		Exec: protocol.AppExec{Type: "command", Command: "sleep", Args: []string{"60"}},
+	}
+	if _, err := spec.SaveSpec(id, s); err != nil {
+		t.Fatalf("SaveSpec failed: %v", err)
+	}
+	if _, err := mgr.StartWithSpec(s); err != nil {
+		t.Fatalf("StartWithSpec failed: %v", err)
+	}
+	time.Sleep(100 * time.Millisecond)
+
+	// Shutdown should NOT mark specs as Disabled
+	mgr.Shutdown()
+
+	loaded, err := spec.LoadAll()
+	if err != nil {
+		t.Fatalf("LoadAll failed: %v", err)
+	}
+
+	for _, ls := range loaded {
+		if ls.ID == id {
+			if ls.Disabled {
+				t.Error("Shutdown() must NOT mark specs as Disabled — processes should restore on daemon restart")
+			}
+			return
+		}
+	}
+	t.Error("spec not found on disk after Shutdown")
+}
