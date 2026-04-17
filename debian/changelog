@@ -1,3 +1,14 @@
+lynx-pm (0.5.5-1) unstable; urgency=medium
+
+  [FEATURES]
+  * feat(start): --watch flag for auto-restart on file changes
+  * feat(logs): daemon writes timestamps to log files
+  * feat(logs): colored [STDOUT]/[STDERR] labels in lynx logs
+  * feat(logs): gzip compression on log rotation (.log.N.gz)
+  * feat(logs): O(n) ring buffer for log tail
+
+ -- Jaro-c <jaro-c@users.noreply.github.com>  Thu, 17 Apr 2026 01:30:00 -0500
+
 lynx-pm (0.5.4-1) unstable; urgency=medium
 
   * fix(debian): remove stray DEBHELPER token from postinst comment
