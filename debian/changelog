@@ -1,3 +1,10 @@
+lynx-pm (0.5.6-1) unstable; urgency=medium
+
+  * fix(debian): restart user-mode daemons after upgrade so managed
+    processes are restored automatically
+
+ -- Jaro-c <jaro-c@users.noreply.github.com>  Thu, 17 Apr 2026 03:20:00 -0500
+
 lynx-pm (0.5.5-1) unstable; urgency=medium
 
   [FEATURES]
