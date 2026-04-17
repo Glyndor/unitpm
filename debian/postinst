@@ -37,7 +37,7 @@ if [ "$1" = "configure" ]; then
 fi
 
 # Kill user-mode lynxd instances so they pick up the new binary on next
-# invocation. Skip the system user (lynx) — #DEBHELPER# handles that.
+# invocation. Skip the system user (lynx) — systemd handles that.
 for pid in $(pgrep -x lynxd 2>/dev/null); do
     pid_user=$(ps -o user= -p "$pid" 2>/dev/null)
     if [ "$pid_user" != "lynx" ]; then
