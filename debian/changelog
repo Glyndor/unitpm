@@ -1,3 +1,10 @@
+lynx-pm (0.5.11-1) unstable; urgency=medium
+
+  * fix(daemon): processes auto-restore after reboot — Shutdown no longer
+    marks specs as disabled
+
+ -- Jaro-c <jaro-c@users.noreply.github.com>  Thu, 17 Apr 2026 05:15:00 -0500
+
 lynx-pm (0.5.10-1) unstable; urgency=medium
 
   * feat(daemon): SIGHUP triggers re-exec for seamless .deb upgrades
