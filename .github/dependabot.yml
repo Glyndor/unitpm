@@ -12,3 +12,16 @@ updates:
     commit-message:
       prefix: "deps(go)"
       include: "scope"
+
+  # GitHub Actions (keeps workflow action SHAs/tags up to date)
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 5
+    labels:
+      - "dependencies"
+      - "ci"
+    commit-message:
+      prefix: "deps(ci)"
+      include: "scope"
