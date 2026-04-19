@@ -81,6 +81,37 @@ func TestAuthorizeStart(t *testing.T) {
 			wantErr:    true,
 			errCode:    "ERR_BAD_REQUEST",
 		},
+		{
+			name:       "RunAs unset defaults to allowed",
+			spec:       protocol.AppSpec{},
+			privileged: false,
+			wantErr:    false,
+		},
+		{
+			name: "Sandbox allowed in user mode",
+			spec: protocol.AppSpec{
+				RunAs: &protocol.RunAsPolicy{Mode: "sandbox"},
+			},
+			privileged: false,
+			wantErr:    false,
+		},
+		{
+			name: "Sandbox allowed in system mode",
+			spec: protocol.AppSpec{
+				RunAs: &protocol.RunAsPolicy{Mode: "sandbox"},
+			},
+			privileged: true,
+			wantErr:    false,
+		},
+		{
+			name: "Shell allowed in user daemon",
+			spec: protocol.AppSpec{
+				Exec:  protocol.AppExec{Shell: true},
+				RunAs: &protocol.RunAsPolicy{Mode: "self"},
+			},
+			privileged: false,
+			wantErr:    false,
+		},
 	}
 
 	for _, tt := range tests {
