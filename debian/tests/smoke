@@ -1,0 +1,28 @@
+#!/bin/sh
+# Package-level smoke test: runs after lynxpm is installed. Validates binaries
+# landed, support files are in place, and the CLI can parse its own flags.
+# Does not start the daemon — autopkgtest containers rarely have systemd as PID 1.
+set -eux
+
+# Binaries on PATH.
+command -v lynxpm
+command -v lynxd
+
+# Declared version printable.
+lynxpm --version
+lynxpm --help >/dev/null
+
+# systemd unit + polkit rules installed where maintainer scripts expect.
+[ -f /usr/lib/systemd/system/lynxd.service ] || [ -f /lib/systemd/system/lynxd.service ]
+[ -f /usr/share/polkit-1/rules.d/lynxpm.polkit.rules ] || \
+[ -f /usr/share/polkit-1/rules.d/lynx.polkit.rules ]
+
+# Package created the lynx system user + lynxadm group via postinst.
+getent passwd lynx
+getent group lynxadm
+
+# State + log dirs exist with the expected ownership.
+[ -d /var/lib/lynx-pm ]
+[ -d /var/log/lynx-pm ]
+[ "$(stat -c '%U:%G' /var/lib/lynx-pm)" = "lynx:lynx" ]
+[ "$(stat -c '%U:%G' /var/log/lynx-pm)" = "lynx:lynx" ]
