@@ -2,6 +2,7 @@
 package list
 
 import (
+	"context"
 	"flag"
 	"fmt"
 	"io"
@@ -9,6 +10,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"testing"
 	"time"
 	"unicode/utf8"
 
@@ -20,7 +22,21 @@ import (
 	"github.com/Jaro-c/Lynx/internal/jsonx"
 	"github.com/Jaro-c/Lynx/internal/term"
 	"github.com/Jaro-c/Lynx/internal/types"
+	"github.com/Jaro-c/Lynx/internal/updater"
+	"github.com/Jaro-c/Lynx/internal/version"
 )
+
+// updateCheckTTL controls how long a cached update-check result stays valid.
+const updateCheckTTL = 6 * time.Hour
+
+// updateCheckBudget caps how long list will wait on the update check.
+const updateCheckBudget = 1500 * time.Millisecond
+
+// checkForUpdate is overridable for tests.
+var checkForUpdate = func(ctx context.Context) *updater.Release {
+	rel, _ := updater.CheckCached(ctx, updateCheckTTL)
+	return rel
+}
 
 // DefaultNamespace is the namespace used when an AppSpec has no explicit
 // namespace set, both for storage and for `lynxpm list --namespace` filtering.
@@ -66,8 +82,29 @@ func Run(client transport.IPCClient, args []string) error {
 		client = c
 	}
 
+	// Kick off the update check concurrently so it overlaps with the IPC
+	// round-trip and table render. Suppressed for --json (machine-readable
+	// output) and under `go test` (avoids unintended network calls).
+	var (
+		updateCh       chan *updater.Release
+		updateDeadline time.Time
+		updateCancel   context.CancelFunc
+	)
+	if !jsonOutput && !testing.Testing() {
+		updateDeadline = time.Now().Add(updateCheckBudget)
+		ctx, cancel := context.WithDeadline(context.Background(), updateDeadline)
+		updateCancel = cancel
+		updateCh = make(chan *updater.Release, 1)
+		go func() {
+			updateCh <- checkForUpdate(ctx)
+		}()
+	}
+
 	var processes []types.ProcessInfo
 	if err := client.Call("list", nil, &processes); err != nil {
+		if updateCancel != nil {
+			updateCancel()
+		}
 		return fmt.Errorf("list failed: %w", err)
 	}
 
@@ -90,7 +127,40 @@ func Run(client transport.IPCClient, args []string) error {
 	}
 
 	renderTable(processes, showLong)
+
+	if updateCh != nil {
+		waitUpdateAndNotify(updateCh, updateDeadline)
+		updateCancel()
+	}
 	return nil
+}
+
+func waitUpdateAndNotify(ch <-chan *updater.Release, deadline time.Time) {
+	remaining := time.Until(deadline)
+	if remaining < 0 {
+		remaining = 0
+	}
+	timer := time.NewTimer(remaining)
+	defer timer.Stop()
+	select {
+	case rel := <-ch:
+		if rel != nil {
+			printUpdateBanner(rel)
+		}
+	case <-timer.C:
+		// Check too slow for this run; cache will populate for next time.
+	}
+}
+
+func printUpdateBanner(rel *updater.Release) {
+	_, _ = fmt.Fprintf(
+		os.Stderr,
+		"\n%s New version available: %s (current %s)\n",
+		term.YellowString("!"),
+		term.BoldString("%s", rel.TagName),
+		version.Version,
+	)
+	_, _ = fmt.Fprintln(os.Stderr, "  Run 'lynxpm update --apply' to install.")
 }
 
 func filterProcesses(processes []types.ProcessInfo, filter string) []types.ProcessInfo {
