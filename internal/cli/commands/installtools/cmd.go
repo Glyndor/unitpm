@@ -195,12 +195,15 @@ func findViaRunuser(user, tool string) (string, error) {
 }
 
 // GetSpec returns the command specification.
+const installToolsDescription = "Symlink common dev tools (bun, node, go, etc.) into " +
+	"~/.local/bin so the Lynx daemon can find them. " +
+	"Use --system for a system-wide install."
+
 func GetSpec() help.CommandSpec {
 	return help.CommandSpec{
 		Name:        "install-tools",
 		Usage:       term.BoldString("lynx install-tools [options]"),
-		Description: "Symlink common dev tools (bun, node, go, etc.) into ~/.local/bin " +
-			"so the Lynx daemon can find them. Use --system for a system-wide install.",
+		Description: installToolsDescription,
 		Options: []help.Option{
 			{Short: "", Long: "--system", Description: "Install to /usr/local/bin instead (requires sudo)"},
 			{Short: "-y", Long: "--yes", Description: "Automatically confirm all prompts"},
