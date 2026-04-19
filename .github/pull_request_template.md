@@ -79,14 +79,14 @@ DOCUMENTATION
 [ ] Documentation updated (README / docs / comments)
 
 
-NON-COMMERCIAL ALIGNMENT
------------------------
+LICENSE ALIGNMENT (BSL 1.1)
+---------------------------
 
 Confirm that this Pull Request:
 
-[ ] Does not add or enable monetization, resale, paid access, or SaaS/PaaS usage of Lynx
+[ ] Does not enable offering Lynx as a competing managed service or standalone paid product
 [ ] Does not introduce proprietary or closed-source dependencies
-[ ] Does not weaken the project's community-first licensing intent
+[ ] Is compatible with the Business Source License 1.1 and its Change License (Apache 2.0)
 
 
 CHECKLIST

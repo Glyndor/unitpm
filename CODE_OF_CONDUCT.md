@@ -66,7 +66,7 @@ standards:
   actions
 - **Failure to properly credit sources** or misrepresenting authorship
 - **Promotional or commercial activity** that is unrelated to the project
-  or conflicts with its non-commercial nature
+  or conflicts with its licensing terms
 - **Irresponsible or inflammatory communication** that normalizes or
   enables restricted behaviors
 

@@ -9,8 +9,9 @@ body:
     attributes:
       value: |
         Thank you for proposing a feature for Lynx.
-        Please make sure the proposal aligns with the community-first,
-        non-commercial nature of the project.
+        Please make sure the proposal aligns with the Business Source
+        License 1.1 terms (internal/production use permitted; offering
+        Lynx as a competing managed service is not).
 
   - type: textarea
     id: summary
@@ -76,16 +77,16 @@ body:
       placeholder: Describe compatibility implications.
 
   - type: checkboxes
-    id: non_commercial
+    id: license_alignment
     attributes:
-      label: Non-commercial alignment
+      label: License alignment (BSL 1.1)
       description: "Confirm that this feature proposal:"
       options:
-        - label: Does not enable monetization, resale, or SaaS usage of Lynx
+        - label: Does not enable offering Lynx as a competing managed service or standalone paid product
           required: true
         - label: Does not introduce proprietary or closed-source dependencies
           required: true
-        - label: Aligns with the community-first nature of the project
+        - label: Is compatible with the Business Source License 1.1
           required: true
 
   - type: textarea
