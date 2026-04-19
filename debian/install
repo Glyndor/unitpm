@@ -1,3 +1,3 @@
-lynx usr/bin
+lynxpm usr/bin
 lynxd usr/sbin
-debian/lynx-pm.polkit.rules usr/share/polkit-1/rules.d
+debian/lynxpm.polkit.rules usr/share/polkit-1/rules.d
