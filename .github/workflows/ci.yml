@@ -25,12 +25,24 @@ jobs:
           go-version-file: go.mod
           cache: true
 
+      - name: go vet
+        run: go vet ./...
+
+      - name: gofmt check
+        run: |
+          unformatted=$(gofmt -l .)
+          if [ -n "$unformatted" ]; then
+            echo "::error::Unformatted files found:"
+            echo "$unformatted"
+            exit 1
+          fi
+
+      - name: Install golangci-lint
+        run: go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.11.4
+
       - name: golangci-lint
-        uses: golangci/golangci-lint-action@4afd733a84b1f43292c63897423277bb7f4313a9 # v8
-        with:
-          version: v2.11.4
-          args: --timeout=10m -v
-          only-new-issues: ${{ github.event_name == 'pull_request' }}
+        timeout-minutes: 5
+        run: golangci-lint run --timeout=4m ./...
 
   test:
     name: Test
