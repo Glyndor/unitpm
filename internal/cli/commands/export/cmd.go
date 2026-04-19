@@ -1,7 +1,5 @@
 // Package export implements the export command: renders the specs in a
 // namespace as a Lynxfile.yml on stdout.
-//
-//nolint:gocognit
 package export
 
 import (

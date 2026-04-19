@@ -1,6 +1,4 @@
 // Package list implements the list command.
-//
-//nolint:gocognit,gocyclo,cyclop
 package list
 
 import (
@@ -14,13 +12,14 @@ import (
 	"time"
 	"unicode/utf8"
 
+	xterm "golang.org/x/term"
+
 	"github.com/Jaro-c/Lynx/internal/cli/errs"
 	"github.com/Jaro-c/Lynx/internal/cli/help"
 	"github.com/Jaro-c/Lynx/internal/ipc/transport"
 	"github.com/Jaro-c/Lynx/internal/jsonx"
 	"github.com/Jaro-c/Lynx/internal/term"
 	"github.com/Jaro-c/Lynx/internal/types"
-	xterm "golang.org/x/term"
 )
 
 // DefaultNamespace is the namespace used when an AppSpec has no explicit

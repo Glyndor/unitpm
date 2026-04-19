@@ -1,6 +1,4 @@
 // Package root implements the root command.
-//
-//nolint:gocyclo,nestif,cyclop
 package root
 
 import (

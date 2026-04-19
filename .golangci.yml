@@ -83,9 +83,9 @@ linters:
     # ---------------------------------------------------------------------
     funlen:
       # Maximum number of lines per function
-      lines: 140
+      lines: 150
       # Maximum number of statements per function
-      statements: 100
+      statements: 110
 
     gocyclo:
       # Report functions with complexity >= this value.

@@ -1,4 +1,3 @@
-//nolint:gocognit,nestif
 package manager
 
 import (
@@ -15,6 +14,8 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/google/uuid"
+
 	daemonRuntime "github.com/Jaro-c/Lynx/internal/daemon/runtime"
 	"github.com/Jaro-c/Lynx/internal/env"
 	"github.com/Jaro-c/Lynx/internal/git"
@@ -22,7 +23,6 @@ import (
 	"github.com/Jaro-c/Lynx/internal/metrics"
 	"github.com/Jaro-c/Lynx/internal/paths"
 	"github.com/Jaro-c/Lynx/internal/types"
-	"github.com/google/uuid"
 	"github.com/robfig/cron/v3"
 )
 

@@ -10,9 +10,10 @@ import (
 	"strings"
 	"time"
 
+	"github.com/google/uuid"
+
 	"github.com/Jaro-c/Lynx/internal/ipc/protocol"
 	"github.com/Jaro-c/Lynx/internal/jsonx"
-	"github.com/google/uuid"
 )
 
 // Client handles communication with the daemon.
