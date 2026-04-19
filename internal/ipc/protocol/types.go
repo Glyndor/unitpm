@@ -75,7 +75,7 @@ type AppSpec struct {
 	RunAs     *RunAsPolicy      `json:"runAs,omitempty"`
 	Stop      *AppStop          `json:"stop,omitempty"`
 	Resources *AppResources     `json:"resources,omitempty"`
-	Watch     *AppWatch          `json:"watch,omitempty"`
+	Watch     *AppWatch         `json:"watch,omitempty"`
 	CreatedAt string            `json:"created_at,omitempty"`
 	Disabled  bool              `json:"disabled,omitempty"`
 }
