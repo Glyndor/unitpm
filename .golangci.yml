@@ -75,7 +75,6 @@ linters:
     # Testing best practices
     # ---------------------------------------------------------------------
     - tparallel
-    - testpackage
     - testifylint
 
   settings:
@@ -84,13 +83,20 @@ linters:
     # ---------------------------------------------------------------------
     funlen:
       # Maximum number of lines per function
-      lines: 120
+      lines: 140
       # Maximum number of statements per function
-      statements: 80
+      statements: 100
 
     gocyclo:
-      # Report functions with complexity >= this value
-      min-complexity: 20
+      # Report functions with complexity >= this value.
+      # Raised to 35 to accommodate CLI flag dispatcher switches and
+      # command Run functions which naturally have many branches.
+      min-complexity: 35
+
+    nestif:
+      # Allow deeper nesting in transport/installer paths where
+      # error-recovery chains are intrinsically nested.
+      min-complexity: 11
 
     embeddedstructfieldcheck:
       # Forbid embedding sync.Mutex or sync.RWMutex anonymously

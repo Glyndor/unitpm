@@ -20,7 +20,7 @@ var (
 	lookPath = exec.LookPath
 )
 
-// systemdUserUnit is the template for the user-level systemd service
+// systemdUserUnit is the template for the user-level systemd service.
 const systemdUserUnit = `[Unit]
 Description=Lynx Process Manager (User Daemon)
 Documentation=https://github.com/Jaro-c/Lynx

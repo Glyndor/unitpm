@@ -7,8 +7,9 @@ import (
 	"io"
 	"strings"
 
-	"github.com/Jaro-c/Lynx/internal/ipc/protocol"
 	"gopkg.in/yaml.v3"
+
+	"github.com/Jaro-c/Lynx/internal/ipc/protocol"
 )
 
 // File represents the top-level structure of a Lynx configuration file (e.g., Lynxfile.yml).

@@ -9,11 +9,12 @@ import (
 	"os"
 	"strings"
 
+	"gopkg.in/yaml.v3"
+
 	"github.com/Jaro-c/Lynx/internal/cli/errs"
 	"github.com/Jaro-c/Lynx/internal/cli/help"
 	"github.com/Jaro-c/Lynx/internal/lynxfile"
 	"github.com/Jaro-c/Lynx/internal/spec"
-	"gopkg.in/yaml.v3"
 )
 
 // Run executes the export command to generate a Lynxfile from currently running applications.

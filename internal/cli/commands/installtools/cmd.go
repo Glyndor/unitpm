@@ -15,7 +15,7 @@ import (
 	"github.com/Jaro-c/Lynx/internal/term"
 )
 
-// Tools to check and link
+// Tools to check and link.
 var commonTools = []string{
 	"bun", "node", "npm", "pnpm", "yarn",
 	"go", "python", "python3", "pip", "pip3",

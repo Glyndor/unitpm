@@ -8,7 +8,7 @@ import (
 	"github.com/Jaro-c/Lynx/internal/ipc/protocol"
 )
 
-func TestNewProcess_CronScheduler(t *testing.T) { //nolint:testpackage
+func TestNewProcess_CronScheduler(t *testing.T) {
 	// 1. Create a spec with a cron schedule
 	spec := protocol.AppSpec{
 		Name: "test-cron",
