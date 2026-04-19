@@ -25,7 +25,9 @@ func ConfigureProcessIsolation(cmd *exec.Cmd, runAs protocol.RunAsPolicy) error 
 		return nil
 	case "app_user", "explicit_user":
 		// Reserved for future per-app uid/gid isolation.
-		return errors.New("ERR_UNSUPPORTED: run_as=" + runAs.Mode + " is not implemented yet; use 'dynamic' or 'sandbox'")
+		return errors.New(
+			"ERR_UNSUPPORTED: run_as=" + runAs.Mode +
+				" is not implemented yet; use 'dynamic' or 'sandbox'")
 	default:
 		return nil
 	}
