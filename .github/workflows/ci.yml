@@ -68,6 +68,13 @@ jobs:
           path: coverage.out
           retention-days: 7
 
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@75cd11691c0faa626561e295848008c8a7dddffe # v5
+        with:
+          files: coverage.out
+          fail_ci_if_error: false
+          token: ${{ secrets.CODECOV_TOKEN }}
+
   build:
     name: Build (${{ matrix.goarch }})
     runs-on: ubuntu-latest
