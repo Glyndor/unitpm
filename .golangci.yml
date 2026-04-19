@@ -2,10 +2,13 @@ version: "2"
 
 run:
   # Maximum time allowed for golangci-lint execution
-  timeout: 5m
+  timeout: 10m
 
   # Run linters on test files as well
   tests: true
+
+  # Parallel run using all available CPUs
+  concurrency: 0
 
 linters:
   enable:
