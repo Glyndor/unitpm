@@ -9,7 +9,7 @@ Rules-Requires-Root: no
 
 Package: lynxpm
 Architecture: any
-Depends: ${shlibs:Depends}, ${misc:Depends}, systemd
+Depends: ${shlibs:Depends}, ${misc:Depends}, systemd, adduser
 Description: Secure, systemd-native process manager for Linux
  Lynx is a blazingly fast, modern, and secure process manager for Linux.
  It uses systemd as the supervisor engine and provides a CLI plus a
