@@ -228,11 +228,12 @@ test-file comments.
 
 ## Release Flow
 
-See `docs/BUILDING_UBUNTU_RELEASE.md`. Short version:
-
 ```
-debian/changelog bump → scripts/build_deb.sh → dpkg-buildpackage
-                     → lynxpm_<ver>_amd64.deb → GitHub release
+debian/changelog bump → git tag vX.Y.Z → git push --tags
+                     → .github/workflows/release.yml builds,
+                       signs (ed25519), attests (SLSA), and
+                       publishes: lynxpm_linux_{amd64,arm64},
+                       lynxpm_<ver>_amd64.deb, SBOM, sigs.
 ```
 
 The `updater` package checks GitHub releases on demand (`lynxpm update`) and

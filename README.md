@@ -84,7 +84,6 @@ lynxpm logs ultra-api --follow
 | **Tutorials** (Next.js, FastAPI, Django, production deploy, Lynxfile) | [`docs/TUTORIALS.md`](docs/TUTORIALS.md) |
 | **Commands reference** (`start`, `list`, `apply`, `export`, …) | [`docs/commands/`](docs/commands/) |
 | **FAQ** — rapid-fire "Can I…?" / "Why does X fail?" | [`docs/FAQ.md`](docs/FAQ.md) |
-| **Build from source / Debian packaging** | [`docs/BUILDING_UBUNTU_RELEASE.md`](docs/BUILDING_UBUNTU_RELEASE.md) |
 | **Architecture overview** | [`ARCHITECTURE.md`](ARCHITECTURE.md) |
 
 ---
