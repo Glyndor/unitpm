@@ -1,3 +1,33 @@
+lynxpm (0.7.1-1) unstable; urgency=high
+
+  * **debian: 0.7.0 shipped without its systemd unit file.** The rename
+    commit dropped the `dh_installsystemd --name=lynxd` override, so
+    `debhelper` looked for `debian/lynxpm.service` (which does not
+    exist) instead of `debian/lynxpm.lynxd.service`. The 0.7.0 `.deb`
+    therefore installs no `lynxd.service`, breaking `systemctl start
+    lynxd` on every fresh install. Fixed by restoring the override.
+  * debian: declare `Depends: adduser`. The postinst calls `addgroup`
+    and `adduser` unconditionally, but minimal chroots (piuparts,
+    debootstrap, container base images) do not pull `adduser` in
+    transitively and the configuration step aborts with "addgroup:
+    not found".
+  * debian: `/etc/logrotate.d/lynxpm` had CRLF line endings, so
+    logrotate parsed `weekly\r` as an invalid token and refused to
+    rotate `/var/log/lynx-pm/*/*.log`. Converted to LF.
+  * cli: `lynxpm list` now surfaces a banner on stderr after the table
+    when a newer release is available, so users learn about updates
+    without having to run `lynxpm update` explicitly. The check is
+    cached for 6 h at `$XDG_CACHE_HOME/lynx-pm/update-check.json`,
+    skipped under `--json`, and pinned to the running binary's version
+    so upgrades invalidate stale hits.
+  * ci: new workflow `.github/workflows/debian-tests.yml` builds the
+    `.deb`, runs `lintian`, installs it in a matrix of
+    `debian:{bookworm,trixie}` / `ubuntu:{22.04,24.04}` containers,
+    exercises a full `start → list → show → stop → delete` lifecycle
+    against a user-mode `lynxd`, and runs `piuparts` + `autopkgtest`.
+
+ -- Jaro-c <jaro-c@users.noreply.github.com>  Sun, 19 Apr 2026 12:15:00 -0500
+
 lynxpm (0.7.0-1) unstable; urgency=medium
 
   * **Breaking: binary renamed from `lynx` to `lynxpm`.** The `lynx`
