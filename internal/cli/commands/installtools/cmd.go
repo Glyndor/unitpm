@@ -199,6 +199,7 @@ const installToolsDescription = "Symlink common dev tools (bun, node, go, etc.) 
 	"~/.local/bin so the Lynx daemon can find them. " +
 	"Use --system for a system-wide install."
 
+// GetSpec returns the help metadata for the install-tools command.
 func GetSpec() help.CommandSpec {
 	return help.CommandSpec{
 		Name:        "install-tools",
