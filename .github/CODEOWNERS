@@ -1,0 +1,8 @@
+# CODEOWNERS — auto-request review from @Jaro-c on every change.
+# Docs: https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
+#
+# Later, more granular ownership can be added per directory, e.g.:
+#   /internal/daemon/    @Jaro-c @security-team
+#   /docs/               @Jaro-c @docs-team
+
+*                @Jaro-c
