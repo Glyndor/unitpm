@@ -1,11 +1,11 @@
-# 🦁 `lynx logs`
+# 🦁 `lynxpm logs`
 
 > *View and follow process log files managed by Lynx.*
 
 ## 📖 Synopsis
 
 ```bash
-lynx logs <id|name|namespace:name> [--lines N] [--follow] [--stdout] [--stderr]
+lynxpm logs <id|name|namespace:name> [--lines N] [--follow] [--stdout] [--stderr]
 ```
 
 ## Description
@@ -26,17 +26,17 @@ View and follow process log files managed by Lynx. Resolves per‑app stdout/std
 
 Show last 200 lines of both streams:
 ```bash
-lynx logs my-api
+lynxpm logs my-api
 ```
 
 Follow stdout only:
 ```bash
-lynx logs default:my-api --stdout --follow
+lynxpm logs default:my-api --stdout --follow
 ```
 
 Increase initial lines:
 ```bash
-lynx logs e73a9f1b --lines 1000
+lynxpm logs e73a9f1b --lines 1000
 ```
 
 ## Notes

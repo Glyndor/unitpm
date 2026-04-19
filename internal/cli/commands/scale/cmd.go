@@ -23,7 +23,7 @@ func Run(client transport.IPCClient, args []string) error {
 		return nil
 	}
 	if len(args) < 2 {
-		return errors.New("usage: lynx scale <name> <N>")
+		return errors.New("usage: lynxpm scale <name> <N>")
 	}
 
 	target := args[1]
@@ -67,11 +67,11 @@ func GetSpec() help.CommandSpec {
 	return help.CommandSpec{
 		Name:        "scale",
 		Description: "Scale an app up or down to the target number of instances",
-		Usage:       "lynx scale <name> <N>",
+		Usage:       "lynxpm scale <name> <N>",
 		Examples: []string{
-			`lynx scale worker 5          # set 'worker' to exactly 5 instances`,
-			`lynx scale prod:api 10       # namespace-qualified`,
-			`lynx scale worker 0          # stop all instances (equivalent to delete all)`,
+			`lynxpm scale worker 5          # set 'worker' to exactly 5 instances`,
+			`lynxpm scale prod:api 10       # namespace-qualified`,
+			`lynxpm scale worker 0          # stop all instances (equivalent to delete all)`,
 		},
 	}
 }

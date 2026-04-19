@@ -1,11 +1,11 @@
-# 🦁 `lynx export`
+# 🦁 `lynxpm export`
 
 > *Export all applications in a namespace to a Lynxfile YAML document.*
 
 ## 📖 Synopsis
 
 ```bash
-lynx export --namespace <name>
+lynxpm export --namespace <name>
 ```
 
 ## Description
@@ -23,10 +23,10 @@ Export all applications in a namespace to a Lynxfile YAML document printed to st
 
 Export the `default` namespace:
 ```bash
-lynx export --namespace default > Lynxfile.yml
+lynxpm export --namespace default > Lynxfile.yml
 ```
 
 ## Notes
 
 - Only applications whose specs belong to the selected namespace are exported.
-- The resulting file matches the format accepted by `lynx apply`.
+- The resulting file matches the format accepted by `lynxpm apply`.

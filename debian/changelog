@@ -1,4 +1,21 @@
-lynx-pm (0.6.1-1) unstable; urgency=medium
+lynxpm (0.7.0-1) unstable; urgency=medium
+
+  * **Breaking: binary renamed from `lynx` to `lynxpm`.** The `lynx`
+    name collides with the widely-packaged text-mode web browser on
+    Debian/Ubuntu, so the CLI now installs at `/usr/bin/lynxpm`.
+    Replace any `lynx` invocation with `lynxpm` in scripts, cron
+    entries, and Lynxfile tooling.
+  * package: Debian package renamed from `lynx-pm` to `lynxpm`.
+    Drop the incorrect `Conflicts/Replaces/Provides: lynx` clauses
+    that were attempting to override the real `lynx` browser package.
+  * systemd: user-mode unit renamed to `lynxd.service`. Manage with
+    `systemctl --user enable --now lynxd`. System mode unchanged.
+  * release artifacts: `lynx_linux_*` -> `lynxpm_linux_*` (binaries,
+    signatures, SBOMs). `.deb` name is `lynxpm_<ver>_<arch>.deb`.
+
+ -- Jaro-c <jaro-c@users.noreply.github.com>  Sun, 19 Apr 2026 18:00:00 -0500
+
+lynxpm (0.6.1-1) unstable; urgency=medium
 
   * license: relicense from Business Source License 1.1 to the
     Apache License, Version 2.0. Lynx is now a fully OSI-approved
@@ -8,7 +25,7 @@ lynx-pm (0.6.1-1) unstable; urgency=medium
 
  -- Jaro-c <jaro-c@users.noreply.github.com>  Sun, 19 Apr 2026 14:30:00 -0500
 
-lynx-pm (0.6.0-1) unstable; urgency=medium
+lynxpm (0.6.0-1) unstable; urgency=medium
 
   * license: switch from custom Lynx Community License to Business
     Source License 1.1. Production use is now permitted, including
@@ -44,42 +61,42 @@ lynx-pm (0.6.0-1) unstable; urgency=medium
 
  -- Jaro-c <jaro-c@users.noreply.github.com>  Sun, 19 Apr 2026 00:00:00 -0500
 
-lynx-pm (0.5.12-1) unstable; urgency=medium
+lynxpm (0.5.12-1) unstable; urgency=medium
 
   * fix(daemon): SIGHUP re-exec now gracefully stops processes before exec
     to avoid EADDRINUSE on port-binding apps
 
  -- Jaro-c <jaro-c@users.noreply.github.com>  Thu, 17 Apr 2026 05:20:00 -0500
 
-lynx-pm (0.5.11-1) unstable; urgency=medium
+lynxpm (0.5.11-1) unstable; urgency=medium
 
   * fix(daemon): processes auto-restore after reboot — Shutdown no longer
     marks specs as disabled
 
  -- Jaro-c <jaro-c@users.noreply.github.com>  Thu, 17 Apr 2026 05:15:00 -0500
 
-lynx-pm (0.5.10-1) unstable; urgency=medium
+lynxpm (0.5.10-1) unstable; urgency=medium
 
   * feat(daemon): SIGHUP triggers re-exec for seamless .deb upgrades
   * Managed processes auto-restore after daemon re-exec (~1s downtime)
 
  -- Jaro-c <jaro-c@users.noreply.github.com>  Thu, 17 Apr 2026 05:00:00 -0500
 
-lynx-pm (0.5.9-1) unstable; urgency=medium
+lynxpm (0.5.9-1) unstable; urgency=medium
 
   * fix(debian): stop killing user-mode daemons on upgrade — processes
     now survive .deb upgrades undisturbed
 
  -- Jaro-c <jaro-c@users.noreply.github.com>  Thu, 17 Apr 2026 04:30:00 -0500
 
-lynx-pm (0.5.8-1) unstable; urgency=medium
+lynxpm (0.5.8-1) unstable; urgency=medium
 
   * feat(start): auto-detect project version from package.json,
     Cargo.toml, pyproject.toml, setup.cfg, mix.exs
 
  -- Jaro-c <jaro-c@users.noreply.github.com>  Thu, 17 Apr 2026 04:10:00 -0500
 
-lynx-pm (0.5.7-1) unstable; urgency=medium
+lynxpm (0.5.7-1) unstable; urgency=medium
 
   * refactor: optimize logwriter (batched writes, 1MB buffer cap)
   * refactor: improve watcher efficiency (prefix strip, cleanup)
@@ -87,14 +104,14 @@ lynx-pm (0.5.7-1) unstable; urgency=medium
 
  -- Jaro-c <jaro-c@users.noreply.github.com>  Thu, 17 Apr 2026 03:50:00 -0500
 
-lynx-pm (0.5.6-1) unstable; urgency=medium
+lynxpm (0.5.6-1) unstable; urgency=medium
 
   * fix(debian): restart user-mode daemons after upgrade so managed
     processes are restored automatically
 
  -- Jaro-c <jaro-c@users.noreply.github.com>  Thu, 17 Apr 2026 03:20:00 -0500
 
-lynx-pm (0.5.5-1) unstable; urgency=medium
+lynxpm (0.5.5-1) unstable; urgency=medium
 
   [FEATURES]
   * feat(start): --watch flag for auto-restart on file changes
@@ -105,13 +122,13 @@ lynx-pm (0.5.5-1) unstable; urgency=medium
 
  -- Jaro-c <jaro-c@users.noreply.github.com>  Thu, 17 Apr 2026 01:30:00 -0500
 
-lynx-pm (0.5.4-1) unstable; urgency=medium
+lynxpm (0.5.4-1) unstable; urgency=medium
 
   * fix(debian): remove stray DEBHELPER token from postinst comment
 
  -- Jaro-c <jaro-c@users.noreply.github.com>  Thu, 17 Apr 2026 00:45:00 -0500
 
-lynx-pm (0.5.3-1) unstable; urgency=high
+lynxpm (0.5.3-1) unstable; urgency=high
 
   [SECURITY]
   * Fix shell command injection: quote arguments before sh -c concatenation
@@ -133,13 +150,13 @@ lynx-pm (0.5.3-1) unstable; urgency=high
 
  -- Jaro-c <jaro-c@users.noreply.github.com>  Wed, 16 Apr 2026 19:00:00 -0500
 
-lynx-pm (0.5.2-1) unstable; urgency=medium
+lynxpm (0.5.2-1) unstable; urgency=medium
 
   * deps: update all Go dependencies to latest versions
 
  -- Jaro-c <jaro-c@users.noreply.github.com>  Wed, 16 Apr 2026 18:30:00 -0500
 
-lynx-pm (0.5.1-1) unstable; urgency=high
+lynxpm (0.5.1-1) unstable; urgency=high
 
   [SECURITY]
   * security(H1): ed25519 release signing — 'lynx update --apply' now
@@ -211,39 +228,39 @@ lynx-pm (0.5.1-1) unstable; urgency=high
 
  -- Jaro-c <jaro-c@users.noreply.github.com>  Wed, 16 Apr 2026 18:00:00 -0500
 
-lynx-pm (0.4.10-1) unstable; urgency=medium
+lynxpm (0.4.10-1) unstable; urgency=medium
 
   * fix(ipc): allow lynxadm users to run user-mode daemons if system socket is missing
 
  -- Jaro-c <jaro-c@users.noreply.github.com>  Thu, 12 Mar 2026 01:10:00 -0500
 
-lynx-pm (0.4.9-1) unstable; urgency=medium
+lynxpm (0.4.9-1) unstable; urgency=medium
 
   * feat(cli): implement lynx startup for non-root users (systemd --user)
 
  -- Jaro-c <jaro-c@users.noreply.github.com>  Wed, 11 Mar 2026 04:30:00 -0500
 
-lynx-pm (0.4.8-1) unstable; urgency=medium
+lynxpm (0.4.8-1) unstable; urgency=medium
 
   * fix(cli): improve install-tools path detection for sudo users
   * fix(cli): prevent symlink loops in install-tools
 
  -- Jaro-c <jaro-c@users.noreply.github.com>  Wed, 11 Mar 2026 04:05:00 -0500
 
-lynx-pm (0.4.7-1) unstable; urgency=medium
+lynxpm (0.4.7-1) unstable; urgency=medium
 
   * perf(metrics): optimize linux process tree scanning and remove string overhead
 
  -- Jaro-c <jaro-c@users.noreply.github.com>  Tue, 10 Mar 2026 21:38:00 -0500
 
-lynx-pm (0.4.6-1) unstable; urgency=medium
+lynxpm (0.4.6-1) unstable; urgency=medium
 
   * feat(daemon): allow colon character in process names
   * fix(debian): migrate lynx user home directory in postinst
 
  -- Jaro-c <jaro-c@users.noreply.github.com>  Tue, 10 Mar 2026 20:30:00 -0500
 
-lynx-pm (0.4.5-1) unstable; urgency=medium
+lynxpm (0.4.5-1) unstable; urgency=medium
 
   * feat(env): implement custom robust env parser to handle quotes and comments
   * feat(cli): change default logs mode to "file" in start command
@@ -252,19 +269,19 @@ lynx-pm (0.4.5-1) unstable; urgency=medium
 
  -- Jaro-c <jaro-c@users.noreply.github.com>  Tue, 10 Mar 2026 03:00:00 -0500
 
-lynx-pm (0.4.4-1) unstable; urgency=medium
+lynxpm (0.4.4-1) unstable; urgency=medium
 
   * feat(cli): allow selective tool installation in install-tools
 
  -- Jaro-c <jaro-c@users.noreply.github.com>  Tue, 10 Mar 2026 02:00:00 -0500
 
-lynx-pm (0.4.3-1) unstable; urgency=medium
+lynxpm (0.4.3-1) unstable; urgency=medium
 
   * refactor: replace all occurrences of UUID v4 with UUID v7
 
  -- Jaro-c <jaro-c@users.noreply.github.com>  Tue, 10 Mar 2026 01:13:00 -0500
 
-lynx-pm (0.4.2-1) unstable; urgency=medium
+lynxpm (0.4.2-1) unstable; urgency=medium
 
   * fix(updater): fix Chmod called on closed file descriptor
   * fix(updater): add timeout to download HTTP client
@@ -277,7 +294,7 @@ lynx-pm (0.4.2-1) unstable; urgency=medium
 
  -- Jaro-c <jaro-c@users.noreply.github.com>  Sat, 08 Mar 2026 20:30:00 -0500
 
-lynx-pm (0.4.1-1) unstable; urgency=medium
+lynxpm (0.4.1-1) unstable; urgency=medium
 
   * feat(git): add support for git metadata detection in managed applications
   * feat(cli): display git branch, commit hash, and dirty status in lynx list
@@ -286,28 +303,28 @@ lynx-pm (0.4.1-1) unstable; urgency=medium
 
  -- Jaro-c <jaro-c@users.noreply.github.com>  Sat, 08 Mar 2026 12:00:00 +0000
 
-lynx-pm (0.4.0-1) unstable; urgency=medium
+lynxpm (0.4.0-1) unstable; urgency=medium
 
   * Fix(cli): use correct systemd service name 'lynx.lynxd.service' in startup command
   * Bump version to 0.4.0
 
  -- Jaro-c <jaro-c@users.noreply.github.com>  Fri, 27 Feb 2026 13:00:00 +0000
 
-lynx-pm (0.3.9-1) unstable; urgency=medium
+lynxpm (0.3.9-1) unstable; urgency=medium
 
   * Fix systemd service name mismatch (lynx.lynxd.service)
   * Ensure systemd service is correctly installed by debhelper
 
  -- Jaro-c <jaro-c@users.noreply.github.com>  Fri, 27 Feb 2026 12:30:00 +0000
 
-lynx-pm (0.3.8-1) unstable; urgency=medium
+lynxpm (0.3.8-1) unstable; urgency=medium
 
   * chore: rename system paths to /var/lib/lynx-pm and /var/log/lynx-pm
   * fix: avoid conflicts with lynx browser package
 
  -- Jaro-c <jaro-c@users.noreply.github.com>  Fri, 27 Feb 2026 12:00:00 +0000
 
-lynx-pm (0.3.7-1) unstable; urgency=medium
+lynxpm (0.3.7-1) unstable; urgency=medium
 
   * feat(isolation): enhance dynamic mode with ProtectProc=invisible
   * fix(daemon): correctly detect privileged mode for handlers

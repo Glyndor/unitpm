@@ -96,11 +96,11 @@ func Run(client transport.IPCClient, args []string) error {
 func GetSpec() help.CommandSpec {
 	return help.CommandSpec{
 		Name:        "apply",
-		Usage:       "lynx apply <Lynxfile.yml>",
+		Usage:       "lynxpm apply <Lynxfile.yml>",
 		Description: "Apply a Lynxfile.yml declarative configuration",
 		Examples: []string{
-			"lynx apply Lynxfile.yml",
-			"lynx apply config/production.yml",
+			"lynxpm apply Lynxfile.yml",
+			"lynxpm apply config/production.yml",
 		},
 	}
 }

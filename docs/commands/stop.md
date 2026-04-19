@@ -1,11 +1,11 @@
-# 🦁 `lynx stop`
+# 🦁 `lynxpm stop`
 
 > *Stop one or more running processes.*
 
 ## 📖 Synopsis
 
 ```bash
-lynx stop <id|name>...
+lynxpm stop <id|name>...
 ```
 
 ## Description
@@ -22,10 +22,10 @@ Stops the specified processes. You can provide either the full ID, a short ID pr
 
 Stop a process by name:
 ```bash
-lynx stop my-app
+lynxpm stop my-app
 ```
 
 Stop multiple processes by ID:
 ```bash
-lynx stop 1234 5678
+lynxpm stop 1234 5678
 ```

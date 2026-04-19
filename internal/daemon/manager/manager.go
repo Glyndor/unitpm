@@ -435,7 +435,7 @@ func (m *Manager) ResolveID(identifier string) (string, error) {
 func resolveFromCandidates(identifier string, candidates []string) (string, error) {
 	switch len(candidates) {
 	case 0:
-		return "", fmt.Errorf("process not found: %s (run 'lynx list' to see all processes)", identifier)
+		return "", fmt.Errorf("process not found: %s (run 'lynxpm list' to see all processes)", identifier)
 	case 1:
 		return candidates[0], nil
 	default:

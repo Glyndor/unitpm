@@ -120,7 +120,7 @@ func Run(args []string) error {
 func GetSpec() help.CommandSpec {
 	return help.CommandSpec{
 		Name:        "export",
-		Usage:       "lynx export --namespace <name>",
+		Usage:       "lynxpm export --namespace <name>",
 		Description: "Export current applications in a namespace to Lynxfile.yml format",
 	}
 }

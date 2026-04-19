@@ -34,45 +34,45 @@ jobs:
             -X 'github.com/Jaro-c/Lynx/internal/version.Commit=${COMMIT}' \
             -X 'github.com/Jaro-c/Lynx/internal/version.BuildDate=${BUILD_DATE}'"
 
-          GOOS=linux GOARCH=amd64 go build -trimpath -ldflags="${LDFLAGS}" -o lynx_linux_amd64 ./cmd/lynx
-          GOOS=linux GOARCH=arm64 go build -trimpath -ldflags="${LDFLAGS}" -o lynx_linux_arm64 ./cmd/lynx
+          GOOS=linux GOARCH=amd64 go build -trimpath -ldflags="${LDFLAGS}" -o lynxpm_linux_amd64 ./cmd/lynxpm
+          GOOS=linux GOARCH=arm64 go build -trimpath -ldflags="${LDFLAGS}" -o lynxpm_linux_arm64 ./cmd/lynxpm
 
       - name: Build Debian package
         run: |
           sudo apt-get update && sudo apt-get install -y --no-install-recommends debhelper build-essential
           dpkg-buildpackage -us -uc -b -d
-          cp ../lynx-pm_*.deb .
+          cp ../lynxpm_*.deb .
 
       - name: Sign binaries
         env:
           RELEASE_SIGNING_KEY: ${{ secrets.RELEASE_SIGNING_KEY }}
         run: |
-          go run scripts/sign.go lynx_linux_amd64
-          go run scripts/sign.go lynx_linux_arm64
+          go run scripts/sign.go lynxpm_linux_amd64
+          go run scripts/sign.go lynxpm_linux_arm64
 
       - name: Generate SLSA build provenance
         uses: actions/attest-build-provenance@e8998f949152b193b063cb0ec769d69d929409be # v2
         with:
           subject-path: |
-            lynx_linux_amd64
-            lynx_linux_arm64
-            lynx-pm_*.deb
+            lynxpm_linux_amd64
+            lynxpm_linux_arm64
+            lynxpm_*.deb
 
       - name: Generate SBOM (amd64)
         uses: anchore/sbom-action@e22c389904149dbc22b58101806040fa8d37a610 # v0
         with:
-          file: lynx_linux_amd64
+          file: lynxpm_linux_amd64
           format: spdx-json
-          output-file: lynx_linux_amd64.spdx.json
+          output-file: lynxpm_linux_amd64.spdx.json
           upload-artifact: false
           upload-release-assets: false
 
       - name: Generate SBOM (arm64)
         uses: anchore/sbom-action@e22c389904149dbc22b58101806040fa8d37a610 # v0
         with:
-          file: lynx_linux_arm64
+          file: lynxpm_linux_arm64
           format: spdx-json
-          output-file: lynx_linux_arm64.spdx.json
+          output-file: lynxpm_linux_arm64.spdx.json
           upload-artifact: false
           upload-release-assets: false
 
@@ -81,7 +81,7 @@ jobs:
           # Extract notes for current version from debian/changelog
           VERSION_NUM="${GITHUB_REF_NAME#v}"
           awk -v ver="$VERSION_NUM" '
-            /^lynx-pm \(/ {
+            /^lynxpm \(/ {
               if (found) exit
               if ($0 ~ "\\(" ver "-") { found=1; next }
             }
@@ -96,10 +96,10 @@ jobs:
           gh release create "${GITHUB_REF_NAME}" \
             --title "Lynx ${GITHUB_REF_NAME}" \
             --notes-file release_notes.txt \
-            lynx_linux_amd64 \
-            lynx_linux_amd64.sig \
-            lynx_linux_amd64.spdx.json \
-            lynx_linux_arm64 \
-            lynx_linux_arm64.sig \
-            lynx_linux_arm64.spdx.json \
-            lynx-pm_*.deb
+            lynxpm_linux_amd64 \
+            lynxpm_linux_amd64.sig \
+            lynxpm_linux_amd64.spdx.json \
+            lynxpm_linux_arm64 \
+            lynxpm_linux_arm64.sig \
+            lynxpm_linux_arm64.spdx.json \
+            lynxpm_*.deb

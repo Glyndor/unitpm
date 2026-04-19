@@ -67,7 +67,7 @@ func Run(args []string) error {
 		sudoUser = os.Getenv("SUDO_USER")
 		if sudoUser == "" {
 			_, _ = term.Println(term.YellowString("! SUDO_USER not set. Scanning root's PATH only."))
-			_, _ = term.Println("  Ideally run as: sudo lynx install-tools --system")
+			_, _ = term.Println("  Ideally run as: sudo lynxpm install-tools --system")
 		}
 	}
 
@@ -203,7 +203,7 @@ const installToolsDescription = "Symlink common dev tools (bun, node, go, etc.) 
 func GetSpec() help.CommandSpec {
 	return help.CommandSpec{
 		Name:        "install-tools",
-		Usage:       term.BoldString("lynx install-tools [options]"),
+		Usage:       term.BoldString("lynxpm install-tools [options]"),
 		Description: installToolsDescription,
 		Options: []help.Option{
 			{Short: "", Long: "--system", Description: "Install to /usr/local/bin instead (requires sudo)"},

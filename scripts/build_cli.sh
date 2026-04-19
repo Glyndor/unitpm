@@ -23,6 +23,6 @@ echo " Commit:  $COMMIT"
 echo " Date:    $BUILD_DATE"
 echo "============================================="
 
-GOOS=linux GOARCH=amd64 go build -trimpath -ldflags="$LDFLAGS" -o lynx_linux_amd64 ./cmd/lynx
+GOOS=linux GOARCH=amd64 go build -trimpath -ldflags="$LDFLAGS" -o lynxpm_linux_amd64 ./cmd/lynxpm
 
-echo -e "\n✅ Done! Binary saved as ./lynx_linux_amd64"
+echo -e "\n✅ Done! Binary saved as ./lynxpm_linux_amd64"

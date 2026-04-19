@@ -1,4 +1,4 @@
-Source: lynx-pm
+Source: lynxpm
 Section: admin
 Priority: optional
 Maintainer: Jaro-c <jaro-c@users.noreply.github.com>
@@ -7,12 +7,11 @@ Standards-Version: 4.6.2
 Homepage: https://github.com/Jaro-c/Lynx
 Rules-Requires-Root: no
 
-Package: lynx-pm
-Conflicts: lynx
-Replaces: lynx
-Provides: lynx
+Package: lynxpm
 Architecture: any
 Depends: ${shlibs:Depends}, ${misc:Depends}, systemd
-Description: Process manager for Debian/Ubuntu
- Lynx is a secure, systemd-friendly process manager.
- It provides a CLI and daemon for managing applications.
+Description: Secure, systemd-native process manager for Linux
+ Lynx is a blazingly fast, modern, and secure process manager for Linux.
+ It uses systemd as the supervisor engine and provides a CLI plus a
+ user/system daemon for starting, stopping, scaling, and isolating
+ applications (with optional DynamicUser or landlock sandboxing).

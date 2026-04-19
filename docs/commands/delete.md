@@ -1,11 +1,11 @@
-# 🦁 `lynx delete | remove | rm`
+# 🦁 `lynxpm delete | remove | rm`
 
 > *Delete one or more processes and their configurations.*
 
 ## 📖 Synopsis
 
 ```bash
-lynx delete|remove|rm [--purge] <id|name>...
+lynxpm delete|remove|rm [--purge] <id|name>...
 ```
 
 ## Description
@@ -23,10 +23,10 @@ Stops and removes the specified processes from management. By default, it remove
 
 Delete a process (keep logs):
 ```bash
-lynx delete my-app
+lynxpm delete my-app
 ```
 
 Delete a process and its logs:
 ```bash
-lynx delete --purge my-app
+lynxpm delete --purge my-app
 ```

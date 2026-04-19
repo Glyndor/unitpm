@@ -8,12 +8,12 @@ This guide explains how to package and release your application for Debian and U
 
 **Long answer:**
 Since this project is written in Go, the Go compiler can create a single, independent executable file.
-You could simply upload this executable file (like `lynx_linux_amd64`) directly to your GitHub Release. People can download it, manually give it execution permissions (`chmod +x`), and run it.
+You could simply upload this executable file (like `lynxpm_linux_amd64`) directly to your GitHub Release. People can download it, manually give it execution permissions (`chmod +x`), and run it.
 
 **However**, creating a `.deb` package (which is what we will do below) is the **"professional"** way to do it.
 Why? Because creating a `.deb` package has huge advantages for the user:
 1. It automatically places the `lynx` program in their system, ready to use from anywhere.
-2. It can automatically install system services (like `lynx.lynxd.service`).
+2. It can automatically install system services (like `lynxd.service`).
 3. It allows users to manage it using their native package manager (`sudo apt install ./lynx.deb` and `sudo apt remove lynx`).
 
 ---
@@ -95,7 +95,7 @@ This is super important and confuses many beginners: when Ubuntu finishes buildi
 1. Close the black Linux terminal.
 2. Open the normal Windows **File Explorer**.
 3. Go to the drive where your project is located.
-4. Look for it right next to (or outside of) your `Lynx` folder. You will see a file named something like `lynx-pm_0.0.1-1_amd64.deb`.
+4. Look for it right next to (or outside of) your `Lynx` folder. You will see a file named something like `lynxpm_0.0.1-1_amd64.deb`.
 
 ---
 
@@ -107,9 +107,9 @@ As we said before, some users will use the `.deb` package via APT, but others si
 2. Make sure you are in your project folder (e.g., `cd C:\Users\YourName\Lynx`).
 3. Run this exact command to tell Go to build a Linux (AMD64) executable for you:
    ```powershell
-   $COMMIT=$(git rev-parse --short HEAD); $DATE=$(Get-Date -UFormat +"%Y-%m-%dT%H:%M:%SZ"); $env:GOOS="linux"; $env:GOARCH="amd64"; go build -ldflags="-X 'github.com/Jaro-c/Lynx/internal/version.Commit=$COMMIT' -X 'github.com/Jaro-c/Lynx/internal/version.BuildDate=$DATE'" -o lynx_linux_amd64 ./cmd/lynx
+   $COMMIT=$(git rev-parse --short HEAD); $DATE=$(Get-Date -UFormat +"%Y-%m-%dT%H:%M:%SZ"); $env:GOOS="linux"; $env:GOARCH="amd64"; go build -ldflags="-X 'github.com/Jaro-c/Lynx/internal/version.Commit=$COMMIT' -X 'github.com/Jaro-c/Lynx/internal/version.BuildDate=$DATE'" -o lynxpm_linux_amd64 ./cmd/lynxpm
    ```
-   *(Magic! You will now see a new file called `lynx_linux_amd64` in your project's `Lynx` folder).*
+   *(Magic! You will now see a new file called `lynxpm_linux_amd64` in your project's `Lynx` folder).*
 
 ---
 
@@ -124,8 +124,8 @@ When the two files above are created and shining on your hard drive, just follow
 5. Give your update an awesome title, like "*Version 1.0 - New animations!*".
 6. Optionally, you can write what this new patch was about. If you don't want to type, click the magical **"Generate release notes"** button and GitHub will automatically put a summary of your latest commits.
 7. At the very bottom where it says in large letters *"Attach binaries by dropping them here..."*, **Drag and drop** into that box **YOUR TWO FILES**:
-   - `lynx-pm_0.0.1-1_amd64.deb` (The one you found in Step 5).
-   - `lynx_linux_amd64` (The normal executable you just created in your `Lynx` folder in Step 5.5).
+   - `lynxpm_0.0.1-1_amd64.deb` (The one you found in Step 5).
+   - `lynxpm_linux_amd64` (The normal executable you just created in your `Lynx` folder in Step 5.5).
 8. Click the green **"Publish release"** button!
 
 You're done! 

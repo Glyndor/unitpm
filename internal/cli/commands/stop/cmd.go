@@ -52,11 +52,11 @@ func GetSpec() help.CommandSpec {
 	return help.CommandSpec{
 		Name:        "stop",
 		Description: "Stop a running process",
-		Usage:       "lynx stop <id|name>...",
+		Usage:       "lynxpm stop <id|name>...",
 		Examples: []string{
-			`lynx stop api`,
-			`lynx stop prod:api`,
-			`lynx stop api worker-1 worker-2`,
+			`lynxpm stop api`,
+			`lynxpm stop prod:api`,
+			`lynxpm stop api worker-1 worker-2`,
 		},
 	}
 }

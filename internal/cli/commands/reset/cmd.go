@@ -46,10 +46,10 @@ func GetSpec() help.CommandSpec {
 	return help.CommandSpec{
 		Name:        "reset",
 		Description: "Reset a process's Restarts counter to zero",
-		Usage:       "lynx reset <id|name>...",
+		Usage:       "lynxpm reset <id|name>...",
 		Examples: []string{
-			`lynx reset api`,
-			`lynx reset prod:worker`,
+			`lynxpm reset api`,
+			`lynxpm reset prod:worker`,
 		},
 	}
 }

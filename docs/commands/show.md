@@ -1,11 +1,11 @@
-# 🦁 `lynx show`
+# 🦁 `lynxpm show`
 
 > *Show detailed information about a process.*
 
 ## 📖 Synopsis
 
 ```bash
-lynx show <id|name|namespace:name>
+lynxpm show <id|name|namespace:name>
 ```
 
 ## Description
@@ -22,17 +22,17 @@ Show detailed information about a process: ID, namespace, state, PID, uptime, CP
 
 By ID:
 ```bash
-lynx show e73a9f1b
+lynxpm show e73a9f1b
 ```
 
 By name:
 ```bash
-lynx show my-api
+lynxpm show my-api
 ```
 
 Namespaced:
 ```bash
-lynx show default:my-api
+lynxpm show default:my-api
 ```
 
 ## 📋 Example Output

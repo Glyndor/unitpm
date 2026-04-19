@@ -1,11 +1,11 @@
-# 🦁 `lynx restart`
+# 🦁 `lynxpm restart`
 
 > *Restart one or more processes.*
 
 ## 📖 Synopsis
 
 ```bash
-lynx restart <id|name>...
+lynxpm restart <id|name>...
 ```
 
 ## Description
@@ -22,5 +22,5 @@ Restarts the specified processes. This sends a stop signal followed by starting 
 
 Restart a process:
 ```bash
-lynx restart my-app
+lynxpm restart my-app
 ```

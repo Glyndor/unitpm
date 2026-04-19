@@ -63,7 +63,7 @@ func TestCheck_NewerAvailable(t *testing.T) {
 		TagName: "v99.99.99",
 		HTMLURL: "https://example.com/release",
 		Assets: []Asset{
-			{Name: "lynx_linux_amd64", BrowserDownloadURL: "https://example.com/bin"},
+			{Name: "lynxpm_linux_amd64", BrowserDownloadURL: "https://example.com/bin"},
 		},
 	}
 	newServer(t, newer, 0)

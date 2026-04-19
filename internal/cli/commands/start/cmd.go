@@ -593,7 +593,7 @@ func printSuccessResponse(data *protocol.StartResponseData, name string) {
 func GetSpec() help.CommandSpec {
 	return help.CommandSpec{
 		Name:        "start",
-		Usage:       term.BoldString("lynx start <command|file> [flags]"),
+		Usage:       term.BoldString("lynxpm start <command|file> [flags]"),
 		Description: "Start a new process.",
 		Options: []help.Option{
 			{Short: "", Long: "--name <name>", Description: "Assign a name to the process"},
@@ -670,13 +670,13 @@ func GetSpec() help.CommandSpec {
 			{Short: "-q", Long: "--quiet", Description: "Suppress success messages (errors still printed)"},
 		},
 		Examples: []string{
-			`lynx start "node server.js" --name api`,
-			`lynx start app.py --runtime python3 --restart on-failure`,
-			`lynx start "uv run main.py" --name worker --cwd /srv/app`,
-			`lynx start "bun run dev" --name web --env-file .env`,
-			`lynx start ./target/release/api --name api --restart always`,
-			`lynx start worker.js --name w --scale 3`,
-			`lynx start server.js --isolation sandbox --cwd /srv/app`,
+			`lynxpm start "node server.js" --name api`,
+			`lynxpm start app.py --runtime python3 --restart on-failure`,
+			`lynxpm start "uv run main.py" --name worker --cwd /srv/app`,
+			`lynxpm start "bun run dev" --name web --env-file .env`,
+			`lynxpm start ./target/release/api --name api --restart always`,
+			`lynxpm start worker.js --name w --scale 3`,
+			`lynxpm start server.js --isolation sandbox --cwd /srv/app`,
 			`# Runtime recipes:  docs/RUNTIMES.md`,
 		},
 	}

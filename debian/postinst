@@ -10,35 +10,21 @@ if [ "$1" = "configure" ]; then
     # Create lynx user if it doesn't exist
     if ! getent passwd lynx >/dev/null; then
         adduser --system --group --no-create-home --home /var/lib/lynx-pm lynx
-    else
-        # Migration: Update home directory for existing lynx user if it points to old path
-        CURRENT_HOME=$(getent passwd lynx | cut -d: -f6)
-        if [ "$CURRENT_HOME" = "/var/lib/lynx" ]; then
-            # Ensure service is stopped and processes are killed before migration
-            # This is necessary because usermod fails if the user has running processes
-            if command -v systemctl >/dev/null; then
-                systemctl stop lynx.lynxd || true
-            fi
-            if command -v pkill >/dev/null; then
-                pkill -u lynx || true
-            fi
-            
-            usermod -d /var/lib/lynx-pm lynx || true
-        fi
     fi
 
-    # Add lynx user to lynxadm group
-    adduser lynx lynxadm
+    # Ensure lynx user is a member of lynxadm
+    adduser lynx lynxadm || true
 
-    # Ensure directories exist with correct permissions
+    # Ensure state and log directories exist with restrictive ownership
     mkdir -p /var/lib/lynx-pm /var/log/lynx-pm
     chown lynx:lynx /var/lib/lynx-pm /var/log/lynx-pm
     chmod 0700 /var/lib/lynx-pm /var/log/lynx-pm
 fi
 
-# Send SIGHUP to user-mode daemons so they re-exec with the new binary.
+# Signal running user-mode daemons so they re-exec with the new binary.
 # Managed processes experience ~1s downtime while the daemon restarts and
-# restores them from specs on disk. System daemon is handled by systemd below.
+# restores them from specs on disk. The system daemon is handled by
+# systemd's dh-generated restart hook.
 for pid in $(pgrep -x lynxd 2>/dev/null); do
     pid_user=$(ps -o user= -p "$pid" 2>/dev/null)
     if [ -n "$pid_user" ] && [ "$pid_user" != "lynx" ]; then

@@ -1,11 +1,11 @@
-# 🦁 `lynx start`
+# 🦁 `lynxpm start`
 
 > *Start a new process managed by Lynx.*
 
 ## 📖 Synopsis
 
 ```bash
-lynx start <command|file> [flags] [-- <args...>]
+lynxpm start <command|file> [flags] [-- <args...>]
 ```
 
 ## Description
@@ -54,17 +54,17 @@ see [`docs/RUNTIMES.md`](../RUNTIMES.md).
 
 Start a Node.js script:
 ```bash
-lynx start main.js
+lynxpm start main.js
 ```
 
 Start with DynamicUser isolation (secure):
 ```bash
-lynx start main.js --isolation dynamic
+lynxpm start main.js --isolation dynamic
 ```
 
 Start a scheduled task (runs every hour):
 ```bash
-lynx start cleanup.sh --schedule "@hourly" --restart never
+lynxpm start cleanup.sh --schedule "@hourly" --restart never
 ```
 
 ## 📋 Example Output
@@ -118,13 +118,13 @@ Error: ERR_BAD_REQUEST: invalid cwd: stat /invalid/path: no such file or directo
 
 | Framework | Command |
 |-----------|---------|
-| **Next.js (dev)** | `lynx start --name next-dev -- npm run dev` |
-| **Next.js (prod)** | `lynx start --name next-prod -- npm start` |
-| **Next.js (pnpm)** | `lynx start --name next-pnpm -- pnpm dev` |
-| **Next.js (bun)** | `lynx start --name next-bun -- bun dev` |
-| **Astro (dev)** | `lynx start --name astro -- npm run dev` |
-| **Node (script)** | `lynx start server.js` |
-| **Node (cmd)** | `lynx start -- node server.js` |
+| **Next.js (dev)** | `lynxpm start --name next-dev -- npm run dev` |
+| **Next.js (prod)** | `lynxpm start --name next-prod -- npm start` |
+| **Next.js (pnpm)** | `lynxpm start --name next-pnpm -- pnpm dev` |
+| **Next.js (bun)** | `lynxpm start --name next-bun -- bun dev` |
+| **Astro (dev)** | `lynxpm start --name astro -- npm run dev` |
+| **Node (script)** | `lynxpm start server.js` |
+| **Node (cmd)** | `lynxpm start -- node server.js` |
 
 ## Scaling and Load Balancing
 
@@ -142,7 +142,7 @@ Lynx supports scaling via `--scale N` (or `--instances N`). This starts N indepe
 Next.js does not natively support `SO_REUSEPORT`. Use the `LYNX_INSTANCE` variable to offset the port.
 ```bash
 # In your package.json: "start": "PORT=$((3000 + LYNX_INSTANCE)) next start"
-lynx start --name next-app --scale 3 --shell -- npm start
+lynxpm start --name next-app --scale 3 --shell -- npm start
 ```
 *Note: Using `--shell` allows variable expansion in the command.*
 
@@ -153,7 +153,7 @@ const port = 3000 + parseInt(process.env.LYNX_INSTANCE || 0);
 server.listen(port);
 ```
 ```bash
-lynx start server.js --scale 4 --env-file .env
+lynxpm start server.js --scale 4 --env-file .env
 ```
 
 ## Clarifications
@@ -165,7 +165,7 @@ If `--name` is omitted, Lynx generates a deterministic name:
 
 ### Max Restarts
 The `--max-restarts` limit applies only to **automatic** restarts triggered by crashes or failures.
-- Manual restarts (`lynx restart <id>`) **reset** the restart counter and backoff timer.
+- Manual restarts (`lynxpm restart <id>`) **reset** the restart counter and backoff timer.
 - You can manually restart a process as many times as needed without hitting the limit.
 
 ### Isolation Visibility
@@ -175,7 +175,7 @@ The `--max-restarts` limit applies only to **automatic** restarts triggered by c
 ## Environment Variables
 
 ### Mode Behavior
-- **User Mode**: The process inherits the full environment of the user running `lynx start`.
+- **User Mode**: The process inherits the full environment of the user running `lynxpm start`.
 - **System Mode**: The process does **not** inherit the system environment (to prevent leaking sensitive variables like `AWS_KEYS`). Instead, a whitelist is applied:
   - `PATH`, `LANG`, `TERM`, `TZ`, `TMPDIR`
   - `USER`, `LOGNAME`, `SHELL`, `PWD`
@@ -202,7 +202,7 @@ API_KEY=secret_123
 
 ```bash
 # Start with isolation and env file
-lynx start server.js --isolation dynamic --env-file .env
+lynxpm start server.js --isolation dynamic --env-file .env
 ```
 
 **Note on Security:**

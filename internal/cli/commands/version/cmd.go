@@ -246,7 +246,7 @@ func printVersionInfo(w io.Writer, info version.Info) {
 func GetSpec() help.CommandSpec {
 	return help.CommandSpec{
 		Name:        "version",
-		Usage:       term.BoldString("lynx version"),
+		Usage:       term.BoldString("lynxpm version"),
 		Description: "Show version information for CLI and Daemon.",
 		Options: []help.Option{
 			{Long: "--json", Description: "Output version info as JSON."},

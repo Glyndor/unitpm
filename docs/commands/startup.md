@@ -1,11 +1,11 @@
-# 🦁 `lynx startup`
+# 🦁 `lynxpm startup`
 
 > *Generate and install the system startup script for Lynx.*
 
 ## 📖 Synopsis
 
 ```bash
-lynx startup [flags]
+lynxpm startup [flags]
 ```
 
 ## Description
@@ -22,7 +22,7 @@ Generate and install the system startup script for Lynx. This command configures
 
 Generate and install systemd unit (requires sudo/root if installing to /etc):
 ```bash
-lynx startup
+lynxpm startup
 ```
 
 ## 📋 Example Output
@@ -35,7 +35,7 @@ Lynx system daemon started. Autostart enabled.
 Failure (not root):
 ```
 Admin privileges required. Run:
-  sudo lynx startup
+  sudo lynxpm startup
 ```
 
 Failure (no systemd):

@@ -19,7 +19,7 @@ func Run(args []string) error {
 		return nil
 	}
 	if len(args) == 0 {
-		return fmt.Errorf("usage: lynx completion <bash|zsh|fish>")
+		return fmt.Errorf("usage: lynxpm completion <bash|zsh|fish>")
 	}
 
 	shell := args[0]
@@ -52,8 +52,8 @@ func visibleCommands() []string {
 
 func writeBash(w io.Writer) error {
 	cmds := strings.Join(visibleCommands(), " ")
-	script := `# bash completion for lynx
-_lynx_completions() {
+	script := `# bash completion for lynxpm
+_lynxpm_completions() {
     local cur prev words cword
     _init_completion -n : || return
 
@@ -66,9 +66,9 @@ _lynx_completions() {
 
     case "${words[1]}" in
         stop|restart|reload|flush|delete|rm|remove|show|logs|log)
-            # Second arg: complete process names from 'lynx list'
+            # Second arg: complete process names from 'lynxpm list'
             local names
-            names=$(lynx list --long 2>/dev/null | awk -F'|' 'NR>3 {gsub(/ /,"",$3); if ($3!="") print $3}')
+            names=$(lynxpm list --long 2>/dev/null | awk -F'|' 'NR>3 {gsub(/ /,"",$3); if ($3!="") print $3}')
             COMPREPLY=( $(compgen -W "${names}" -- "${cur}") )
             ;;
         completion)
@@ -79,7 +79,7 @@ _lynx_completions() {
             ;;
     esac
 }
-complete -F _lynx_completions lynx
+complete -F _lynxpm_completions lynxpm
 `
 	_, err := w.Write([]byte(script))
 	return err
@@ -87,10 +87,10 @@ complete -F _lynx_completions lynx
 
 func writeZsh(w io.Writer) error {
 	cmds := strings.Join(visibleCommands(), " ")
-	script := `#compdef lynx
-# zsh completion for lynx
+	script := `#compdef lynxpm
+# zsh completion for lynxpm
 
-_lynx() {
+_lynxpm() {
     local -a cmds
     cmds=(` + cmds + `)
 
@@ -102,7 +102,7 @@ _lynx() {
     case "${words[2]}" in
         stop|restart|reload|flush|delete|rm|remove|show|logs|log)
             local -a names
-            names=( ${(f)"$(lynx list --long 2>/dev/null | awk -F'|' 'NR>3 {gsub(/ /,"",$3); if ($3!="") print $3}')"} )
+            names=( ${(f)"$(lynxpm list --long 2>/dev/null | awk -F'|' 'NR>3 {gsub(/ /,"",$3); if ($3!="") print $3}')"} )
             _describe 'process' names
             ;;
         completion)
@@ -113,7 +113,7 @@ _lynx() {
             ;;
     esac
 }
-_lynx "$@"
+_lynxpm "$@"
 `
 	_, err := w.Write([]byte(script))
 	return err
@@ -121,7 +121,7 @@ _lynx "$@"
 
 func writeFish(w io.Writer) error {
 	var b strings.Builder
-	b.WriteString("# fish completion for lynx\n\n")
+	b.WriteString("# fish completion for lynxpm\n\n")
 
 	// Only top-level command completions for fish (lists are fetched lazily).
 	for _, s := range registry.GetAll() {
@@ -130,12 +130,12 @@ func writeFish(w io.Writer) error {
 		}
 		desc := strings.ReplaceAll(s.Description, "'", "")
 		fmt.Fprintf(&b,
-			"complete -c lynx -n '__fish_use_subcommand' -a %q -d %q\n",
+			"complete -c lynxpm -n '__fish_use_subcommand' -a %q -d %q\n",
 			s.Name, desc,
 		)
 		for _, alias := range s.Aliases {
 			fmt.Fprintf(&b,
-				"complete -c lynx -n '__fish_use_subcommand' -a %q -d %q\n",
+				"complete -c lynxpm -n '__fish_use_subcommand' -a %q -d %q\n",
 				alias, "Alias for "+s.Name,
 			)
 		}
@@ -143,15 +143,15 @@ func writeFish(w io.Writer) error {
 
 	// Process-name completion for commands that target running apps.
 	b.WriteString(`
-function __lynx_list_names
-    lynx list --long 2>/dev/null | awk -F'|' 'NR>3 {gsub(/ /,"",$3); if ($3!="") print $3}'
+function __lynxpm_list_names
+    lynxpm list --long 2>/dev/null | awk -F'|' 'NR>3 {gsub(/ /,"",$3); if ($3!="") print $3}'
 end
 
 for cmd in stop restart reload flush delete rm remove show logs log
-    complete -c lynx -n "__fish_seen_subcommand_from $cmd" -f -a "(__lynx_list_names)"
+    complete -c lynxpm -n "__fish_seen_subcommand_from $cmd" -f -a "(__lynxpm_list_names)"
 end
 
-complete -c lynx -n '__fish_seen_subcommand_from completion' -f -a 'bash zsh fish'
+complete -c lynxpm -n '__fish_seen_subcommand_from completion' -f -a 'bash zsh fish'
 `)
 	_, err := w.Write([]byte(b.String()))
 	return err
@@ -161,15 +161,15 @@ complete -c lynx -n '__fish_seen_subcommand_from completion' -f -a 'bash zsh fis
 func GetSpec() help.CommandSpec {
 	return help.CommandSpec{
 		Name:        "completion",
-		Usage:       "lynx completion <bash|zsh|fish>",
+		Usage:       "lynxpm completion <bash|zsh|fish>",
 		Description: "Generate a shell completion script.",
 		Examples: []string{
 			"# Bash",
-			"  lynx completion bash > ~/.local/share/bash-completion/completions/lynx",
+			"  lynxpm completion bash > ~/.local/share/bash-completion/completions/lynxpm",
 			"# Zsh (writes to a dir in $fpath)",
-			"  lynx completion zsh > ${fpath[1]}/_lynx",
+			"  lynxpm completion zsh > ${fpath[1]}/_lynxpm",
 			"# Fish",
-			"  lynx completion fish > ~/.config/fish/completions/lynx.fish",
+			"  lynxpm completion fish > ~/.config/fish/completions/lynxpm.fish",
 		},
 	}
 }

@@ -105,7 +105,7 @@ func TestRun_Fish(t *testing.T) {
 			t.Errorf("fish: %v", err)
 		}
 	})
-	for _, want := range []string{"__lynx_list_names", "lynx list --long", "completion"} {
+	for _, want := range []string{"__lynxpm_list_names", "lynxpm list --long", "completion"} {
 		if !strings.Contains(out, want) {
 			t.Errorf("fish script missing %q", want)
 		}

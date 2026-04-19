@@ -26,7 +26,7 @@ type CommandSpec struct {
 	// Examples are shown at the bottom of `lynx <cmd> --help`. Each string
 	// is printed verbatim, indented.
 	Examples []string
-	// Hidden excludes the command from `lynx` / `lynx help` output while
+	// Hidden excludes the command from `lynx` / `lynxpm help` output while
 	// keeping it invokable. Use for internal wrappers.
 	Hidden bool
 }

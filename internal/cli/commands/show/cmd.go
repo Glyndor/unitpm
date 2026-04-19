@@ -71,7 +71,7 @@ func Run(client transport.IPCClient, args []string) error {
 func GetSpec() help.CommandSpec {
 	return help.CommandSpec{
 		Name:        "show",
-		Usage:       "lynx show <id|name|namespace:name>",
+		Usage:       "lynxpm show <id|name|namespace:name>",
 		Description: "Show detailed information about a process",
 	}
 }

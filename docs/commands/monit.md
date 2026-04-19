@@ -1,11 +1,11 @@
-# 🦁 `lynx monit`
+# 🦁 `lynxpm monit`
 
 > *Display live statistics for all managed processes.*
 
 ## 📖 Synopsis
 
 ```bash
-lynx monit
+lynxpm monit
 ```
 
 ## Description
@@ -22,7 +22,7 @@ Display live statistics for all managed processes, refreshing periodically. Usef
 
 Run live monitor:
 ```bash
-lynx monit
+lynxpm monit
 ```
 
 Exit with Ctrl+C.

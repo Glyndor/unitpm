@@ -1,11 +1,11 @@
-# 🦁 `lynx apply`
+# 🦁 `lynxpm apply`
 
 > *Apply a declarative Lynxfile to create and start one or more applications.*
 
 ## 📖 Synopsis
 
 ```bash
-lynx apply <Lynxfile.yml>
+lynxpm apply <Lynxfile.yml>
 ```
 
 ## Description
@@ -38,7 +38,7 @@ apps:
 
 Apply a Lynxfile:
 ```bash
-lynx apply ./Lynxfile.yml
+lynxpm apply ./Lynxfile.yml
 ```
 
 ## Notes

@@ -64,13 +64,13 @@ func runSystemStartup(runner Runner) error {
 		return fmt.Errorf("failed to reload daemon: %w\n%s", err, stderr)
 	}
 
-	// 2) systemctl enable --now lynx.lynxd.service
-	if _, stderr, _, err := runner.Run("systemctl", "enable", "--now", "lynx.lynxd.service"); err != nil {
+	// 2) systemctl enable --now lynxd.service
+	if _, stderr, _, err := runner.Run("systemctl", "enable", "--now", "lynxd.service"); err != nil {
 		return fmt.Errorf("failed to enable lynxd: %w\n%s", err, stderr)
 	}
 
-	// 3) systemctl is-active lynx.lynxd.service
-	stdout, stderr, _, err := runner.Run("systemctl", "is-active", "lynx.lynxd.service")
+	// 3) systemctl is-active lynxd.service
+	stdout, stderr, _, err := runner.Run("systemctl", "is-active", "lynxd.service")
 	if err != nil {
 		// is-active returns exit code 3 if inactive, check output
 		return fmt.Errorf("lynxd service check failed: %w\n%s", err, stderr)
@@ -121,7 +121,7 @@ func runUserStartup(runner Runner) error {
 	// But we DO need to know where the binary is.
 	unitContent := fmt.Sprintf(systemdUserUnit, lynxdPath, "")
 
-	unitPath := filepath.Join(configDir, "lynx.service")
+	unitPath := filepath.Join(configDir, "lynxd.service")
 	if err := os.WriteFile(unitPath, []byte(unitContent), 0644); err != nil {
 		return fmt.Errorf("failed to write unit file: %w", err)
 	}
@@ -144,12 +144,12 @@ func runUserStartup(runner Runner) error {
 		return fmt.Errorf("failed to reload user daemon: %w\n%s", err, stderr)
 	}
 
-	// systemctl --user enable --now lynx
-	if _, stderr, _, err := runner.Run("systemctl", "--user", "enable", "--now", "lynx"); err != nil {
+	// systemctl --user enable --now lynxd
+	if _, stderr, _, err := runner.Run("systemctl", "--user", "enable", "--now", "lynxd"); err != nil {
 		return fmt.Errorf("failed to enable user lynxd: %w\n%s", err, stderr)
 	}
 
 	fmt.Println(term.GreenString("✅ Lynx user daemon started and enabled for autostart."))
-	fmt.Println("You can manage it with: systemctl --user status lynx")
+	fmt.Println("You can manage it with: systemctl --user status lynxd")
 	return nil
 }

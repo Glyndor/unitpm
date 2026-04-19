@@ -63,14 +63,14 @@ func GetSpec() help.CommandSpec {
 		Name:        "delete",
 		Aliases:     []string{"remove", "rm"},
 		Description: "Delete a process and its spec",
-		Usage:       "lynx delete [--purge] <id|name>...",
+		Usage:       "lynxpm delete [--purge] <id|name>...",
 		Options: []help.Option{
 			{Short: "", Long: "--purge", Description: "Delete logs and runtime data"},
 		},
 		Examples: []string{
-			`lynx delete api`,
-			`lynx rm --purge old-worker`,
-			`lynx delete prod:api prod:worker`,
+			`lynxpm delete api`,
+			`lynxpm rm --purge old-worker`,
+			`lynxpm delete prod:api prod:worker`,
 		},
 	}
 }

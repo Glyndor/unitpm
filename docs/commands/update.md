@@ -1,11 +1,11 @@
-# `lynx update`
+# `lynxpm update`
 
 > *Check for updates and apply them.*
 
 ## Synopsis
 
 ```bash
-lynx update [flags]
+lynxpm update [flags]
 ```
 
 ## Description
@@ -20,7 +20,7 @@ unless you pass `--insecure-skip-signature`.
 
 **Note for Debian/Ubuntu Users:**
 If you installed Lynx via a `.deb` package or APT repository, you should generally update using `sudo apt upgrade lynx-pm`.
-The `lynx update` command will detect this and warn you, unless you use `--force`.
+The `lynxpm update` command will detect this and warn you, unless you use `--force`.
 
 ## Flags
 
@@ -36,22 +36,22 @@ The `lynx update` command will detect this and warn you, unless you use `--force
 
 Check for updates:
 ```bash
-lynx update
+lynxpm update
 ```
 
 Apply update (requires signed release):
 ```bash
-sudo lynx update --apply
+sudo lynxpm update --apply
 ```
 
 Apply update when release is unsigned (not recommended):
 ```bash
-sudo lynx update --apply --insecure-skip-signature
+sudo lynxpm update --apply --insecure-skip-signature
 ```
 
 Force update on a managed system (not recommended):
 ```bash
-sudo lynx update --apply --force
+sudo lynxpm update --apply --force
 ```
 
 ## Example Output
@@ -62,7 +62,7 @@ Update available:
   Release notes: https://github.com/Jaro-c/Lynx/releases/tag/v0.5.0
 
 To update, run:
-  lynx update --apply
+  lynxpm update --apply
 ```
 
 Already up to date:

@@ -1,11 +1,11 @@
-# 🦁 `lynx install-tools`
+# 🦁 `lynxpm install-tools`
 
 > *Automatically symlink common development tools to `/usr/local/bin`.*
 
 ## 📖 Synopsis
 
 ```bash
-sudo lynx install-tools [flags]
+sudo lynxpm install-tools [flags]
 ```
 
 ## Description
@@ -25,12 +25,12 @@ This is crucial because the Lynx daemon (when running in system mode) has a rest
 
 Scan and link tools interactively:
 ```bash
-sudo lynx install-tools
+sudo lynxpm install-tools
 ```
 
 Scan and link tools without confirmation:
 ```bash
-sudo lynx install-tools --yes
+sudo lynxpm install-tools --yes
 ```
 
 ## How it works

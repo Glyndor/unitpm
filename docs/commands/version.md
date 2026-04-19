@@ -1,11 +1,11 @@
-# 🦁 `lynx version`
+# 🦁 `lynxpm version`
 
 > *Show Lynx version information for the CLI, Daemon, and IPC Protocol.*
 
 ## 📖 Synopsis
 
 ```bash
-lynx version [flags]
+lynxpm version [flags]
 ```
 
 ## Description
@@ -23,7 +23,7 @@ Show Lynx version information for the CLI, Daemon, and IPC Protocol.
 
 Show version:
 ```bash
-lynx version
+lynxpm version
 ```
 
 ## 📋 Example Output

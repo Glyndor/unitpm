@@ -73,7 +73,7 @@ beyond the short-lived socket connection.
 - **Identity**: `SO_PEERCRED` on every connection; UID/GID/PID captured.
 - **Versioning**: every request carries `protocol_version`; mismatch yields
   a `PROTOCOL_MISMATCH` `RemoteError` that the CLI surfaces explicitly via
-  `lynx version`.
+  `lynxpm version`.
 - **Encoding**: JSON via `bytedance/sonic` (decoding-heavy workload benefits
   from sonic over `encoding/json`).
 
@@ -84,7 +84,7 @@ Socket location:
 | System       | `/run/lynxd/lynx.sock`                     | `0660` |
 | User         | `$XDG_RUNTIME_DIR/lynx-<uid>/lynx.sock`    | `0600` |
 
-## Command Flow — `lynx start`
+## Command Flow — `lynxpm start`
 
 ```
 CLI                                     Daemon
@@ -170,10 +170,10 @@ user-mode deployments — see `SECURITY.md` "Known Limitations".
 Specs live in `$XDG_CONFIG_HOME/lynx/apps/<id>.json` (default
 `~/.config/lynx/apps/`). File mode `0600`, directory mode `0700`.
 
-- Written by `lynx start` before the daemon call.
-- Written by `lynx apply` (one file per app in the Lynxfile).
+- Written by `lynxpm start` before the daemon call.
+- Written by `lynxpm apply` (one file per app in the Lynxfile).
 - Loaded by the daemon on startup to restore managed processes.
-- Deleted by `lynx delete` or when the daemon rejects a spec on start.
+- Deleted by `lynxpm delete` or when the daemon rejects a spec on start.
 
 ## Metrics Collection
 
@@ -232,9 +232,9 @@ See `docs/BUILDING_UBUNTU_RELEASE.md`. Short version:
 
 ```
 debian/changelog bump → scripts/build_deb.sh → dpkg-buildpackage
-                     → lynx-pm_<ver>_amd64.deb → GitHub release
+                     → lynxpm_<ver>_amd64.deb → GitHub release
 ```
 
-The `updater` package checks GitHub releases on demand (`lynx update`) and
+The `updater` package checks GitHub releases on demand (`lynxpm update`) and
 prefers guiding users to `apt install ./file.deb` when `IsManagedByPackageSystem()`
 returns true.

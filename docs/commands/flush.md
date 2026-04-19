@@ -1,11 +1,11 @@
-# 🦁 `lynx flush`
+# 🦁 `lynxpm flush`
 
 > *Truncate the stdout/stderr log files for a process.*
 
 ## 📖 Synopsis
 
 ```bash
-lynx flush <id|name>...
+lynxpm flush <id|name>...
 ```
 
 ## Description
@@ -22,10 +22,10 @@ Truncate the stdout/stderr log files for a process. Resolves and validates log p
 
 Flush logs for one process:
 ```bash
-lynx flush my-api
+lynxpm flush my-api
 ```
 
 Flush logs for multiple:
 ```bash
-lynx flush api-1 api-2
+lynxpm flush api-1 api-2
 ```

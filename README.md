@@ -35,7 +35,7 @@ Stop wrestling with complex configurations, high RAM overhead, and insecure wrap
 The most powerful feature of Lynx. Start an API fully isolated: **no access to `/home`**, **no new privileges**, and secrets are passed securely via systemd without writing them to global disk variables.
 
 ```bash
-lynx start api.js \
+lynxpm start api.js \
   --name max-security-api \
   --isolation dynamic \
   --env-file .env.production
@@ -50,28 +50,28 @@ It is impossible to achieve this level of security with one command in other man
 ### Option A: Download the binary (fastest)
 
 ```bash
-curl -L -o lynx "$(curl -s https://api.github.com/repos/Jaro-c/Lynx/releases/latest \
-  | grep browser_download_url | grep 'lynx_linux_amd64"' | cut -d '"' -f 4)"
-chmod +x lynx
-sudo mv lynx /usr/local/bin/     # system-wide
-# or: mkdir -p ~/.local/bin && mv lynx ~/.local/bin/   # user-local
+curl -L -o lynxpm "$(curl -s https://api.github.com/repos/Jaro-c/Lynx/releases/latest \
+  | grep browser_download_url | grep 'lynxpm_linux_amd64"' | cut -d '"' -f 4)"
+chmod +x lynxpm
+sudo mv lynxpm /usr/local/bin/     # system-wide
+# or: mkdir -p ~/.local/bin && mv lynxpm ~/.local/bin/   # user-local
 ```
 
 ### Option B: Install the Debian package
 
 ```bash
-sudo apt install ./lynx-pm_*.deb
+sudo apt install ./lynxpm_*.deb
 sudo usermod -aG lynxadm $USER && newgrp lynxadm
-sudo systemctl enable --now lynx.lynxd
-sudo lynx install-tools          # optional: make bun/node/go visible to lynxd
+sudo systemctl enable --now lynxd
+sudo lynxpm install-tools          # optional: make bun/node/go visible to lynxd
 ```
 
 ### Deploy
 
 ```bash
-lynx start "node server.js" --name ultra-api --restart always
-lynx list
-lynx logs ultra-api --follow
+lynxpm start "node server.js" --name ultra-api --restart always
+lynxpm list
+lynxpm logs ultra-api --follow
 ```
 
 ---
@@ -96,7 +96,7 @@ Lynx runs in one of two modes — pick based on deployment scope:
 - **System Mode** (default): daemon runs as system user `lynx` under `systemd`, socket at `/run/lynxd/lynx.sock` (`0660`, `lynxadm` group). Does **not** inherit user env to prevent secret leaks. For production.
 - **User Mode**: daemon runs under `systemd --user`, socket at `$XDG_RUNTIME_DIR/lynx/lynx.sock` (`0600`). Inherits full user env. For dev.
 
-Run `lynxd &` for ad-hoc user-mode, or `sudo lynx startup` to enable boot-time startup. Full details in the [FAQ](docs/FAQ.md).
+Run `lynxd &` for ad-hoc user-mode, or `sudo lynxpm startup` to enable boot-time startup. Full details in the [FAQ](docs/FAQ.md).
 
 ---
 
@@ -121,7 +121,7 @@ See [`CONTRIBUTING.md`](CONTRIBUTING.md) for the full workflow.
 | Symptom | Where to look |
 |---------|---------------|
 | Generic errors, permissions, naming, env vars | [`docs/FAQ.md`](docs/FAQ.md) |
-| Daemon won't start / socket unreachable | `journalctl -u lynx.lynxd -f` |
+| Daemon won't start / socket unreachable | `journalctl -u lynxd -f` |
 | `--isolation dynamic` fails | Requires system-mode daemon (Polkit rule in `.deb`) |
 
 ---

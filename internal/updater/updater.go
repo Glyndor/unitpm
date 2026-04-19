@@ -121,7 +121,7 @@ func Apply(ctx context.Context, release *Release, opts ApplyOptions) error {
 
 	osName := runtime.GOOS
 	arch := runtime.GOARCH
-	target := fmt.Sprintf("lynx_%s_%s", osName, arch)
+	target := fmt.Sprintf("lynxpm_%s_%s", osName, arch)
 	sigTarget := target + ".sig"
 
 	var assetURL, sigURL string

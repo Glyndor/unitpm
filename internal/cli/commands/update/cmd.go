@@ -49,7 +49,7 @@ func Run(w io.Writer, args []string) error {
 	isManaged := updater.IsManagedByPackageSystem()
 	if isManaged && *apply && !*force {
 		return errors.New(
-			"lynx is managed by system package manager (dpkg). " +
+			"lynxpm is managed by system package manager (dpkg). " +
 				"Please download the latest .deb release and install it using " +
 				"'sudo apt install ./lynx_<version>_amd64.deb'. " +
 				"Use --force to override (not recommended)",
@@ -93,7 +93,7 @@ func Run(w io.Writer, args []string) error {
 		_, _ = fmt.Fprintf(w, "%s Successfully updated to %s\n", term.GreenString("✓"), release.TagName)
 		_, _ = fmt.Fprintf(
 			w,
-			"Please restart the daemon manually if needed: 'systemctl restart lynx.lynxd' or 'lynx reload'\n",
+			"Please restart the daemon manually if needed: 'systemctl restart lynxd' or 'lynxpm reload'\n",
 		)
 	} else {
 		if isManaged {
@@ -112,7 +112,7 @@ func Run(w io.Writer, args []string) error {
 				_, _ = fmt.Fprintf(w, "and run:\n  sudo apt install ./<downloaded_deb_file>\n")
 			}
 		} else {
-			_, _ = fmt.Fprintf(w, "\nTo update, run:\n  lynx update --apply\n")
+			_, _ = fmt.Fprintf(w, "\nTo update, run:\n  lynxpm update --apply\n")
 		}
 	}
 
@@ -123,7 +123,7 @@ func Run(w io.Writer, args []string) error {
 func GetSpec() help.CommandSpec {
 	return help.CommandSpec{
 		Name:        "update",
-		Usage:       term.BoldString("lynx update [flags]"),
+		Usage:       term.BoldString("lynxpm update [flags]"),
 		Description: "Check for updates and apply them.",
 		Options: []help.Option{
 			{Short: "-a", Long: "--apply", Description: "Download and apply the update."},

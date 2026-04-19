@@ -47,10 +47,10 @@ func GetSpec() help.CommandSpec {
 	return help.CommandSpec{
 		Name:        "restart",
 		Description: "Restart a process",
-		Usage:       "lynx restart <id|name>...",
+		Usage:       "lynxpm restart <id|name>...",
 		Examples: []string{
-			"lynx restart api",
-			"lynx restart prod:api worker",
+			"lynxpm restart api",
+			"lynxpm restart prod:api worker",
 		},
 	}
 }

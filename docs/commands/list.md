@@ -1,11 +1,11 @@
-# 🦁 `lynx list | ls | ps`
+# 🦁 `lynxpm list | ls | ps`
 
 > *List all processes managed by Lynx.*
 
 ## 📖 Synopsis
 
 ```bash
-lynx list|ls|ps [options]
+lynxpm list|ls|ps [options]
 ```
 
 ## Description
@@ -26,27 +26,27 @@ List all processes managed by Lynx. Displays status, uptime, resource usage metr
 
 List all processes:
 ```bash
-lynx list
+lynxpm list
 ```
 
 List with full IDs:
 ```bash
-lynx list --long
+lynxpm list --long
 ```
 
 Filter by namespace:
 ```bash
-lynx list --namespace default
+lynxpm list --namespace default
 ```
 
 Custom sort:
 ```bash
-lynx list --sort "namespace:asc,name:asc,createdAt:desc"
+lynxpm list --sort "namespace:asc,name:asc,createdAt:desc"
 ```
 
 JSON output (for scripting):
 ```bash
-lynx list --json | jq '.[] | {name, state, pid}'
+lynxpm list --json | jq '.[] | {name, state, pid}'
 ```
 
 ## 📋 Example Output

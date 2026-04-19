@@ -66,7 +66,7 @@ func Run(runner Runner, args []string) error {
 func GetSpec() help.CommandSpec {
 	return help.CommandSpec{
 		Name:        "startup",
-		Usage:       term.BoldString("lynx startup"),
+		Usage:       term.BoldString("lynxpm startup"),
 		Description: "Enable and start the Lynx system daemon (lynxd). Supported: Debian/Ubuntu (systemd).",
 		Options: []help.Option{
 			{Short: "-h", Long: "--help", Description: "Show this help message."},

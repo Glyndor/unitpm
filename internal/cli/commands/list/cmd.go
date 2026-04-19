@@ -23,7 +23,7 @@ import (
 )
 
 // DefaultNamespace is the namespace used when an AppSpec has no explicit
-// namespace set, both for storage and for `lynx list --namespace` filtering.
+// namespace set, both for storage and for `lynxpm list --namespace` filtering.
 const DefaultNamespace = "default"
 
 // Run executes the list command.
@@ -367,7 +367,7 @@ func GetSpec() help.CommandSpec {
 	return help.CommandSpec{
 		Name:        "list",
 		Aliases:     []string{"ls", "ps"},
-		Usage:       term.BoldString("lynx list|ls|ps") + " [options]",
+		Usage:       term.BoldString("lynxpm list|ls|ps") + " [options]",
 		Description: "List all managed processes.",
 		Options: []help.Option{
 			{Short: "-h", Long: "--help", Description: "Show this help message."},
@@ -381,11 +381,11 @@ func GetSpec() help.CommandSpec {
 			{Short: "", Long: "--json", Description: "Emit the process list as JSON on stdout"},
 		},
 		Examples: []string{
-			`lynx list`,
-			`lynx ls --namespace prod`,
-			`lynx ls --sort name:asc`,
-			`lynx ls --long`,
-			`lynx ls --json | jq '.[] | {name, state, pid}'`,
+			`lynxpm list`,
+			`lynxpm ls --namespace prod`,
+			`lynxpm ls --sort name:asc`,
+			`lynxpm ls --long`,
+			`lynxpm ls --json | jq '.[] | {name, state, pid}'`,
 		},
 	}
 }

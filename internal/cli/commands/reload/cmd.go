@@ -46,11 +46,11 @@ func Run(client transport.IPCClient, args []string) error {
 func GetSpec() help.CommandSpec {
 	return help.CommandSpec{
 		Name:        "reload",
-		Usage:       "lynx reload <id|name>...",
+		Usage:       "lynxpm reload <id|name>...",
 		Description: "Reload process configuration and restart",
 		Examples: []string{
-			"lynx reload api",
-			"lynx reload prod:api",
+			"lynxpm reload api",
+			"lynxpm reload prod:api",
 		},
 	}
 }

@@ -1,11 +1,11 @@
-# 🦁 `lynx help`
+# 🦁 `lynxpm help`
 
 > *Display help information about Lynx commands.*
 
 ## 📖 Synopsis
 
 ```bash
-lynx help [command]
+lynxpm help [command]
 ```
 
 ## Description
@@ -23,12 +23,12 @@ Display the help message for the specified command, or the general help message 
 
 Show general help:
 ```bash
-lynx help
+lynxpm help
 ```
 
 Show help for the `start` command:
 ```bash
-lynx help start
+lynxpm help start
 ```
 
 ## 📋 Example Output

@@ -1,11 +1,11 @@
-# 🦁 `lynx reload`
+# 🦁 `lynxpm reload`
 
 > *Reload a process configuration from its stored spec and restart it.*
 
 ## 📖 Synopsis
 
 ```bash
-lynx reload <id|name>...
+lynxpm reload <id|name>...
 ```
 
 ## Description
@@ -22,10 +22,10 @@ Reload a process configuration from its stored spec and restart it. Useful after
 
 Reload by name:
 ```bash
-lynx reload my-api
+lynxpm reload my-api
 ```
 
 Reload multiple:
 ```bash
-lynx reload api-1 api-2
+lynxpm reload api-1 api-2
 ```

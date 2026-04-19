@@ -46,11 +46,11 @@ func Run(client transport.IPCClient, args []string) error {
 func GetSpec() help.CommandSpec {
 	return help.CommandSpec{
 		Name:        "flush",
-		Usage:       "lynx flush <id|name>...",
+		Usage:       "lynxpm flush <id|name>...",
 		Description: "Flush logs for a process",
 		Examples: []string{
-			"lynx flush api",
-			"lynx flush prod:api prod:worker",
+			"lynxpm flush api",
+			"lynxpm flush prod:api prod:worker",
 		},
 	}
 }

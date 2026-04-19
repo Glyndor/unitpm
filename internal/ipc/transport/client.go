@@ -175,12 +175,12 @@ func daemonUnreachable(path string, err error) error {
 	userMode := strings.Contains(path, "/run/user/") || strings.Contains(path, os.Getenv("XDG_RUNTIME_DIR"))
 	var hint string
 	if userMode {
-		hint = "Start the daemon in the background:\n    lynxd &\n  Or enable user-mode startup:\n    lynx startup"
+		hint = "Start the daemon in the background:\n    lynxd &\n  Or enable user-mode startup:\n    lynxpm startup"
 	} else {
 		hint = "Start the system daemon:\n" +
 			"    sudo systemctl start lynx.lynxd\n" +
 			"  If you just installed, also run:\n" +
-			"    sudo lynx startup"
+			"    sudo lynxpm startup"
 	}
 
 	return fmt.Errorf(

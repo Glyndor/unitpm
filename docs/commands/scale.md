@@ -1,11 +1,11 @@
-# 🦁 `lynx scale`
+# 🦁 `lynxpm scale`
 
 > *Grow or shrink an app to the target number of running instances.*
 
 ## 📖 Synopsis
 
 ```bash
-lynx scale <name> <N>
+lynxpm scale <name> <N>
 ```
 
 ## Description
@@ -32,9 +32,9 @@ Target must be in [0, 1024].
 ## 🚀 Examples
 
 ```bash
-lynx scale worker 5          # set 'worker' to exactly 5 instances
-lynx scale prod:api 10       # namespace-qualified
-lynx scale worker 0          # stop and delete all instances
+lynxpm scale worker 5          # set 'worker' to exactly 5 instances
+lynxpm scale prod:api 10       # namespace-qualified
+lynxpm scale worker 0          # stop and delete all instances
 ```
 
 ## Notes

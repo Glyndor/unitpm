@@ -54,7 +54,7 @@ func Run(client transport.IPCClient, args []string) error {
 func GetSpec() help.CommandSpec {
 	return help.CommandSpec{
 		Name:        "monit",
-		Usage:       "lynx monit",
+		Usage:       "lynxpm monit",
 		Description: "Show live process statistics",
 	}
 }
