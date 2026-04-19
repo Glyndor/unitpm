@@ -439,7 +439,9 @@ func resolveFromCandidates(identifier string, candidates []string) (string, erro
 	case 1:
 		return candidates[0], nil
 	default:
-		return "", fmt.Errorf("ambiguous selector '%s': matches %d processes %v", identifier, len(candidates), candidates)
+		return "", fmt.Errorf(
+			"ambiguous selector '%s': matches %d processes %v",
+			identifier, len(candidates), candidates)
 	}
 }
 

@@ -177,7 +177,10 @@ func daemonUnreachable(path string, err error) error {
 	if userMode {
 		hint = "Start the daemon in the background:\n    lynxd &\n  Or enable user-mode startup:\n    lynx startup"
 	} else {
-		hint = "Start the system daemon:\n    sudo systemctl start lynx.lynxd\n  If you just installed, also run:\n    sudo lynx startup"
+		hint = "Start the system daemon:\n" +
+			"    sudo systemctl start lynx.lynxd\n" +
+			"  If you just installed, also run:\n" +
+			"    sudo lynx startup"
 	}
 
 	return fmt.Errorf(

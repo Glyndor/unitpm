@@ -53,7 +53,10 @@ func listen(path string) (net.Listener, error) {
 		expectedUid := uint32(os.Getuid())
 
 		if stat_t.Uid != 0 && stat_t.Uid != expectedUid {
-			return nil, fmt.Errorf("socket directory %s is owned by uid %d, expected root (0) or daemon user (%d)", dir, stat_t.Uid, expectedUid)
+			return nil, fmt.Errorf(
+				"socket directory %s is owned by uid %d, "+
+					"expected root (0) or daemon user (%d)",
+				dir, stat_t.Uid, expectedUid)
 		}
 	}
 

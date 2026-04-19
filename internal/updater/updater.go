@@ -152,7 +152,8 @@ func Apply(ctx context.Context, release *Release, opts ApplyOptions) error {
 	case len(pubKey) == 0:
 		if !opts.AllowUnsigned {
 			return fmt.Errorf(
-				"%w: release signing key is not configured in this build (use AllowUnsigned=true / --insecure-skip-signature to override)",
+				"%w: release signing key is not configured in this build "+
+					"(use AllowUnsigned=true / --insecure-skip-signature to override)",
 				ErrSignatureRequired,
 			)
 		}

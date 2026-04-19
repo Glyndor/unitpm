@@ -49,7 +49,10 @@ func Run(w io.Writer, args []string) error {
 	isManaged := updater.IsManagedByPackageSystem()
 	if isManaged && *apply && !*force {
 		return errors.New(
-			"lynx is managed by system package manager (dpkg). Please download the latest .deb release and install it using 'sudo apt install ./lynx_<version>_amd64.deb'. Use --force to override (not recommended)",
+			"lynx is managed by system package manager (dpkg). " +
+				"Please download the latest .deb release and install it using " +
+				"'sudo apt install ./lynx_<version>_amd64.deb'. " +
+				"Use --force to override (not recommended)",
 		)
 	}
 

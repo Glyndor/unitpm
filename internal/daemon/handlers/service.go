@@ -85,7 +85,9 @@ func StartProcess(
 		// `fork/exec ... permission denied`. Surface a clean error now.
 		if f, err := os.Open(resolved); err != nil {
 			return types.ProcessInfo{}, errors.New(
-				"ERR_BAD_REQUEST: cwd is not accessible to the daemon user; pass --cwd to a directory readable by the daemon (e.g. /var/lib/lynx-pm or /tmp)",
+				"ERR_BAD_REQUEST: cwd is not accessible to the daemon user; " +
+					"pass --cwd to a directory readable by the daemon " +
+					"(e.g. /var/lib/lynx-pm or /tmp)",
 			)
 		} else {
 			_ = f.Close()

@@ -658,7 +658,11 @@ func GetSpec() help.CommandSpec {
 				Description: "Grace period before SIGKILL (default 10000, range 1000-300000)",
 			},
 			{Short: "", Long: "--memory-max <size>", Description: "Hard memory ceiling: 512M, 2G, or bytes"},
-			{Short: "", Long: "--cpu-max <percent>", Description: "CPU cap as percent of one core (100 = 1 core, 200 = 2 cores)"},
+			{
+				Short:       "",
+				Long:        "--cpu-max <percent>",
+				Description: "CPU cap as percent of one core (100 = 1 core, 200 = 2 cores)",
+			},
 			{Short: "", Long: "--tasks-max <N>", Description: "Maximum number of tasks (threads + subprocesses)"},
 			{Short: "", Long: "--watch", Description: "Restart on file changes in cwd"},
 			{Short: "", Long: "--watch-ignore <globs>", Description: "Extra ignore patterns (comma-separated)"},

@@ -44,7 +44,9 @@ func GetSocketPath() (string, error) {
 	baseDir := os.Getenv("XDG_RUNTIME_DIR")
 	if baseDir == "" {
 		return "", fmt.Errorf(
-			"XDG_RUNTIME_DIR is not set; run under a login session (ssh, systemd-user) or export LYNX_SOCKET to an absolute path in a private directory",
+			"XDG_RUNTIME_DIR is not set; run under a login session " +
+				"(ssh, systemd-user) or export LYNX_SOCKET to an absolute " +
+				"path in a private directory",
 		)
 	}
 

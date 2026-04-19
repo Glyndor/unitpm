@@ -141,7 +141,9 @@ func TestRun_FiltersByNamespace(t *testing.T) {
 
 func TestRun_ShortFlag(t *testing.T) {
 	dir := setupSpecDir(t)
-	writeSpec(t, dir, "aaa-111", `{"version":1,"id":"aaa-111","name":"api","namespace":"prod","exec":{"type":"command","command":"echo"}}`)
+	writeSpec(t, dir, "aaa-111",
+		`{"version":1,"id":"aaa-111","name":"api","namespace":"prod",`+
+			`"exec":{"type":"command","command":"echo"}}`)
 
 	err := export.Run([]string{"-n", "prod"})
 	if err != nil {

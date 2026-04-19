@@ -1,4 +1,5 @@
-// Package paths resolves XDG-aware filesystem paths (config, logs, runtime socket) for both system and user mode deployments.
+// Package paths resolves XDG-aware filesystem paths (config, logs,
+// runtime socket) for both system and user mode deployments.
 package paths
 
 import (

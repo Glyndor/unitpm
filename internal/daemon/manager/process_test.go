@@ -31,7 +31,8 @@ func TestPrepareEnv(t *testing.T) {
 	// but we can rely on the fact that 'go test' runs with some env)
 	// We just check that the result does NOT contain HOME if it was in os.Environ()
 	// Actually, in system mode (uid 0), we whitelist.
-	// Since we can't easily mock Getuid(), we test the logic branches by inference or assuming we are user mode (uid != 0).
+	// Since we can't easily mock Getuid(), we test the logic branches by
+	// inference or assuming we are user mode (uid != 0).
 	// If we are user mode, os.Environ() is used. It likely has HOME.
 
 	env, err := proc.prepareEnv()
