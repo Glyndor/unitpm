@@ -79,14 +79,13 @@ DOCUMENTATION
 [ ] Documentation updated (README / docs / comments)
 
 
-LICENSE ALIGNMENT (BSL 1.1)
----------------------------
+LICENSE ALIGNMENT (Apache 2.0)
+------------------------------
 
 Confirm that this Pull Request:
 
-[ ] Does not enable offering Lynx as a competing managed service or standalone paid product
 [ ] Does not introduce proprietary or closed-source dependencies
-[ ] Is compatible with the Business Source License 1.1 and its Change License (Apache 2.0)
+[ ] Contributions are submitted under the Apache License, Version 2.0
 
 
 CHECKLIST

@@ -10,7 +10,7 @@
   <img src="https://img.shields.io/github/actions/workflow/status/Jaro-c/Lynx/ci.yml?branch=main&style=for-the-badge&logo=github&label=CI" alt="CI" />
   <img src="https://img.shields.io/codecov/c/github/Jaro-c/Lynx?style=for-the-badge&logo=codecov" alt="Coverage" />
   <a href="https://scorecard.dev/viewer/?uri=github.com/Jaro-c/Lynx"><img src="https://img.shields.io/ossf-scorecard/github.com/Jaro-c/Lynx?style=for-the-badge&label=OpenSSF%20Scorecard" alt="OpenSSF Scorecard" /></a>
-  <a href="LICENSE"><img src="https://img.shields.io/badge/license-BSL%201.1-yellow?style=for-the-badge" alt="License: BSL 1.1" /></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-Apache%202.0-blue?style=for-the-badge" alt="License: Apache 2.0" /></a>
 </div>
 
 ---
@@ -128,8 +128,6 @@ See [`CONTRIBUTING.md`](CONTRIBUTING.md) for the full workflow.
 
 ## 📜 License
 
-[![License: BSL 1.1](https://img.shields.io/badge/license-BSL%201.1-yellow)](LICENSE)
+[![License: Apache 2.0](https://img.shields.io/badge/license-Apache%202.0-blue)](LICENSE)
 
-Lynx is source-available under the **[Business Source License 1.1](LICENSE)**. Free for personal, educational, and **internal commercial** use. The license auto-converts to **Apache 2.0 on 2029-04-18**.
-
-**Not allowed (until 2029-04-18)**: offering Lynx as a competing managed service (e.g., "Lynx Cloud") or as a standalone paid product. For commercial licensing outside these terms, open an issue.
+Lynx is open source under the **[Apache License 2.0](LICENSE)**. You may use, modify, and distribute it freely, including in commercial products, provided you preserve the copyright notice and include a copy of the license. The Apache 2.0 grant also includes an explicit patent license.

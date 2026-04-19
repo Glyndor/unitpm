@@ -1,3 +1,13 @@
+lynx-pm (0.6.1-1) unstable; urgency=medium
+
+  * license: relicense from Business Source License 1.1 to the
+    Apache License, Version 2.0. Lynx is now a fully OSI-approved
+    open-source project. All uses permitted by Apache 2.0 — including
+    commercial use, modification, distribution, and patent grant —
+    are available immediately without waiting for a Change Date.
+
+ -- Jaro-c <jaro-c@users.noreply.github.com>  Sun, 19 Apr 2026 14:30:00 -0500
+
 lynx-pm (0.6.0-1) unstable; urgency=medium
 
   * license: switch from custom Lynx Community License to Business
