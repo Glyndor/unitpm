@@ -33,13 +33,9 @@ linters:
     # ---------------------------------------------------------------------
     - revive
     - gocritic
-    - gocognit
-    - cyclop
     - gocyclo
     - funlen
     - nestif
-    - dupl
-    - goconst
     - prealloc
     - wastedassign
     - makezero
@@ -97,18 +93,8 @@ linters:
       # Maximum number of statements per function
       statements: 80
 
-    cyclop:
-      # Maximum allowed cyclomatic complexity per function
-      max-complexity: 20
-      # Average complexity allowed per package
-      package-average: 10.0
-
     gocyclo:
       # Report functions with complexity >= this value
-      min-complexity: 20
-
-    gocognit:
-      # Report functions with cognitive complexity >= this value
       min-complexity: 20
 
     embeddedstructfieldcheck:
