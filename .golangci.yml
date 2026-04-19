@@ -7,16 +7,6 @@ run:
   # Run linters on test files as well
   tests: true
 
-issues:
-  # Skip common noise directories
-  exclude-dirs:
-    - vendor
-    - .git
-
-  # Ignore generated files by pattern
-  exclude-files:
-    - ".*_gen.go"
-
 linters:
   enable:
     # ---------------------------------------------------------------------
@@ -153,15 +143,6 @@ linters:
         - name: package-comments
           disabled: true
 
-    goimports:
-      # Local import prefix for proper grouping
-      local-prefixes:
-        - github.com/Jaro-c/Lynx
-
-    golines:
-      # Maximum line length before wrapping
-      max-len: 120
-
     # ---------------------------------------------------------------------
     # depguard: use "lax" mode (allow everything unless explicitly denied)
     # and explicitly ALLOW your own module + go-winio.
@@ -205,6 +186,12 @@ linters:
       - std-error-handling
       - common-false-positives
 
+    # Skip noise directories and generated files
+    paths:
+      - vendor
+      - \.git
+      - .*_gen\.go
+
     rules:
       # Relax heavy complexity checks on tests
       - path: _test\.go
@@ -228,3 +215,13 @@ formatters:
   enable:
     - goimports
     - golines
+
+  settings:
+    goimports:
+      # Local import prefix for proper grouping
+      local-prefixes:
+        - github.com/Jaro-c/Lynx
+
+    golines:
+      # Maximum line length before wrapping
+      max-len: 120
