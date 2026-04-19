@@ -16,5 +16,11 @@ override_dh_auto_build:
 override_dh_auto_test:
 	go test -v ./...
 
+# Install debian/lynxpm.lynxd.service as /lib/systemd/system/lynxd.service.
+# Without --name=lynxd, dh_installsystemd would look for debian/lynxpm.service
+# (package-named) and skip the unit file entirely.
+override_dh_installsystemd:
+	dh_installsystemd --name=lynxd
+
 override_dh_dwz:
 	# Skip dwz compression

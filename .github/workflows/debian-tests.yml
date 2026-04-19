@@ -193,6 +193,12 @@ jobs:
     name: Piuparts (install/upgrade/purge)
     needs: build-deb
     runs-on: ubuntu-latest
+    # piuparts is no longer packaged in Ubuntu 24.04's default archive, so
+    # host the job inside a Debian container. The container must be privileged
+    # for debootstrap's chroot/mount operations to succeed.
+    container:
+      image: debian:trixie
+      options: --privileged
     steps:
       - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
@@ -201,8 +207,8 @@ jobs:
 
       - name: Install piuparts
         run: |
-          sudo apt-get update
-          sudo apt-get install -y --no-install-recommends piuparts debootstrap
+          apt-get update
+          apt-get install -y --no-install-recommends piuparts debootstrap ca-certificates
 
       - name: Run piuparts
         # --no-diversions: we don't ship dpkg-divert calls.
@@ -210,7 +216,7 @@ jobs:
         # --warn-on-leftovers-after-purge → the job still fails on maintainer
         # script errors, but mere leftover /var files (logs, user data) warn only.
         run: |
-          sudo piuparts \
+          piuparts \
             --no-diversions \
             -d trixie \
             --mirror=http://deb.debian.org/debian \

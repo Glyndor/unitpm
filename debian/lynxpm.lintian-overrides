@@ -1,0 +1,10 @@
+# Go binaries are statically linked by design: single self-contained executables
+# are the whole point of shipping Go. The runtime has no dynamic shared library
+# to link against, so lintian's generic "bug usually" heuristic does not apply.
+lynxpm: statically-linked-binary [usr/bin/lynxpm]
+lynxpm: statically-linked-binary [usr/sbin/lynxd]
+
+# Legacy changelog entry (0.3.0-1) shipped with a malformed maintainer email
+# (jaroc@Admin.localdomain). It's frozen in release history and rewriting
+# published changelogs would break version reproducibility for existing users.
+lynxpm: bogus-mail-host-in-debian-changelog
