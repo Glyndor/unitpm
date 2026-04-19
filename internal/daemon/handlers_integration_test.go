@@ -168,7 +168,6 @@ func TestE2E_Stop_Roundtrip(t *testing.T) {
 	if _, err := mgr.StartWithSpec(s); err != nil {
 		t.Fatalf("StartWithSpec: %v", err)
 	}
-	time.Sleep(100 * time.Millisecond)
 
 	var resp map[string]any
 	if err := client.Call("stop", map[string]string{"id": id}, &resp); err != nil {
@@ -253,7 +252,6 @@ func TestE2E_Restart_ByID(t *testing.T) {
 		t.Fatalf("StartWithSpec: %v", err)
 	}
 	defer func() { _ = mgr.Stop(id) }()
-	time.Sleep(100 * time.Millisecond)
 
 	var resp map[string]any
 	if err := client.Call("restart", map[string]string{"id": id}, &resp); err != nil {

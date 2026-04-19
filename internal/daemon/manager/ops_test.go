@@ -7,7 +7,6 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
-	"time"
 
 	"github.com/google/uuid"
 
@@ -87,7 +86,6 @@ func TestManager_Delete_RemovesFromManager(t *testing.T) {
 	if _, err := mgr.StartWithSpec(s); err != nil {
 		t.Fatalf("StartWithSpec failed: %v", err)
 	}
-	time.Sleep(50 * time.Millisecond)
 
 	if err := mgr.Delete(s.ID); err != nil {
 		t.Fatalf("Delete failed: %v", err)
@@ -268,7 +266,6 @@ func TestManager_List_ReturnsAll(t *testing.T) {
 		}
 		defer func(id string) { _ = mgr.Stop(id) }(s.ID)
 	}
-	time.Sleep(50 * time.Millisecond)
 
 	got := mgr.List()
 	if len(got) != len(specs) {
