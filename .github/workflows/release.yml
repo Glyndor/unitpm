@@ -57,6 +57,24 @@ jobs:
             lynx_linux_arm64
             lynx-pm_*.deb
 
+      - name: Generate SBOM (amd64)
+        uses: anchore/sbom-action@e22c389904149dbc22b58101806040fa8d37a610 # v0
+        with:
+          file: lynx_linux_amd64
+          format: spdx-json
+          output-file: lynx_linux_amd64.spdx.json
+          upload-artifact: false
+          upload-release-assets: false
+
+      - name: Generate SBOM (arm64)
+        uses: anchore/sbom-action@e22c389904149dbc22b58101806040fa8d37a610 # v0
+        with:
+          file: lynx_linux_arm64
+          format: spdx-json
+          output-file: lynx_linux_arm64.spdx.json
+          upload-artifact: false
+          upload-release-assets: false
+
       - name: Extract release notes
         run: |
           # Extract notes for current version from debian/changelog
@@ -79,6 +97,8 @@ jobs:
             --notes-file release_notes.txt \
             lynx_linux_amd64 \
             lynx_linux_amd64.sig \
+            lynx_linux_amd64.spdx.json \
             lynx_linux_arm64 \
             lynx_linux_arm64.sig \
+            lynx_linux_arm64.spdx.json \
             lynx-pm_*.deb
