@@ -114,121 +114,68 @@ Error: ERR_BAD_REQUEST: invalid cwd: stat /invalid/path: no such file or directo
 | `self` | Run as the current user (same as `lynxd`). Default. |
 | `dynamic` | Run as a transient, isolated user via `systemd-run`. Uses `DynamicUser=yes` with hardening (`NoNewPrivileges`, `PrivateTmp`, `ProtectSystem=strict`, `ProtectHome=yes`). |
 
-## Framework Examples
+## Framework recipes
 
-| Framework | Command |
-|-----------|---------|
-| **Next.js (dev)** | `lynxpm start --name next-dev -- npm run dev` |
-| **Next.js (prod)** | `lynxpm start --name next-prod -- npm start` |
-| **Next.js (pnpm)** | `lynxpm start --name next-pnpm -- pnpm dev` |
-| **Next.js (bun)** | `lynxpm start --name next-bun -- bun dev` |
-| **Astro (dev)** | `lynxpm start --name astro -- npm run dev` |
-| **Node (script)** | `lynxpm start server.js` |
-| **Node (cmd)** | `lynxpm start -- node server.js` |
+Per-framework patterns (Next.js, FastAPI, Django, Rails, Spring, static
+sites, cron jobs) live in [`docs/TUTORIALS.md`](../TUTORIALS.md) —
+runtime-specific invocations (Bun, Deno, venv/uv, compiled Go/Rust,
+`fnm`/`pyenv`/`rbenv`) live in [`docs/RUNTIMES.md`](../RUNTIMES.md).
 
-## Scaling and Load Balancing
+## Scaling
 
-Lynx supports scaling via `--scale N` (or `--instances N`). This starts N independent instances of your application.
+`--scale N` (alias `--instances N`) spawns N independent processes. Each
+one gets a unique ID and name, plus `LYNX_INSTANCE=0..N-1` in its env.
+Lynx **does not** load-balance — put a reverse proxy (nginx/Caddy/HAProxy)
+in front of the instances, or use `SO_REUSEPORT` if your runtime supports
+it.
 
-**Important**: Lynx does **not** provide a built-in load balancer.
-- Each instance runs as a separate process with a unique ID and Name.
-- The `LYNX_INSTANCE` environment variable (0, 1, 2...) is injected into each instance.
-- If your application binds to a port, you must ensure each instance uses a different port (e.g. `PORT=3000 + LYNX_INSTANCE`) or use `SO_REUSEPORT` if supported.
-- For web applications, it is recommended to run a reverse proxy (Nginx, Caddy, HAProxy) in front of the Lynx instances.
-
-**Examples**:
-
-**1. Next.js with offset ports**:
-Next.js does not natively support `SO_REUSEPORT`. Use the `LYNX_INSTANCE` variable to offset the port.
-```bash
-# In your package.json: "start": "PORT=$((3000 + LYNX_INSTANCE)) next start"
-lynxpm start --name next-app --scale 3 --shell -- npm start
-```
-*Note: Using `--shell` allows variable expansion in the command.*
-
-**2. Generic Node.js Server**:
-```javascript
-// server.js
-const port = 3000 + parseInt(process.env.LYNX_INSTANCE || 0);
-server.listen(port);
-```
-```bash
-lynxpm start server.js --scale 4 --env-file .env
+```js
+// server.js — give each instance its own port
+const port = 3000 + Number(process.env.LYNX_INSTANCE ?? 0);
 ```
 
-## Clarifications
+Worked examples (Nginx upstream, `--scale` with Next.js standalone,
+live scale up/down) in [`TUTORIALS.md`](../TUTORIALS.md).
 
-### Auto-Naming
-If `--name` is omitted, Lynx generates a deterministic name:
-- Format: `basename-shortID` (e.g., `server-a1b2c3d4`).
-- If scaling: `basename-index-shortID` (e.g., `server-1-a1b2c3d4`).
+## Notes
 
-### Max Restarts
-The `--max-restarts` limit applies only to **automatic** restarts triggered by crashes or failures.
-- Manual restarts (`lynxpm restart <id>`) **reset** the restart counter and backoff timer.
-- You can manually restart a process as many times as needed without hitting the limit.
+- **Auto-naming**: omit `--name` and Lynx derives `<basename>-<shortid>`,
+  or `<basename>-<index>-<shortid>` when `--scale > 1`.
+- **Manual restarts reset the counter**: `lynxpm restart <id>` clears the
+  restart count and backoff timer. `--max-restarts` only caps the crash
+  loop, not manual operator actions.
+- **Visibility**: in system mode, processes are visible to anyone in the
+  `lynxadm` group. In user mode (`lynxd &`), each user has a private
+  daemon — no cross-user visibility.
 
-### Isolation Visibility
-- **System Mode** (`sudo lynx`): Applications are managed by the system-wide daemon. They are visible to and manageable by any user in the `lynxadm` group (or root).
-- **User Mode** (`lynx`): Applications are managed by a per-user daemon. They are private to your user account and cannot be seen by other users.
+## Environment variables
 
-## Environment Variables
-
-### Mode Behavior
-- **User Mode**: The process inherits the full environment of the user running `lynxpm start`.
-- **System Mode**: The process does **not** inherit the system environment (to prevent leaking sensitive variables like `AWS_KEYS`). Instead, a whitelist is applied:
-  - `PATH`, `LANG`, `TERM`, `TZ`, `TMPDIR`
-  - `USER`, `LOGNAME`, `SHELL`, `PWD`
-  - `XDG_*`, `LC_*`
-  - Any variables defined in `--env-file` or `AppSpec.Env`.
-
-## DynamicUser Env-File
-
-When using `--isolation dynamic` combined with `--env-file`, Lynx bridges the environment variables securely to the isolated process.
-
-**How it works:**
-1. Lynx reads the env file.
-2. Writes it to a secure, daemon-owned file (`/var/lib/lynx-pm/creds/<id>/env`) with `0600` permissions.
-3. Uses `systemd-run --property=LoadCredential=...` to expose it to the process.
-4. An internal wrapper (`_exec-env`) reads the credential and exports variables before executing your application.
-
-**Example:**
-
-```bash
-# .env file
-PORT=8080
-API_KEY=secret_123
-```
-
-```bash
-# Start with isolation and env file
-lynxpm start server.js --isolation dynamic --env-file .env
-```
-
-**Note on Security:**
-This mechanism ensures secrets are never visible in `ps` output or persisted in the global AppSpec. However, once the process starts, the secrets exist in its memory.
+- **User mode** — the process inherits the full environment of the user
+  running `lynxpm start`.
+- **System mode** — the daemon is run by the `lynx` system user and
+  does **not** forward its caller's env (prevents leaking `AWS_*` /
+  `DATABASE_URL` / etc.). Whitelisted: `PATH`, `HOME`, `USER`,
+  `LOGNAME`, `SHELL`, `PWD`, `LANG`, `LC_*`, `TERM`, `TZ`, `TMPDIR`,
+  `XDG_*`. Anything else must come from `--env-file` or `AppSpec.Env`.
 
 ## Security
 
-*   **Environment Variables**: Environment variables provided via `--env-file` are loaded into the process environment but are **NOT** persisted in the application specification file (`~/.config/lynx/apps/<id>.json`). This ensures secrets are not stored in plain text on disk.
-*   **Isolation**:
-    *   **Self Mode** (`--isolation self`): Processes run as the same user as the daemon.
-    *   **DynamicUser** (`--isolation dynamic`): Processes run as a transient system user with restricted filesystem access (`ProtectSystem=strict`, `ProtectHome=yes`) and no new privileges. Recommended for production.
-*   **Shell Execution**: Shell execution is disabled by default. Use `--shell` only if necessary, as it introduces shell injection risks if inputs are not sanitized.
+- **Secrets stay off disk**: values loaded via `--env-file` are injected
+  into the process env but **not** written into the AppSpec JSON in
+  `~/.config/lynx/apps/`. No plaintext credentials on-disk in the spec.
+- **`--shell` is gated**: accepted in user mode only. System mode
+  refuses it — shell evaluation of an attacker-controlled string against
+  the daemon's privileges is the exact footgun the hardening model
+  rules out.
+- **Isolation picker**:
 
-## Threat Model (DynamicUser)
+  | Mode | Works in | Trade-off |
+  |------|----------|-----------|
+  | `self` *(default)* | user + system | Zero overhead. No containment — the process inherits the daemon user. |
+  | `dynamic` | system only | Strongest. `systemd-run` wraps the process: transient UID/GID, `ProtectSystem=strict`, `PrivateTmp`, `ProtectHome=yes`, `NoNewPrivileges`. Secrets pass via `LoadCredential` — `/proc/<pid>/environ` shows nothing. Recommended for network-facing prod services. |
+  | `sandbox` | user + system | User-namespace + landlock. Blocks writes outside `cwd` + `/tmp`. No root or polkit needed. |
 
-When using `--isolation dynamic`, Lynx leverages `systemd-run` to create a transient, sandboxed execution environment.
-
-### Security Guarantees
-1.  **Ephemeral Identity**: A new, random UID/GID is allocated for the process lifetime and discarded afterwards. No persistent user is created on the system.
-2.  **Filesystem Isolation**:
-    - `ProtectSystem=strict`: The entire filesystem is mounted read-only.
-    - `PrivateTmp=yes`: The process sees a private `/tmp` and `/var/tmp`.
-    - `ProtectHome=yes`: `/home`, `/root`, and `/run/user` are inaccessible.
-    - **Note**: `HOME` environment variable is NOT inherited or injected in this mode to ensure compliance with `ProtectHome`.
-  - **Credentials:** Secrets are passed via systemd credentials in `/var/lib/lynx-pm/creds`.
-4.  **No Privilege Escalation**: `NoNewPrivileges=yes` prevents the process from gaining new privileges (e.g., via setuid binaries).
-
-### 💡 Usage Recommendation
-Use `--isolation dynamic` for network-facing services (e.g., web servers, APIs) to minimize the blast radius if the service is compromised.
+  In `--isolation dynamic --env-file …` Lynx stages the file at
+  `/var/lib/lynx-pm/creds/<id>/env` (`0600`, daemon-owned) and exposes
+  it via systemd credentials — a small internal wrapper reads the
+  credential and `exec`s your command.

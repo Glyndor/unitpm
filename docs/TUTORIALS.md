@@ -21,9 +21,9 @@ Real-world recipes. Copy-paste and adapt.
 | 📊 Monitor & debug | [Monitoring and debugging](#-monitoring-and-debugging) | 1 min |
 | 💡 Daily-use tips | [Tips](#-tips) | - |
 
-> 💡 **Tip**: all examples use `lynx` commands that work identically in
-> user mode (`lynxd &`) and system mode (`sudo systemctl start lynxd`).
-> The only difference in prod: swap `--isolation self` for `--isolation dynamic`.
+> 💡 **Tip**: all examples work identically in user mode (`lynxd &`) and
+> system mode (`sudo systemctl start lynxd`). The only difference in prod:
+> swap `--isolation self` for `--isolation dynamic`.
 
 ---
 
@@ -338,7 +338,7 @@ A complete workflow for deploying a Node.js API:
 
 ```bash
 # 1. Install Lynx
-sudo apt install ./lynxpm_0.4.11-1_amd64.deb
+sudo apt install ./lynxpm_*_amd64.deb
 sudo usermod -aG lynxadm $USER && newgrp lynxadm
 
 # 2. Make dev tools visible to the daemon

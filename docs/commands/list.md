@@ -70,3 +70,4 @@ e73a9f1b | test-app                       | default              | 1.0.0      | 
     - **Memory**: Resident Set Size (RSS) in bytes.
     - **CPU**: Percentage of CPU usage.
 - **Aggregation**: Lynx automatically aggregates metrics for the entire process tree (including child processes). It prefers using Cgroup V2 when available, falling back to process tree scanning if necessary.
+- **Update notice**: after the table, `lynxpm list` prints a one-line banner on stderr when a newer release is available (`! New version available: vX.Y.Z — run 'lynxpm update --apply'`). The check is cached for 6 hours at `$XDG_CACHE_HOME/lynx-pm/update-check.json` and suppressed under `--json`.

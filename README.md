@@ -2,7 +2,7 @@
 
 <div align="center">
   <h3>The Secure, Systemd-Native Process Manager for Linux</h3>
-  <p>A lightning-fast, highly secure alternative to PM2 or Supervisor—built specifically for modern Debian/Ubuntu servers.</p>
+  <p>A lean, hardened alternative to PM2 and Supervisor — built directly on top of <code>systemd</code>.</p>
 
   <img src="https://img.shields.io/badge/OS-Linux%20Only-informational?style=for-the-badge&logo=linux&color=2ecc71" alt="Linux Only" />
   <img src="https://img.shields.io/badge/Go-1.26+-00ADD8?style=for-the-badge&logo=go" alt="Go Version" />
@@ -15,118 +15,126 @@
 
 ---
 
-## ✨ Why Lynx? (vs PM2 & Supervisor)
-
-Stop wrestling with complex configurations, high RAM overhead, and insecure wrappers. Lynx gives you superpowers by natively combining the rock-solid reliability of `systemd` with a beautiful, modern CLI.
+## Why Lynx?
 
 | Feature | 🦁 Lynx | 🐢 PM2 | 🦖 Supervisor |
 | :--- | :--- | :--- | :--- |
-| **Technology** | `Compiled Go` (Native) | `Node.js` (V8 Engine) | `Python` (Interpreted) |
-| **Base RAM Overhead** | **~10 MB** ⚡ | ~60-100+ MB 🐌 | ~50+ MB 🐢 |
-| **Daemon Engine** | **Native OS (`systemd`)** 🛡️ | Custom (PM2 Daemon) ❌ | Custom (supervisord) ❌ |
-| **Crash Resilience** | Perfect (Apps outlive CLI) | Poor (Apps die with PM2) | Poor (Apps die with daemon) |
-| **Sandboxing & Security**| **DynamicUser isolation** 🔒 | Root / User-space ⚠️ | Root / User-space ⚠️ |
-| **Config Format** | `CLI` / `Lynxfile.yml` | `Ecosystem.config.js` | `ini` files |
+| **Runtime** | Compiled Go, native | Node.js (V8) | Python (interpreted) |
+| **Base RAM** | **~10 MB** | ~60–100 MB | ~50 MB |
+| **Supervisor** | **`systemd`** | Custom daemon | `supervisord` |
+| **Crash resilience** | Apps outlive the CLI | Apps die with PM2 | Apps die with the daemon |
+| **Sandboxing** | **`DynamicUser` + landlock** | User-space only | User-space only |
+| **Config** | CLI flags or `Lynxfile.yml` | `ecosystem.config.js` | INI files |
 
 ---
 
-## 🔒 The "Zero-Privilege" Deploy
+## The Zero-Privilege Deploy
 
-The most powerful feature of Lynx. Start an API fully isolated: **no access to `/home`**, **no new privileges**, and secrets are passed securely via systemd without writing them to global disk variables.
+One command spawns an API with no access to `/home`, no new privileges, and
+secrets delivered through systemd credentials instead of environment disk:
 
 ```bash
 lynxpm start api.js \
-  --name max-security-api \
-  --isolation dynamic \
-  --env-file .env.production
+    --name api \
+    --isolation dynamic \
+    --env-file .env.production
 ```
 
-It is impossible to achieve this level of security with one command in other managers.
+Secrets never appear in `/proc/<pid>/environ`, `ps`, or the on-disk spec.
 
 ---
 
-## ⚡ 1-Minute Quickstart
+## Quickstart
 
-### Option A: Download the binary (fastest)
-
-```bash
-curl -L -o lynxpm "$(curl -s https://api.github.com/repos/Jaro-c/Lynx/releases/latest \
-  | grep browser_download_url | grep 'lynxpm_linux_amd64"' | cut -d '"' -f 4)"
-chmod +x lynxpm
-sudo mv lynxpm /usr/local/bin/     # system-wide
-# or: mkdir -p ~/.local/bin && mv lynxpm ~/.local/bin/   # user-local
-```
-
-### Option B: Install the Debian package
+### Install — `.deb` (recommended)
 
 ```bash
-sudo apt install ./lynxpm_*.deb
-sudo usermod -aG lynxadm $USER && newgrp lynxadm
+# Grab the latest .deb from https://github.com/Jaro-c/Lynx/releases
+sudo apt install ./lynxpm_*_amd64.deb
+sudo usermod -aG lynxadm "$USER" && newgrp lynxadm
 sudo systemctl enable --now lynxd
-sudo lynxpm install-tools          # optional: make bun/node/go visible to lynxd
+sudo lynxpm install-tools   # optional: expose bun/node/go/… to the daemon
 ```
 
-### Deploy
+### Install — prebuilt binary
 
 ```bash
-lynxpm start "node server.js" --name ultra-api --restart always
+gh release download --repo Jaro-c/Lynx --pattern 'lynxpm_linux_amd64'
+install -m 0755 lynxpm_linux_amd64 ~/.local/bin/lynxpm
+```
+
+### Run something
+
+```bash
+lynxpm start "node server.js" --name api --restart always
 lynxpm list
-lynxpm logs ultra-api --follow
+lynxpm logs api --follow
 ```
 
 ---
 
-## 📚 Documentation
+## Documentation
 
 | Topic | Link |
 |-------|------|
-| **Runtime recipes** (Node, Bun, Python, Go, Rust, Ruby, Java, …) | [`docs/RUNTIMES.md`](docs/RUNTIMES.md) |
-| **Tutorials** (Next.js, FastAPI, Django, production deploy, Lynxfile) | [`docs/TUTORIALS.md`](docs/TUTORIALS.md) |
-| **Commands reference** (`start`, `list`, `apply`, `export`, …) | [`docs/commands/`](docs/commands/) |
-| **FAQ** — rapid-fire "Can I…?" / "Why does X fail?" | [`docs/FAQ.md`](docs/FAQ.md) |
-| **Architecture overview** | [`ARCHITECTURE.md`](ARCHITECTURE.md) |
+| Runtime recipes — Node / Bun / Python / Go / Rust / Ruby / JVM / … | [`docs/RUNTIMES.md`](docs/RUNTIMES.md) |
+| Tutorials — Next.js, FastAPI, Django, production hardening, Lynxfile | [`docs/TUTORIALS.md`](docs/TUTORIALS.md) |
+| Commands reference — `start`, `list`, `apply`, `export`, … | [`docs/commands/`](docs/commands/) |
+| FAQ — "Can I…?" / "Why does X fail?" | [`docs/FAQ.md`](docs/FAQ.md) |
+| Architecture overview | [`ARCHITECTURE.md`](ARCHITECTURE.md) |
+| Security model + threat model | [`SECURITY.md`](SECURITY.md) |
 
 ---
 
-## 🔒 Access Model
+## Access model
 
-Lynx runs in one of two modes — pick based on deployment scope:
+- **System mode** (default with the `.deb`) — daemon runs as the `lynx`
+  system user under `systemd`, socket at `/run/lynxd/lynx.sock` (`0660`,
+  group `lynxadm`). Does **not** inherit the caller's env. Use for
+  production.
+- **User mode** — daemon runs under `systemd --user`, socket at
+  `$XDG_RUNTIME_DIR/lynx-<uid>/lynx.sock` (`0600`). Inherits your env.
+  Use for dev.
 
-- **System Mode** (default): daemon runs as system user `lynx` under `systemd`, socket at `/run/lynxd/lynx.sock` (`0660`, `lynxadm` group). Does **not** inherit user env to prevent secret leaks. For production.
-- **User Mode**: daemon runs under `systemd --user`, socket at `$XDG_RUNTIME_DIR/lynx/lynx.sock` (`0600`). Inherits full user env. For dev.
-
-Run `lynxd &` for ad-hoc user-mode, or `sudo lynxpm startup` to enable boot-time startup. Full details in the [FAQ](docs/FAQ.md).
-
----
-
-## 🧩 Supported Runtimes
-
-Lynx is language-agnostic — it runs anything you can spawn as a Linux process: Node, Bun, Deno, Python (system/venv/uv), Go, Rust, Ruby, Java/JVM, PHP, Lua, Erlang, shell, and more.
-
-See [`docs/RUNTIMES.md`](docs/RUNTIMES.md) for per-runtime recipes, virtualenvs, env-file injection, clustering, and isolation picker.
+Launch user mode ad-hoc with `lynxd &`, or `sudo lynxpm startup` to
+wire the systemd unit at boot. Details in the [FAQ](docs/FAQ.md).
 
 ---
 
-## 👨‍💻 Development
+## Supported runtimes
 
-Lynx is **Linux-only**. Contributors on macOS/Windows should use **VS Code Remote-WSL** or a Linux VM — local editors may show false-positive errors without `GOOS=linux`.
-
-See [`CONTRIBUTING.md`](CONTRIBUTING.md) for the full workflow.
+Anything you can spawn as a Linux process: Node, Bun, Deno, Python
+(system / venv / `uv` / `uvx`), Go, Rust, Ruby, Java/JVM, PHP, Lua,
+Erlang, shell, and more. Per-runtime recipes in
+[`docs/RUNTIMES.md`](docs/RUNTIMES.md).
 
 ---
 
-## ⚠️ Troubleshooting
+## Troubleshooting
 
 | Symptom | Where to look |
 |---------|---------------|
-| Generic errors, permissions, naming, env vars | [`docs/FAQ.md`](docs/FAQ.md) |
-| Daemon won't start / socket unreachable | `journalctl -u lynxd -f` |
-| `--isolation dynamic` fails | Requires system-mode daemon (Polkit rule in `.deb`) |
+| `cannot reach the Lynx daemon` | `lynxd &` (user) or `sudo systemctl start lynxd` (system) |
+| Daemon won't start / unit errors | `journalctl -u lynxd -f` |
+| `--isolation dynamic` rejected | Needs the system-mode daemon (polkit rule is shipped in the `.deb`) |
+| Generic usage / naming / env issues | [`docs/FAQ.md`](docs/FAQ.md) |
 
 ---
 
-## 📜 License
+## Development
 
-[![License: Apache 2.0](https://img.shields.io/badge/license-Apache%202.0-blue)](LICENSE)
+Lynx is **Linux-only**. Contributors on macOS/Windows should use a
+Linux VM or VS Code Remote-WSL — local editors flag false-positive
+errors without `GOOS=linux`.
 
-Lynx is open source under the **[Apache License 2.0](LICENSE)**. You may use, modify, and distribute it freely, including in commercial products, provided you preserve the copyright notice and include a copy of the license. The Apache 2.0 grant also includes an explicit patent license.
+See [`CONTRIBUTING.md`](CONTRIBUTING.md) for the full workflow, and
+[`ARCHITECTURE.md`](ARCHITECTURE.md) for the internals.
+
+---
+
+## License
+
+Lynx is open source under the **[Apache License 2.0](LICENSE)** —
+commercial use, modification, distribution, and the explicit patent
+grant all included. Preserve the copyright notice and ship a copy of
+the license with any redistribution.
