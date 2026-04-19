@@ -1,8 +1,38 @@
-lynx-pm (0.5.13-1) unstable; urgency=medium
+lynx-pm (0.6.0-1) unstable; urgency=medium
 
-  * refactor(manager): simplify Shutdown lock pattern
+  * license: switch from custom Lynx Community License to Business
+    Source License 1.1. Production use is now permitted, including
+    inside for-profit companies. Auto-converts to Apache 2.0 on
+    2029-04-18. Offering Lynx as a competing managed service or
+    standalone paid product remains restricted until that date.
 
- -- Jaro-c <jaro-c@users.noreply.github.com>  Thu, 17 Apr 2026 05:40:00 -0500
+  * ci: new CI workflow with lint (golangci-lint v2), test (race +
+    coverage), govulncheck, and per-arch build matrix (amd64/arm64)
+  * ci: add CodeQL security scanning with security-extended queries
+  * ci: add OpenSSF Scorecard weekly scan with SARIF upload
+  * ci: release artifacts now ship SLSA build provenance and SPDX
+    SBOM per architecture, verifiable with
+    `gh attestation verify --repo Jaro-c/Lynx <file>`
+  * ci: integrate Codecov (coverage improved from 54.3% to 58.6%)
+  * ci: all action versions pinned to full commit SHAs;
+    github-actions ecosystem added to Dependabot
+
+  * test: ~35 new tests — manager ops (Stop/Delete/Restart/Reset/
+    Scale/Reload/List/ResolveID), updater Apply pre-download
+    validation, policy sandbox/nil RunAs/shell paths, and a full
+    daemon -> IPC -> client end-to-end suite
+
+  * docs: slim README from 352 to 135 lines, link out to the
+    existing docs/ tree (RUNTIMES, TUTORIALS, commands, FAQ,
+    BUILDING_UBUNTU_RELEASE)
+  * docs: translate FAQ.md from Spanish to English
+  * docs: add CODEOWNERS, set repository homepage URL
+  * docs: align PR/issue templates and Code of Conduct with BSL 1.1
+
+  * chore(go): bump Go to 1.26.2 for crypto/x509 and crypto/tls
+    CVE fixes (GO-2026-4866/4870/4946/4947)
+
+ -- Jaro-c <jaro-c@users.noreply.github.com>  Sun, 19 Apr 2026 00:00:00 -0500
 
 lynx-pm (0.5.12-1) unstable; urgency=medium
 
