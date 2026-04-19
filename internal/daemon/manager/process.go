@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/robfig/cron/v3"
 
 	daemonRuntime "github.com/Jaro-c/Lynx/internal/daemon/runtime"
 	"github.com/Jaro-c/Lynx/internal/env"
@@ -23,7 +24,6 @@ import (
 	"github.com/Jaro-c/Lynx/internal/metrics"
 	"github.com/Jaro-c/Lynx/internal/paths"
 	"github.com/Jaro-c/Lynx/internal/types"
-	"github.com/robfig/cron/v3"
 )
 
 // Process represents a single managed application instance and its state.

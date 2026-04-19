@@ -647,7 +647,11 @@ func GetSpec() help.CommandSpec {
 			{Short: "", Long: "--env-file <file>", Description: "Path to environment file"},
 			{Short: "", Long: "--isolation <mode>", Description: "Isolation mode (self, dynamic, sandbox)"},
 			{Short: "", Long: "--scale <N>", Description: "Number of instances to start"},
-			{Short: "", Long: "--stop-signal <name>", Description: "Signal sent on stop (SIGTERM, SIGINT, SIGHUP, SIGQUIT, SIGUSR1, SIGUSR2)"},
+			{
+				Short:       "",
+				Long:        "--stop-signal <name>",
+				Description: "Signal sent on stop (SIGTERM, SIGINT, SIGHUP, SIGQUIT, SIGUSR1, SIGUSR2)",
+			},
 			{Short: "", Long: "--stop-timeout <ms>", Description: "Grace period before SIGKILL (default 10000, range 1000-300000)"},
 			{Short: "", Long: "--memory-max <size>", Description: "Hard memory ceiling: 512M, 2G, or bytes"},
 			{Short: "", Long: "--cpu-max <percent>", Description: "CPU cap as percent of one core (100 = 1 core, 200 = 2 cores)"},

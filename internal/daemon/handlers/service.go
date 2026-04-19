@@ -267,7 +267,9 @@ func validateStop(s *protocol.AppStop) error {
 	}
 	if s.Signal != "" {
 		if _, ok := manager.StopSignalByName[s.Signal]; !ok {
-			return errors.New("ERR_BAD_REQUEST: invalid stop signal; allowed: SIGTERM, SIGINT, SIGHUP, SIGQUIT, SIGUSR1, SIGUSR2")
+			return errors.New(
+				"ERR_BAD_REQUEST: invalid stop signal; " +
+					"allowed: SIGTERM, SIGINT, SIGHUP, SIGQUIT, SIGUSR1, SIGUSR2")
 		}
 	}
 	if s.TimeoutMs != 0 && (s.TimeoutMs < 1000 || s.TimeoutMs > 300000) {
