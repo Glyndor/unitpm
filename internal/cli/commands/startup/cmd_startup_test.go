@@ -89,8 +89,8 @@ func TestLinuxStartup(t *testing.T) {
 		// Verify calls
 		expectedCalls := []string{
 			"systemctl daemon-reload",
-			"systemctl enable --now lynx.lynxd.service",
-			"systemctl is-active lynx.lynxd.service",
+			"systemctl enable --now lynxd.service",
+			"systemctl is-active lynxd.service",
 		}
 		if len(runner.Calls) != len(expectedCalls) {
 			t.Errorf("Expected %d calls, got %d", len(expectedCalls), len(runner.Calls))

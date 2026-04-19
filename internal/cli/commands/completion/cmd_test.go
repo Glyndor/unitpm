@@ -70,7 +70,7 @@ func TestRun_Bash(t *testing.T) {
 			t.Errorf("bash: %v", err)
 		}
 	})
-	for _, want := range []string{"_lynx_completions", "complete -F", "start", "stop"} {
+	for _, want := range []string{"_lynxpm_completions", "complete -F", "start", "stop"} {
 		if !strings.Contains(out, want) {
 			t.Errorf("bash script missing %q", want)
 		}
@@ -89,7 +89,7 @@ func TestRun_Zsh(t *testing.T) {
 			t.Errorf("zsh: %v", err)
 		}
 	})
-	if !strings.Contains(out, "#compdef lynx") {
+	if !strings.Contains(out, "#compdef lynxpm") {
 		t.Error("zsh script missing #compdef directive")
 	}
 	if !strings.Contains(out, "start") {

@@ -166,7 +166,7 @@ func TestApply_NoCompatibleBinary(t *testing.T) {
 func TestApply_MissingSignatureRequiresFlag(t *testing.T) {
 	// Release has the binary but no .sig asset. Without AllowUnsigned, Apply
 	// must refuse with ErrSignatureRequired.
-	target := "lynx_" + runtime.GOOS + "_" + runtime.GOARCH
+	target := "lynxpm_" + runtime.GOOS + "_" + runtime.GOARCH
 	release := &Release{
 		TagName: "v99.0.0",
 		Assets: []Asset{
@@ -186,7 +186,7 @@ func TestApply_AllowUnsignedBypassesSigCheck(t *testing.T) {
 	// With AllowUnsigned=true the pre-download signature check is skipped.
 	// Apply will still fail because the download URL is bogus, but the error
 	// must NOT be ErrSignatureRequired.
-	target := "lynx_" + runtime.GOOS + "_" + runtime.GOARCH
+	target := "lynxpm_" + runtime.GOOS + "_" + runtime.GOARCH
 	release := &Release{
 		TagName: "v99.0.0",
 		Assets: []Asset{
