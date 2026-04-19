@@ -10,6 +10,7 @@
   <img src="https://img.shields.io/github/actions/workflow/status/Jaro-c/Lynx/ci.yml?branch=main&style=for-the-badge&logo=github&label=CI" alt="CI" />
   <img src="https://img.shields.io/codecov/c/github/Jaro-c/Lynx?style=for-the-badge&logo=codecov" alt="Coverage" />
   <a href="https://scorecard.dev/viewer/?uri=github.com/Jaro-c/Lynx"><img src="https://img.shields.io/ossf-scorecard/github.com/Jaro-c/Lynx?style=for-the-badge&label=OpenSSF%20Scorecard" alt="OpenSSF Scorecard" /></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-BSL%201.1-yellow?style=for-the-badge" alt="License: BSL 1.1" /></a>
 </div>
 
 ---
@@ -326,3 +327,26 @@ When using `--isolation dynamic`, Lynx uses `systemd-run` to spawn transient ser
     - ✅ **Allowed**: `systemctl stop lynx-app-123.service`
     - ❌ **Blocked**: `systemctl stop sshd.service`, `systemctl stop docker.service`
 - **No Action Required**: You do not need to configure anything manually. The installation script handles permissions for you securely.
+
+## 📜 License
+
+Lynx is source-available under the **[Business Source License 1.1](LICENSE)**.
+
+- **Licensor**: Jaro-c
+- **Change Date**: 2029-04-18 (then auto-converts to Apache 2.0)
+- **Change License**: Apache License, Version 2.0
+
+### What you can do
+
+- ✅ **Read, modify, fork** — the source is open for inspection and contribution
+- ✅ **Use in production** — including inside for-profit companies, as internal infrastructure
+- ✅ **Redistribute** — under the same BSL terms
+
+### What you cannot do (until 2029-04-18)
+
+- ❌ Offer Lynx as a **competing managed service** (e.g., "Lynx Cloud")
+- ❌ Ship Lynx as a **standalone paid product**
+
+After the Change Date, Lynx automatically relicenses to Apache 2.0, making it fully OSI-compliant open source.
+
+For commercial licensing outside these terms, open an issue or contact the maintainer.

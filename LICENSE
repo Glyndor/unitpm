@@ -1,148 +1,39 @@
-LYNX COMMUNITY LICENSE
-Version 1.1
+Business Source License 1.1
 
-Copyright (c) 2025 Lynx contributors
-Official repository: https://github.com/Jaro-c/Lynx
+Parameters
 
+Licensor:             Jaro-c
+Licensed Work:        Lynx
+Change Date:          2029-04-18
+Change License:       Apache License, Version 2.0
+Additional Use Grant: You may make production use of the Licensed Work, 
+                      provided such use does not include offering the 
+                      Licensed Work as a competing managed service or 
+                      standalone paid product. Internal use within a 
+                      commercial entity is permitted.
 
-1. Project nature
+----------------------------------------------------------------------
 
-Lynx is a public, source-available project designed to securely,
-efficiently, and safely manage and supervise applications and services.
+The Licensor hereby grants you the right to copy, modify, create 
+derivative works, redistribute, and make use of the Licensed Work, 
+provided that you comply with the terms of this License.
 
-The project is developed with a community-driven, open, and transparent
-philosophy and is not intended to be a commercial product.
+The Licensed Work is not Open Source Software as defined by the Open 
+Source Initiative, but it will automatically convert to the Change 
+License on the Change Date specified above.
 
-Lynx may be used by individuals or organizations of any kind, provided
-that the terms of this license are respected.
+Terms of the License
 
+1. Grant of License. Subject to the terms and conditions of this 
+   License, Licensor hereby grants you a non-exclusive, worldwide, 
+   royalty-free, non-transferable license to use, copy, modify, 
+   and distribute the Licensed Work.
 
-2. Grant of rights
+2. Conditions. You must retain all copyright and license notices 
+   in all copies of the Licensed Work.
 
-Permission is hereby granted, free of charge, to any person or
-organization to:
+3. Conversion. On the Change Date, this License shall terminate 
+   and the Licensed Work shall be licensed under the Change License.
 
-- Use the software
-- Access and inspect the source code
-- Copy it
-- Modify it
-- Create forks
-- Redistribute the software or derivative works
-
-Provided that all terms of this license are strictly respected.
-
-
-3. Permitted use
-
-The software may be used freely, including within commercial
-organizations and for-profit environments, provided that:
-
-- The software is used solely as an internal tool
-- The software itself is not sold, licensed for a fee, or monetized
-- Access to the software is not conditioned on payment
-- The software is not offered as a product or service to third parties
-
-Use of the software as part of a company’s internal infrastructure is
-explicitly permitted.
-
-
-4. Prohibition of commercial exploitation
-
-The following activities are expressly prohibited:
-
-- Selling the software, in whole or in part
-- Reselling, sublicensing, or distributing it for a fee
-- Monetizing the software directly or indirectly
-- Offering it as part of a paid product or service
-- Using it in SaaS, PaaS, IaaS, or managed service models where access or
-  benefits are conditioned on payment
-- Offering access to the software as a service to third parties
-- Integrating it into proprietary, closed-source, or commercial solutions
-- Creating “premium”, “enterprise”, “cloud”, or equivalent editions
-
-Any form of commercial exploitation of the software is forbidden.
-
-
-5. Forks, modifications, and copyleft
-
-Forks and derivative works are permitted under the following mandatory
-conditions:
-
-- The complete source code must remain publicly accessible
-- Derivative works must remain open
-- This same license must be preserved verbatim
-- Relicensing under commercial or more restrictive terms is not allowed
-
-This license applies recursively to all derivative works.
-
-
-6. Use within commercial organizations
-
-Use of Lynx within for-profit companies or commercial organizations is
-permitted exclusively under the following conditions:
-
-- Internal use as a technical tool
-- No resale or commercial redistribution
-- No offering of the software as a service to third parties
-- No monetization of access, usage, or execution of the software
-
-Failure to comply with any of these conditions constitutes a violation
-of this license.
-
-
-7. Attribution
-
-Any redistribution or derivative work must clearly and visibly retain:
-
-- The original project name: Lynx
-- A link to the official repository: https://github.com/Jaro-c/Lynx
-- This complete license text
-
-Attribution may not be removed, hidden, or altered.
-
-
-8. Donations and contributions
-
-Voluntary donations are permitted to support the development of the
-project.
-
-Donations:
-
-- Do not constitute a sale
-- Do not grant additional rights
-- Do not enable commercial use
-- Do not create license exceptions
-
-Code contributions do not imply any transfer of commercial rights.
-
-
-9. Future licensing
-
-Only the original author of Lynx, or maintainers explicitly designated by
-that author, may publish future versions of Lynx under different license
-terms.
-
-Any version already released under this license shall remain permanently
-governed by these same terms.
-
-
-10. Disclaimer of warranty
-
-The software is provided "AS IS", without warranty of any kind, express or
-implied.
-
-The authors and contributors assume no liability for damages, data loss,
-security incidents, or misuse.
-
-Use of the software is entirely at the user's own risk.
-
-
-11. Acceptance
-
-Any use, copying, modification, or distribution of this software
-constitutes acceptance of the terms of this license.
-
-If you do not agree with these terms, do not use the software.
-
-
-END OF LICENSE
+4. Disclaimer of Warranty. THE LICENSED WORK IS PROVIDED "AS IS", 
+   WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED.
