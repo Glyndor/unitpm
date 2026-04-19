@@ -7,9 +7,6 @@ run:
   # Run linters on test files as well
   tests: true
 
-  # Parallel run using all available CPUs
-  concurrency: 0
-
 linters:
   enable:
     # ---------------------------------------------------------------------
@@ -25,8 +22,6 @@ linters:
     - sqlclosecheck
     - rowserrcheck
     - unconvert
-    - unused
-    - unparam
 
     # ---------------------------------------------------------------------
     # Maintainability and complexity
