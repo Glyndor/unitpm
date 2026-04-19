@@ -28,6 +28,8 @@ const DataDir = paths.DataDir
 // RegisterHandlers registers all daemon IPC handlers. Pass audit.Disabled()
 // to disable audit logging (user mode); pass an audit.Open(path) logger to
 // emit a JSONL line per destructive action.
+//
+//nolint:funlen // dispatcher inlines 60+ handler registrations for locality
 func RegisterHandlers(server *transport.Server, mgr *manager.Manager, privileged bool, auditor *audit.Logger) {
 	// Register ping handler
 	server.Register("ping", func(_ context.Context, _ jsonx.RawMessage) (jsonx.RawMessage, error) {

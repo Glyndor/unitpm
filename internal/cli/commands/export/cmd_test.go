@@ -115,8 +115,12 @@ func TestRun_Success_Entry(t *testing.T) {
 func TestRun_FiltersByNamespace(t *testing.T) {
 	dir := setupSpecDir(t)
 	// 2 specs in different namespaces
-	writeSpec(t, dir, "aaa-111", `{"version":1,"id":"aaa-111","name":"api","namespace":"prod","exec":{"type":"command","command":"echo"}}`)
-	writeSpec(t, dir, "bbb-222", `{"version":1,"id":"bbb-222","name":"dev","namespace":"staging","exec":{"type":"command","command":"echo"}}`)
+	writeSpec(t, dir, "aaa-111",
+		`{"version":1,"id":"aaa-111","name":"api","namespace":"prod",`+
+			`"exec":{"type":"command","command":"echo"}}`)
+	writeSpec(t, dir, "bbb-222",
+		`{"version":1,"id":"bbb-222","name":"dev","namespace":"staging",`+
+			`"exec":{"type":"command","command":"echo"}}`)
 
 	// Export prod → only api
 	err := export.Run([]string{"--namespace", "prod"})

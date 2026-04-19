@@ -33,7 +33,9 @@ func AuthorizeStart(spec protocol.AppSpec, _ *transport.Identity, daemonPrivileg
 	case "app_user", "explicit_user":
 		// Reserved for future per-app uid/gid isolation. Use "dynamic"
 		// (system mode) or "sandbox" (user mode) in the meantime.
-		return errors.New("ERR_UNSUPPORTED: run_as=" + spec.RunAs.Mode + " is not implemented yet; use 'dynamic' or 'sandbox'")
+		return errors.New(
+			"ERR_UNSUPPORTED: run_as=" + spec.RunAs.Mode +
+				" is not implemented yet; use 'dynamic' or 'sandbox'")
 	default:
 		return errors.New("ERR_BAD_REQUEST: invalid run_as mode")
 	}
