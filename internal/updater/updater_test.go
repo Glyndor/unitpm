@@ -3,8 +3,11 @@ package updater
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"net/http"
 	"net/http/httptest"
+	"runtime"
+	"strings"
 	"testing"
 
 	"github.com/Jaro-c/Lynx/internal/version"
@@ -141,4 +144,60 @@ func TestParseVersion(t *testing.T) {
 
 func TestIsManagedByPackageSystem_NoPanic(t *testing.T) {
 	_ = IsManagedByPackageSystem()
+}
+
+func TestApply_NoCompatibleBinary(t *testing.T) {
+	// Release ships only a foo_bar asset — nothing matches current GOOS/GOARCH.
+	release := &Release{
+		TagName: "v99.0.0",
+		Assets: []Asset{
+			{Name: "irrelevant-asset", BrowserDownloadURL: "https://example.com/x"},
+		},
+	}
+	err := Apply(context.Background(), release, ApplyOptions{AllowUnsigned: true})
+	if err == nil {
+		t.Fatal("expected error when no compatible asset is present")
+	}
+	if !strings.Contains(err.Error(), "no compatible binary") {
+		t.Errorf("expected 'no compatible binary' error, got: %v", err)
+	}
+}
+
+func TestApply_MissingSignatureRequiresFlag(t *testing.T) {
+	// Release has the binary but no .sig asset. Without AllowUnsigned, Apply
+	// must refuse with ErrSignatureRequired.
+	target := "lynx_" + runtime.GOOS + "_" + runtime.GOARCH
+	release := &Release{
+		TagName: "v99.0.0",
+		Assets: []Asset{
+			{Name: target, BrowserDownloadURL: "https://example.invalid/bin"},
+		},
+	}
+	err := Apply(context.Background(), release, ApplyOptions{AllowUnsigned: false})
+	if err == nil {
+		t.Fatal("expected ErrSignatureRequired when .sig asset is missing")
+	}
+	if !errors.Is(err, ErrSignatureRequired) {
+		t.Errorf("expected ErrSignatureRequired, got: %v", err)
+	}
+}
+
+func TestApply_AllowUnsignedBypassesSigCheck(t *testing.T) {
+	// With AllowUnsigned=true the pre-download signature check is skipped.
+	// Apply will still fail because the download URL is bogus, but the error
+	// must NOT be ErrSignatureRequired.
+	target := "lynx_" + runtime.GOOS + "_" + runtime.GOARCH
+	release := &Release{
+		TagName: "v99.0.0",
+		Assets: []Asset{
+			{Name: target, BrowserDownloadURL: "https://127.0.0.1:1/bin"},
+		},
+	}
+	err := Apply(context.Background(), release, ApplyOptions{AllowUnsigned: true})
+	if err == nil {
+		t.Fatal("expected network error from bogus download URL")
+	}
+	if errors.Is(err, ErrSignatureRequired) {
+		t.Errorf("ErrSignatureRequired surfaced despite AllowUnsigned=true: %v", err)
+	}
 }
