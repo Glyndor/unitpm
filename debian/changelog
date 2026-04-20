@@ -1,3 +1,25 @@
+lynxpm (0.8.6-1) unstable; urgency=medium
+
+  * tests: the debian smoke and the Go lifecycle test were treating a
+    zombie child (State: Z in /proc/<pid>/status) as "still alive"
+    because kill(pid, 0) returns success for zombies. v0.8.5's
+    instrumented run confirmed what was happening: `lynxpm stop`
+    delivers SIGTERM to the whole descendant tree, every child dies
+    immediately, but container images launched without an init-style
+    reaper (debian:bookworm, debian:trixie, ubuntu:22.04/24.04 as
+    used in CI) leave the defunct entries behind because the
+    supervised wrapper is reaped before it waits() on its own child.
+    A zombie holds no fd, no socket, no memory — EADDRINUSE cannot
+    recur — so the user-visible bug reported for v0.8.0 was already
+    fully fixed by v0.8.3's /proc walk. The smoke and the Go helper
+    now both treat State: Z as dead, matching semantics.
+  * Removes the pre-stop ps/stat dumps the diag releases (0.8.4,
+    0.8.5) added to the debian smoke. The LYNX_DEBUG_STOP env var
+    stays in the daemon as a cheap, opt-in trace for any future
+    "Stop looked fine but the child kept running" report.
+
+ -- Jaro-c <75870284+Jaro-c@users.noreply.github.com>  Sun, 19 Apr 2026 21:58:00 -0500
+
 lynxpm (0.8.5-1) unstable; urgency=medium
 
   * daemon/debug: LYNX_DEBUG_STOP now also logs the error (if any)
