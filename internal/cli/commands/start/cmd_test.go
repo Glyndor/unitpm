@@ -1,8 +1,10 @@
 package start_test
 
 import (
+	"bytes"
 	"encoding/json"
 	"errors"
+	"io"
 	"os"
 	"reflect"
 	"strings"
@@ -105,6 +107,132 @@ func TestGetSpec(t *testing.T) {
 	if spec.Name != "start" {
 		t.Errorf("expected name 'start', got %s", spec.Name)
 	}
+}
+
+func TestRun_JSONOutput(t *testing.T) {
+	t.Setenv("XDG_CONFIG_HOME", t.TempDir())
+
+	mc := &mockClient{
+		response: protocol.StartResponseData{
+			ProcID: "id-0",
+			PID:    1111,
+			Status: "running",
+		},
+	}
+	got := captureStdout(t, func() {
+		if err := start.Run(mc, []string{"echo", "--scale", "2", "--json"}); err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+	})
+	var decoded struct {
+		Started []struct {
+			Name   string `json:"name"`
+			ID     string `json:"id"`
+			PID    int    `json:"pid"`
+			Status string `json:"status"`
+		} `json:"started"`
+		Count int `json:"count"`
+	}
+	if err := json.Unmarshal([]byte(got), &decoded); err != nil {
+		t.Fatalf("invalid JSON: %v\nraw: %s", err, got)
+	}
+	if decoded.Count != 2 || len(decoded.Started) != 2 {
+		t.Errorf("decoded = %+v", decoded)
+	}
+	if !strings.HasPrefix(strings.TrimSpace(got), "{") {
+		t.Errorf("expected pure JSON, got:\n%s", got)
+	}
+}
+
+func TestRun_DryRunJSON(t *testing.T) {
+	// --dry-run --json must emit spec+scale without contacting daemon.
+	got := captureStdout(t, func() {
+		if err := start.Run(nil, []string{"--dry-run", "--json", "echo", "hello"}); err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+	})
+	var decoded struct {
+		Spec  protocol.AppSpec `json:"spec"`
+		Scale int              `json:"scale"`
+	}
+	if err := json.Unmarshal([]byte(got), &decoded); err != nil {
+		t.Fatalf("invalid JSON: %v\nraw: %s", err, got)
+	}
+	if decoded.Scale != 1 {
+		t.Errorf("scale = %d, want 1", decoded.Scale)
+	}
+	if decoded.Spec.Exec.Command == "" {
+		t.Errorf("spec.exec.command missing: %+v", decoded.Spec.Exec)
+	}
+}
+
+func TestRun_JSONPartialOnFailure(t *testing.T) {
+	// First instance starts, second fails → abort. Partial JSON
+	// report must still hit stdout so CI can see what started.
+	t.Setenv("XDG_CONFIG_HOME", t.TempDir())
+
+	calls := 0
+	mc := &scriptedMock{fn: func(cmd string, _ any, result any) error {
+		calls++
+		if calls == 2 {
+			return errors.New("daemon boom")
+		}
+		b, _ := json.Marshal(protocol.StartResponseData{
+			ProcID: "id-0",
+			PID:    1111,
+			Status: "running",
+		})
+		_ = json.Unmarshal(b, result)
+		return nil
+	}}
+
+	got := captureStdout(t, func() {
+		err := start.Run(mc, []string{"echo", "--scale", "3", "--json"})
+		if err == nil {
+			t.Error("expected error on second instance failure")
+		}
+	})
+	if got == "" {
+		t.Fatal("expected partial JSON report on stdout")
+	}
+	var decoded map[string]any
+	if err := json.Unmarshal([]byte(got), &decoded); err != nil {
+		t.Fatalf("invalid JSON: %v\nraw: %s", err, got)
+	}
+	if decoded["partial"] != true {
+		t.Errorf("expected partial=true; got %+v", decoded)
+	}
+	if n, _ := decoded["failed_at_instance"].(float64); int(n) != 2 {
+		t.Errorf("expected failed_at_instance=2, got %v", decoded["failed_at_instance"])
+	}
+}
+
+type scriptedMock struct {
+	fn func(cmd string, params, result any) error
+}
+
+func (m *scriptedMock) Call(cmd string, p any, r any) error { return m.fn(cmd, p, r) }
+func (m *scriptedMock) Close() error                        { return nil }
+
+func captureStdout(t *testing.T, fn func()) string {
+	t.Helper()
+	orig := os.Stdout
+	r, w, err := os.Pipe()
+	if err != nil {
+		t.Fatalf("pipe: %v", err)
+	}
+	os.Stdout = w
+	done := make(chan struct{})
+	var buf bytes.Buffer
+	go func() {
+		_, _ = io.Copy(&buf, r)
+		close(done)
+	}()
+	fn()
+	_ = w.Close()
+	<-done
+	os.Stdout = orig
+	return buf.String()
 }
 
 func TestParseAppSpec(t *testing.T) {

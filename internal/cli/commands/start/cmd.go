@@ -13,8 +13,10 @@ import (
 
 	"github.com/Jaro-c/Lynx/internal/cli/errs"
 	"github.com/Jaro-c/Lynx/internal/cli/help"
+	"github.com/Jaro-c/Lynx/internal/cli/table"
 	"github.com/Jaro-c/Lynx/internal/ipc/protocol"
 	"github.com/Jaro-c/Lynx/internal/ipc/transport"
+	"github.com/Jaro-c/Lynx/internal/jsonx"
 	"github.com/Jaro-c/Lynx/internal/spec"
 	"github.com/Jaro-c/Lynx/internal/term"
 )
@@ -29,10 +31,15 @@ func Run(client transport.IPCClient, args []string) error {
 	}
 
 	dryRun := false
+	jsonOut := false
 	filtered := make([]string, 0, len(args))
 	for _, a := range args {
-		if a == "--dry-run" || a == "-n" {
+		switch a {
+		case "--dry-run", "-n":
 			dryRun = true
+			continue
+		case "--json":
+			jsonOut = true
 			continue
 		}
 		filtered = append(filtered, a)
@@ -49,7 +56,7 @@ func Run(client transport.IPCClient, args []string) error {
 	}
 
 	if dryRun {
-		return printDryRun(appSpec, scale)
+		return printDryRun(appSpec, scale, jsonOut)
 	}
 
 	if client == nil {
@@ -72,6 +79,15 @@ func Run(client transport.IPCClient, args []string) error {
 			baseName = filepath.Base(appSpec.Exec.Command)
 		}
 	}
+
+	type startedInstance struct {
+		Name      string `json:"name"`
+		ID        string `json:"id"`
+		PID       int    `json:"pid"`
+		Status    string `json:"status"`
+		Namespace string `json:"namespace,omitempty"`
+	}
+	var started []startedInstance
 
 	for i := 0; i < scale; i++ {
 		thisSpec := appSpec
@@ -129,12 +145,46 @@ func Run(client transport.IPCClient, args []string) error {
 			// Daemon rejected the spec — remove it from disk to prevent phantom
 			// entries being restored on next daemon restart.
 			_ = spec.DeleteSpec(thisSpec.ID)
+			if jsonOut && len(started) > 0 {
+				// Emit the partial result so callers can see which instances
+				// actually started before the failure.
+				b, _ := jsonx.Marshal(map[string]any{
+					"partial": true,
+					"started": started,
+					"failed_at_instance": i + 1,
+					"error":   err.Error(),
+				})
+				_, _ = fmt.Fprintln(os.Stdout, string(b))
+			}
 			return fmt.Errorf("start failed for instance %d: %w", i+1, err)
 		}
 
-		printSuccessResponse(&startResp, thisSpec.Name)
+		started = append(started, startedInstance{
+			Name:      thisSpec.Name,
+			ID:        startResp.ProcID,
+			PID:       startResp.PID,
+			Status:    startResp.Status,
+			Namespace: thisSpec.Namespace,
+		})
+
+		if !jsonOut {
+			printSuccessResponse(&startResp, thisSpec.Name)
+		}
 	}
 
+	if jsonOut {
+		shape := map[string]any{"started": started, "count": len(started)}
+		b, err := jsonx.Marshal(shape)
+		if err != nil {
+			return fmt.Errorf("json encode failed: %w", err)
+		}
+		_, err = fmt.Fprintln(os.Stdout, string(b))
+		return err
+	}
+
+	if scale > 1 {
+		_, _ = term.Printf("\n%s Started %d instances\n", term.GreenString("✓"), len(started))
+	}
 	return nil
 }
 
@@ -548,33 +598,49 @@ func PrintHelp() {
 }
 
 // printDryRun renders the resolved spec without talking to the daemon.
-func printDryRun(spec protocol.AppSpec, scale int) error {
-	_, _ = term.Printf("%s Dry run — would start %d instance(s):\n", term.CyanString("i"), scale)
-	_, _ = term.Printf("  command:   %s\n", spec.Exec.Command)
+// When jsonOut is true, emits the full AppSpec + scale as JSON so callers
+// can inspect the parsed invocation programmatically.
+func printDryRun(spec protocol.AppSpec, scale int, jsonOut bool) error {
+	if jsonOut {
+		b, err := jsonx.Marshal(map[string]any{"spec": spec, "scale": scale})
+		if err != nil {
+			return fmt.Errorf("json encode failed: %w", err)
+		}
+		_, err = fmt.Fprintln(os.Stdout, string(b))
+		return err
+	}
+
+	_, _ = term.Printf("%s Dry run — would start %d instance(s)\n\n",
+		term.CyanString("i"), scale)
+
+	rows := []table.KVRow{
+		{"command", spec.Exec.Command},
+	}
 	if len(spec.Exec.Args) > 0 {
-		_, _ = term.Printf("  args:      %v\n", spec.Exec.Args)
+		rows = append(rows, table.KVRow{"args", strings.Join(spec.Exec.Args, " ")})
 	}
 	if spec.Exec.Entry != "" {
-		_, _ = term.Printf("  entry:     %s (%s)\n", spec.Exec.Entry, spec.Exec.Runtime)
+		rows = append(rows, table.KVRow{"entry", fmt.Sprintf("%s (%s)", spec.Exec.Entry, spec.Exec.Runtime)})
 	}
-	_, _ = term.Printf("  cwd:       %s\n", spec.Cwd)
-	_, _ = term.Printf("  namespace: %s\n", spec.Namespace)
-	if spec.Name != "" {
-		_, _ = term.Printf("  name:      %s\n", spec.Name)
-	}
+	rows = append(rows,
+		table.KVRow{"cwd", spec.Cwd},
+		table.KVRow{"namespace", spec.Namespace},
+		table.KVRow{"name", spec.Name},
+	)
 	if spec.RunAs != nil && spec.RunAs.Mode != "self" {
-		_, _ = term.Printf("  isolation: %s\n", spec.RunAs.Mode)
+		rows = append(rows, table.KVRow{"isolation", spec.RunAs.Mode})
 	}
 	if spec.Cron != "" {
-		_, _ = term.Printf("  schedule:  %s\n", spec.Cron)
+		rows = append(rows, table.KVRow{"schedule", spec.Cron})
 	}
 	if spec.Restart != nil {
-		_, _ = term.Printf("  restart:   policy=%s max=%d backoff=%s\n",
-			spec.Restart.Policy, spec.Restart.MaxRetries, spec.Restart.BackoffType)
+		rows = append(rows, table.KVRow{"restart", fmt.Sprintf("policy=%s max=%d backoff=%s",
+			spec.Restart.Policy, spec.Restart.MaxRetries, spec.Restart.BackoffType)})
 	}
 	if spec.EnvFile != "" {
-		_, _ = term.Printf("  env-file:  %s\n", spec.EnvFile)
+		rows = append(rows, table.KVRow{"env-file", spec.EnvFile})
 	}
+	table.KV("Spec", rows)
 	return nil
 }
 
@@ -667,6 +733,7 @@ func GetSpec() help.CommandSpec {
 			{Short: "", Long: "--watch", Description: "Restart on file changes in cwd"},
 			{Short: "", Long: "--watch-ignore <globs>", Description: "Extra ignore patterns (comma-separated)"},
 			{Short: "-n", Long: "--dry-run", Description: "Print the resolved spec without starting anything"},
+			{Short: "", Long: "--json", Description: "Emit the start result as JSON on stdout"},
 			{Short: "-q", Long: "--quiet", Description: "Suppress success messages (errors still printed)"},
 		},
 		Examples: []string{
