@@ -227,18 +227,35 @@ func TestStopKillsForkedChildren(t *testing.T) {
 	// Give the kernel a moment to deliver SIGTERM -> SIGCHLD reaping.
 	time.Sleep(500 * time.Millisecond)
 
-	if alive(parentPID) {
+	if aliveAndRunning(parentPID) {
 		t.Errorf("parent PID %d still alive after Stop", parentPID)
 	}
-	if alive(childPID) {
+	if aliveAndRunning(childPID) {
 		t.Errorf("child PID %d still alive after Stop — process group not killed", childPID)
 	}
 }
 
-// alive reports whether pid currently exists. Uses kill(pid, 0) which
-// returns ESRCH for dead processes and nil for live ones.
-func alive(pid int) bool {
-	return syscall.Kill(pid, 0) == nil
+// aliveAndRunning reports whether pid exists AND is not already a zombie.
+// Zombies (State: Z in /proc/<pid>/status) hold no file descriptors, no
+// sockets, and no memory — they are indistinguishable from "dead" for any
+// purpose Stop cares about. Treating them as alive would false-positive
+// in containers whose PID 1 is not a reaper (debian/ubuntu runner images
+// launched without tini/dumb-init), where the supervised wrapper dies
+// before it can wait() on its own child.
+func aliveAndRunning(pid int) bool {
+	if syscall.Kill(pid, 0) != nil {
+		return false
+	}
+	b, err := os.ReadFile("/proc/" + strconv.Itoa(pid) + "/status")
+	if err != nil {
+		return false
+	}
+	for _, line := range strings.Split(string(b), "\n") {
+		if strings.HasPrefix(line, "State:") {
+			return !strings.Contains(line, "Z")
+		}
+	}
+	return true
 }
 
 func TestCronEveryIntervalBounds(t *testing.T) {

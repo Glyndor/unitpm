@@ -153,7 +153,7 @@ jobs:
           export XDG_RUNTIME_DIR=/tmp/xdg-test
           export HOME=/home/testuser
 
-          LYNX_DEBUG_STOP=1 lynxd >/tmp/lynxd.log 2>&1 &
+          lynxd >/tmp/lynxd.log 2>&1 &
           DAEMON_PID=$!
           trap 'kill "$DAEMON_PID" 2>/dev/null || true' EXIT
 
@@ -175,9 +175,6 @@ jobs:
           [ "$(lynxpm list --json)" = "[]" ]
 
           # Regression guard for the process-group stop bug (v0.8.1).
-          # Extra diagnostics: dump ppid chain of the to-be-forked child
-          # so the lynxd.log excerpt later correlates with what
-          # walkDescendants was seeing at /proc scan time.
           # Spawn a bash wrapper that backgrounds a long sleep and waits;
           # then stop the wrapper and assert the child PID is also dead.
           # Without kill(-pid, sig) this child would leak as an orphan
@@ -193,17 +190,18 @@ jobs:
           CHILD_PID=$(cat "$PIDFILE")
           [ -n "$CHILD_PID" ] || { echo "FAIL: child PID never recorded"; exit 1; }
           kill -0 "$CHILD_PID" 2>/dev/null || { echo "FAIL: child $CHILD_PID not alive before stop"; exit 1; }
-          echo "----- pre-stop ps -ef (full) -----"
-          ps -ef || true
-          echo "----- /proc/$CHILD_PID/stat -----"
-          cat /proc/$CHILD_PID/stat 2>/dev/null || echo "(unreadable)"
-          echo "----- /proc/$CHILD_PID/status (Uid/SigIgn/SigCgt) -----"
-          grep -E '^Uid|^SigIgn|^SigCgt|^Name|^State|^PPid' /proc/$CHILD_PID/status 2>/dev/null || echo "(unreadable)"
-          echo "-----"
           lynxpm stop fork-smoke
           sleep 1
-          if kill -0 "$CHILD_PID" 2>/dev/null; then
+          # Zombies (State: Z) hold no fds or sockets — they're already
+          # functionally dead. Only treat the child as "survived" if it's
+          # both alive (kill -0) AND not a zombie in /proc/<pid>/status.
+          # Required because the debian / ubuntu smoke containers boot
+          # without an init-style reaper, so the supervised wrapper dies
+          # before it can wait() on its own backgrounded child.
+          if kill -0 "$CHILD_PID" 2>/dev/null && \
+             ! grep -q '^State:.*Z' /proc/$CHILD_PID/status 2>/dev/null; then
               echo "FAIL: child $CHILD_PID survived Stop — process group not killed"
+              ps -p $CHILD_PID -o pid,ppid,state,cmd 2>/dev/null || true
               exit 1
           fi
           lynxpm delete fork-smoke
