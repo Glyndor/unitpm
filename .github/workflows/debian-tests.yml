@@ -64,6 +64,22 @@ jobs:
           path: debs/*.deb
           retention-days: 7
 
+      - name: Cross-compile sample Go binary for smoke
+        # testdata/apps/go-compiled ships as source only; install-matrix
+        # containers lack a Go toolchain, so we build it here (CGO off
+        # for matching no-shlib-deps semantics with the real release
+        # binaries) and ship it alongside the .deb.
+        env:
+          CGO_ENABLED: "0"
+        run: make -C testdata/apps/go-compiled build
+
+      - name: Upload testdata-compiled artifact
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: testdata-compiled
+          path: testdata/apps/go-compiled/go-compiled
+          retention-days: 7
+
   lintian:
     name: Lintian
     needs: build-deb
@@ -107,6 +123,11 @@ jobs:
           name: lynxpm-deb
           path: debs
 
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: testdata-compiled
+          path: testdata/apps/go-compiled/
+
       - name: Prepare container (block service start, no interactive prompts)
         run: |
           set -eux
@@ -147,10 +168,15 @@ jobs:
         # HTTP listener — against the binary the .deb actually installs.
         run: |
           set -eux
-          # procps+util-linux for pgrep/pkill/runuser; nodejs/python3 for
-          # the runtime apps; bash/coreutils ship in the base image.
+          # procps+util-linux for pgrep/pkill/runuser; one of each
+          # supported interpreter for the sample apps. php-cli + ruby
+          # added in v0.9.2 alongside the go-compiled artifact. bash/
+          # coreutils ship in the base image.
           apt-get install -y --no-install-recommends \
-              procps util-linux nodejs python3
+              procps util-linux nodejs python3 php-cli ruby
+          # The downloaded artifact lands without +x; make the binary
+          # executable before the smoke tries to run it.
+          chmod +x testdata/apps/go-compiled/go-compiled
 
           id testuser 2>/dev/null || useradd -m -s /bin/sh testuser
 

@@ -86,3 +86,10 @@ gosec*
 # =====================
 *.txt
 readme_tag.md
+
+# =====================
+# Test artifacts
+# =====================
+# Built by CI (and `make -C testdata/apps/go-compiled build` locally),
+# never checked in — the source is enough.
+testdata/apps/go-compiled/go-compiled

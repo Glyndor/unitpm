@@ -12,6 +12,8 @@ Runtime toolchains required:
 | `node-ignores-term/` | `node`        | Listener that masks SIGTERM → forces SIGKILL timeout     |
 | `python-worker/`     | `python3`     | Long-running worker; verifies plain start/stop/list      |
 | `python-crashloop/`  | `python3`     | Exits 1 after 1s → regresses `--max-restarts` cap        |
+| `php-worker/`        | `php` (CLI)   | PHP worker with pcntl SIGTERM handling                   |
+| `ruby-worker/`       | `ruby`        | Ruby worker with Signal.trap SIGTERM handling            |
 | `go-compiled/`       | `go` (build)  | Compiled binary with ctx-based graceful shutdown         |
 | `shell-forkstorm/`   | `bash`        | Forks 10 workers → regresses the `/proc` descendant walk |
 

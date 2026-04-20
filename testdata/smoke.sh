@@ -126,4 +126,90 @@ else
     echo "=== scenario: node HTTP (skipped — node not installed) ==="
 fi
 
+# Scenario 7: PHP worker. Same shape as python-worker / ruby-worker —
+# validates the supervisor behaves identically across interpreted
+# runtimes. Skipped on images without `php`.
+if command -v php >/dev/null; then
+    echo "=== scenario: PHP worker ==="
+    lynxpm start "php $APPS_DIR/php-worker/worker.php" --name phpw --restart never
+    sleep 1
+    lynxpm logs phpw --stdout --lines 10 2>/dev/null | grep -q 'php-worker pid=' || \
+        die "php-worker never printed its startup line"
+    lynxpm stop   phpw
+    lynxpm delete phpw --purge
+else
+    echo "=== scenario: PHP worker (skipped — php not installed) ==="
+fi
+
+# Scenario 8: Ruby worker. Mirrors scenario 7 for a different
+# stdlib-only interpreter.
+if command -v ruby >/dev/null; then
+    echo "=== scenario: Ruby worker ==="
+    lynxpm start "ruby $APPS_DIR/ruby-worker/worker.rb" --name rbw --restart never
+    sleep 1
+    lynxpm logs rbw --stdout --lines 10 2>/dev/null | grep -q 'ruby-worker pid=' || \
+        die "ruby-worker never printed its startup line"
+    lynxpm stop   rbw
+    lynxpm delete rbw --purge
+else
+    echo "=== scenario: Ruby worker (skipped — ruby not installed) ==="
+fi
+
+# Scenario 9: Compiled Go binary. Lives at testdata/apps/go-compiled/
+# — cross-compiled by the build-deb job and shipped alongside the
+# .deb so the install-matrix containers (which don't carry the Go
+# toolchain) can still exercise a statically-linked binary.
+GO_BIN="$APPS_DIR/go-compiled/go-compiled"
+if [ -x "$GO_BIN" ]; then
+    echo "=== scenario: compiled Go binary ==="
+    lynxpm start "$GO_BIN" --name gob --restart never
+    sleep 1
+    lynxpm logs gob --stdout --lines 10 2>/dev/null | grep -q 'go-compiled pid=' || \
+        die "go-compiled never printed its startup line"
+    lynxpm stop   gob
+    lynxpm delete gob --purge
+else
+    echo "=== scenario: Go binary (skipped — $GO_BIN not built) ==="
+fi
+
+# Scenario 10: SIGKILL fallback. node-ignores-term masks SIGTERM, so
+# the supervisor has to escalate to SIGKILL after --stop-timeout
+# expires. With --stop-timeout 2000 the whole stop must complete in
+# the 2-4s window (2s grace + signal delivery latency); anything
+# beyond that means the SIGKILL path did not fire.
+if command -v node >/dev/null; then
+    echo "=== scenario: SIGKILL fallback ==="
+    lynxpm start "node $APPS_DIR/node-ignores-term/server.js" \
+        --name stubborn --restart never \
+        --stop-signal SIGTERM --stop-timeout 2000
+    sleep 1
+    START=$(date +%s)
+    lynxpm stop stubborn
+    END=$(date +%s)
+    ELAPSED=$((END - START))
+    [ "$ELAPSED" -le 4 ] || die "stop took ${ELAPSED}s — SIGKILL fallback did not fire"
+    [ "$ELAPSED" -ge 2 ] || die "stop returned in ${ELAPSED}s (<2s) — SIGTERM handler did NOT get ignored as expected"
+    lynxpm delete stubborn --purge
+else
+    echo "=== scenario: SIGKILL fallback (skipped — node not installed) ==="
+fi
+
+# Scenario 11: scale. Starts 3 instances in one invocation, then
+# scales down to 1 and up to 2 to exercise the full scale surface.
+echo "=== scenario: scale up + down ==="
+lynxpm start "/bin/sleep 300" --name scaleapp --namespace scalens \
+    --restart never --scale 3
+# scale target is set via the spec name in the namespace; verify count.
+COUNT=$(lynxpm list --namespace scalens --json | grep -o '"namespace":"scalens"' | wc -l)
+[ "$COUNT" -eq 3 ] || die "expected 3 scaleapp instances, got $COUNT"
+lynxpm scale scalens:scaleapp 1
+sleep 1
+COUNT=$(lynxpm list --namespace scalens --json | grep -o '"namespace":"scalens"' | wc -l)
+[ "$COUNT" -eq 1 ] || die "after scale 1, expected 1 instance, got $COUNT"
+lynxpm scale scalens:scaleapp 2
+sleep 1
+COUNT=$(lynxpm list --namespace scalens --json | grep -o '"namespace":"scalens"' | wc -l)
+[ "$COUNT" -eq 2 ] || die "after scale 2, expected 2 instances, got $COUNT"
+lynxpm delete 'scalens:*' --purge >/dev/null
+
 echo "=== all smoke scenarios passed ==="
