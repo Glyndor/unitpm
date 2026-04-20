@@ -4,7 +4,10 @@
 //
 // Port is read from PORT env (default 0 = random free port) so the
 // test harness can run multiple instances without colliding.
-const http = require('node:http');
+// Plain 'http' (not 'node:http') so this file works on the older
+// node that ships as `nodejs` on ubuntu:22.04 (v12) — the node:
+// prefix requires >=16.
+const http = require('http');
 
 const port = Number(process.env.PORT || 0);
 const server = http.createServer((_req, res) => {

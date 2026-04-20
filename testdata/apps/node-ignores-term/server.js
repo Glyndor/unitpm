@@ -5,7 +5,7 @@
 // NOTE: this app is evil on purpose. Never deploy this shape — real
 // apps must honour SIGTERM. Tests exist to prove the supervisor
 // protects operators even when the supervised app misbehaves.
-const http = require('node:http');
+const http = require('http');
 
 process.on('SIGTERM', () => {
     process.stdout.write('node-ignores-term: ignoring SIGTERM\n');
