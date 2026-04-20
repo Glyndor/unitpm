@@ -1,3 +1,17 @@
+lynxpm (0.9.3-1) unstable; urgency=medium
+
+  * ci: set DEBIAN_FRONTEND=noninteractive on the smoke step. Adding
+    the ruby apt install in v0.9.2 pulled tzdata in on ubuntu:22.04
+    (its dependency chain requires tzdata for localtime handling),
+    whose postinst opened an interactive "select geographic area"
+    prompt on the tty and hung the whole job until GH Actions timed
+    it out at the 14-minute mark. The earlier smoke steps already
+    set the frontend implicitly; the interpreter-install step was
+    the only one that did not, because it did not need it until
+    ruby arrived.
+
+ -- Jaro-c <75870284+Jaro-c@users.noreply.github.com>  Sun, 19 Apr 2026 23:00:00 -0500
+
 lynxpm (0.9.2-1) unstable; urgency=medium
 
   * tests: two new runtime samples — php-worker (uses pcntl for
