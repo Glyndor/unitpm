@@ -1,8 +1,11 @@
 package scale_test
 
 import (
+	"bytes"
 	"encoding/json"
 	"errors"
+	"io"
+	"os"
 	"strings"
 	"testing"
 
@@ -117,4 +120,73 @@ func TestGetSpec(t *testing.T) {
 
 func TestPrintHelp(t *testing.T) {
 	scale.PrintHelp()
+}
+
+func TestRun_JSONOutput(t *testing.T) {
+	mc := &mockClient{
+		response: map[string]any{
+			"base_name": "worker",
+			"namespace": "default",
+			"before":    2,
+			"after":     4,
+			"created":   []string{"worker-3", "worker-4"},
+		},
+	}
+	got := captureStdout(t, func() {
+		if err := scale.Run(mc, []string{"worker", "4", "--json"}); err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+	})
+	var decoded struct {
+		BaseName string   `json:"base_name"`
+		Before   int      `json:"before"`
+		After    int      `json:"after"`
+		Created  []string `json:"created"`
+	}
+	if err := json.Unmarshal([]byte(got), &decoded); err != nil {
+		t.Fatalf("invalid JSON: %v\nraw: %s", err, got)
+	}
+	if decoded.BaseName != "worker" || decoded.Before != 2 || decoded.After != 4 {
+		t.Errorf("decoded = %+v", decoded)
+	}
+	if len(decoded.Created) != 2 {
+		t.Errorf("created len = %d, want 2", len(decoded.Created))
+	}
+	// --json must be pure JSON, no human lines mixed in.
+	if !strings.HasPrefix(strings.TrimSpace(got), "{") {
+		t.Errorf("expected pure JSON, got:\n%s", got)
+	}
+}
+
+func TestRun_FlagAfterPositionals(t *testing.T) {
+	mc := &mockClient{response: map[string]any{"base_name": "w", "before": 1, "after": 2}}
+	got := captureStdout(t, func() {
+		if err := scale.Run(mc, []string{"worker", "2", "--json"}); err != nil {
+			t.Fatalf("flag-after-positionals failed: %v", err)
+		}
+	})
+	if !strings.HasPrefix(strings.TrimSpace(got), "{") {
+		t.Errorf("--json at the end should still be honored; got:\n%s", got)
+	}
+}
+
+func captureStdout(t *testing.T, fn func()) string {
+	t.Helper()
+	orig := os.Stdout
+	r, w, err := os.Pipe()
+	if err != nil {
+		t.Fatalf("pipe: %v", err)
+	}
+	os.Stdout = w
+	done := make(chan struct{})
+	var buf bytes.Buffer
+	go func() {
+		_, _ = io.Copy(&buf, r)
+		close(done)
+	}()
+	fn()
+	_ = w.Close()
+	<-done
+	os.Stdout = orig
+	return buf.String()
 }

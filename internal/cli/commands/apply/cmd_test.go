@@ -1,8 +1,10 @@
 package apply_test
 
 import (
+	"bytes"
 	"encoding/json"
 	"errors"
+	"io"
 	"os"
 	"strings"
 	"testing"
@@ -124,4 +126,84 @@ func TestRun_IPCError(t *testing.T) {
 	if !strings.Contains(err.Error(), "apply failed") {
 		t.Errorf("unexpected error: %v", err)
 	}
+}
+
+func TestRun_JSONOutput(t *testing.T) {
+	path := writeTempLynxfile(t, validLynxfile)
+	mc := &mockClient{response: protocol.StartResponseData{
+		ProcID: "id-1",
+		PID:    1234,
+		Status: "running",
+	}}
+
+	got := captureStdout(t, func() {
+		if err := apply.Run(mc, []string{path, "--json"}); err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+	})
+	var decoded struct {
+		Op      string `json:"op"`
+		Results []struct {
+			ID     string         `json:"id"`
+			Status string         `json:"status"`
+			Extra  map[string]any `json:"extra,omitempty"`
+		} `json:"results"`
+		Summary struct {
+			Total, Ok, Failed int
+		} `json:"summary"`
+	}
+	if err := json.Unmarshal([]byte(got), &decoded); err != nil {
+		t.Fatalf("invalid JSON: %v\nraw: %s", err, got)
+	}
+	if decoded.Op != "apply" {
+		t.Errorf("op=%q", decoded.Op)
+	}
+	if decoded.Summary.Total != 1 || decoded.Summary.Ok != 1 {
+		t.Errorf("summary = %+v", decoded.Summary)
+	}
+	if !strings.HasPrefix(strings.TrimSpace(got), "{") {
+		t.Errorf("expected pure JSON, got:\n%s", got)
+	}
+}
+
+func TestRun_JSONOutputPartialOnAbort(t *testing.T) {
+	path := writeTempLynxfile(t, validLynxfile)
+	mc := &mockClient{err: errors.New("daemon unavailable")}
+
+	got := captureStdout(t, func() {
+		_ = apply.Run(mc, []string{path, "--json"})
+	})
+	// Even on abort, --json must emit something structured so CI
+	// scripts know which apps were applied before the failure.
+	var decoded map[string]any
+	if err := json.Unmarshal([]byte(got), &decoded); err != nil {
+		t.Fatalf("expected JSON even on abort; got:\n%s\nerr: %v", got, err)
+	}
+	// Partial-at-first-spec: shape is the batch report with summary.failed>=1.
+	if sum, ok := decoded["summary"].(map[string]any); ok {
+		if failed, _ := sum["failed"].(float64); failed < 1 {
+			t.Errorf("expected summary.failed >= 1, got %v", sum)
+		}
+	}
+}
+
+func captureStdout(t *testing.T, fn func()) string {
+	t.Helper()
+	orig := os.Stdout
+	r, w, err := os.Pipe()
+	if err != nil {
+		t.Fatalf("pipe: %v", err)
+	}
+	os.Stdout = w
+	done := make(chan struct{})
+	var buf bytes.Buffer
+	go func() {
+		_, _ = io.Copy(&buf, r)
+		close(done)
+	}()
+	fn()
+	_ = w.Close()
+	<-done
+	os.Stdout = orig
+	return buf.String()
 }
