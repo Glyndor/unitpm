@@ -832,21 +832,30 @@ func gracefulKill(proc *os.Process, stopSignal syscall.Signal, timeout time.Dura
 // since Stop is expected to be monotonic: never a no-op, never a hang.
 func signalTree(proc *os.Process, sig syscall.Signal) error {
 	descendants := walkDescendants(proc.Pid)
-	if os.Getenv("LYNX_DEBUG_STOP") != "" {
+	debug := os.Getenv("LYNX_DEBUG_STOP") != ""
+	if debug {
 		log.Printf("stop: root=%d descendants=%v sig=%d", proc.Pid, descendants, sig)
 	}
 
 	for _, pid := range descendants {
-		_ = syscall.Kill(pid, sig)
+		err := syscall.Kill(pid, sig)
+		if debug && err != nil {
+			log.Printf("stop: kill pid=%d sig=%d err=%v", pid, sig, err)
+		}
 	}
 
-	if err := syscall.Kill(-proc.Pid, sig); err != nil && !errors.Is(err, syscall.ESRCH) {
-		// Non-ESRCH pgroup failure is unusual; surface it so the
-		// caller can decide whether to fall back to SIGKILL.
-		return err
+	gerr := syscall.Kill(-proc.Pid, sig)
+	if debug && gerr != nil {
+		log.Printf("stop: kill -pgrp=%d sig=%d err=%v", proc.Pid, sig, gerr)
+	}
+	if gerr != nil && !errors.Is(gerr, syscall.ESRCH) {
+		return gerr
 	}
 
 	if err := proc.Signal(sig); err != nil && !errors.Is(err, os.ErrProcessDone) {
+		if debug {
+			log.Printf("stop: signal parent=%d err=%v", proc.Pid, err)
+		}
 		return err
 	}
 	return nil

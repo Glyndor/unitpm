@@ -1,3 +1,19 @@
+lynxpm (0.8.5-1) unstable; urgency=medium
+
+  * daemon/debug: LYNX_DEBUG_STOP now also logs the error (if any)
+    from each per-descendant kill and the pgroup kill. v0.8.4's diag
+    confirmed walkDescendants was finding the child PIDs
+    (`descendants=[3401 3400]`) and signalling them with SIGTERM,
+    but the child survived anyway — this commit will tell us whether
+    the syscall returned EPERM / ESRCH or succeeded (in which case
+    the child is ignoring or shielded from SIGTERM).
+  * ci: smoke now dumps the full `ps -ef` plus the child's
+    `/proc/<pid>/status` (Uid / PPid / SigIgn / SigCgt) so the
+    workflow log shows whether the process is in a different uid
+    namespace or has SIGTERM masked.
+
+ -- Jaro-c <75870284+Jaro-c@users.noreply.github.com>  Sun, 19 Apr 2026 21:50:00 -0500
+
 lynxpm (0.8.4-1) unstable; urgency=medium
 
   * daemon: optional `LYNX_DEBUG_STOP=1` env var makes Stop log the
