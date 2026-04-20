@@ -2,9 +2,11 @@
 // Only compiled during `go test`.
 package list
 
+import "github.com/Jaro-c/Lynx/internal/cli/format"
+
 var (
-	FormatUptime    = formatUptime
-	FormatBytes     = formatBytes
+	FormatUptime    = format.Uptime
+	FormatBytes     = format.Bytes
 	ShortIDLen      = shortIDLen
 	FilterProcesses = filterProcesses
 )
