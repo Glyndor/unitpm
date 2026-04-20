@@ -56,7 +56,7 @@ func getGlobalTreeSnapshot() (map[int][]int, error) {
 			continue
 		}
 
-		ppid, err := getPpid(pid)
+		ppid, err := GetPPID(pid)
 		if err != nil {
 			continue
 		}
@@ -68,9 +68,10 @@ func getGlobalTreeSnapshot() (map[int][]int, error) {
 	return tree, nil
 }
 
-// getPpid reads a single process's PPID directly from /proc/<pid>/stat.
-// Optimized to avoid string allocations.
-func getPpid(pid int) (int, error) {
+// GetPPID reads a single process's PPID directly from /proc/<pid>/stat.
+// Handles the `comm` field's parens-and-spaces quirk via
+// bytes.LastIndexByte(')') so process names with spaces still parse.
+func GetPPID(pid int) (int, error) {
 	statPath := fmt.Sprintf("/proc/%d/stat", pid)
 	data, err := os.ReadFile(statPath)
 	if err != nil {
@@ -82,13 +83,10 @@ func getPpid(pid int) (int, error) {
 		return 0, errors.New("invalid stat format")
 	}
 
-	// Format after comm: state ppid pgrp session ...
 	parts := bytes.Fields(data[lastParen+2:])
 	if len(parts) < 2 {
 		return 0, errors.New("stat too short")
 	}
-
-	// parts[0] is state, parts[1] is ppid
 	return strconv.Atoi(string(parts[1]))
 }
 

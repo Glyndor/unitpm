@@ -18,6 +18,36 @@ die() {
     exit 1
 }
 
+# run_worker_scenario <name> <start-cmd> <log-marker>
+# Start a worker, wait up to 2s for its startup line to appear in the
+# log, stop + delete. Used by scenarios that only need to prove a given
+# runtime's lifecycle works end-to-end against the installed .deb.
+run_worker_scenario() {
+    lynxpm start "$2" --name "$1" --restart never
+    for i in $(seq 1 20); do
+        lynxpm logs "$1" --stdout --lines 10 2>/dev/null | grep -q "$3 pid=" && break
+        sleep 0.1
+    done
+    lynxpm logs "$1" --stdout --lines 10 2>/dev/null | grep -q "$3 pid=" || \
+        die "$3 never printed its startup line"
+    lynxpm stop   "$1"
+    lynxpm delete "$1" --purge
+}
+
+# wait_count <expected> <selector-ns>
+# Poll lynxpm list until the number of procs in the given namespace
+# equals expected, or fail after ~2s. Covers async scale/delete paths
+# without the flaky `sleep N; assert` pattern.
+wait_count() {
+    for i in $(seq 1 20); do
+        local c
+        c=$(lynxpm list --namespace "$2" --json | grep -o "\"namespace\":\"$2\"" | wc -l)
+        [ "$c" -eq "$1" ] && return 0
+        sleep 0.1
+    done
+    die "expected $1 procs in namespace $2, got $c"
+}
+
 # Poll until the daemon socket is responsive (bootstrap from the caller
 # happens in parallel; the CLI gets EAGAIN until the server loop runs).
 for i in $(seq 1 50); do
@@ -96,9 +126,7 @@ lynxpm delete crashloop --purge
 echo "=== scenario: namespace bulk ops ==="
 lynxpm start "/bin/sleep 300" --name api    --namespace probe --restart never
 lynxpm start "/bin/sleep 300" --name worker --namespace probe --restart never
-# grep -c counts lines but --json is single-line; count substrings instead.
-COUNT=$(lynxpm list --namespace probe --json | grep -o '"namespace":"probe"' | wc -l)
-[ "$COUNT" -eq 2 ] || die "expected 2 procs in namespace probe, got $COUNT"
+wait_count 2 probe
 lynxpm stop --namespace probe >/dev/null
 # Both should now be stopped — list still shows them (stopped), delete
 # with ns:* glob cleans them up in one shot.
@@ -112,62 +140,33 @@ lynxpm delete 'probe:*' --purge >/dev/null
 # works on minimal CI images.
 if command -v node >/dev/null; then
     echo "=== scenario: node HTTP graceful stop ==="
-    lynxpm start "node $APPS_DIR/node-http/server.js" --name nh --restart never
-    # Wait up to 2s for the listener to report its chosen port.
-    for i in $(seq 1 20); do
-        lynxpm logs nh --stdout --lines 10 2>/dev/null | grep -q 'node-http pid=' && break
-        sleep 0.1
-    done
-    lynxpm logs nh --stdout --lines 10 2>/dev/null | grep -q 'node-http pid=' || \
-        die "node-http never printed its startup line"
-    lynxpm stop   nh
-    lynxpm delete nh --purge
+    run_worker_scenario nh "node $APPS_DIR/node-http/server.js" node-http
 else
     echo "=== scenario: node HTTP (skipped — node not installed) ==="
 fi
 
-# Scenario 7: PHP worker. Same shape as python-worker / ruby-worker —
-# validates the supervisor behaves identically across interpreted
-# runtimes. Skipped on images without `php`.
+# Scenarios 7-9: interpreted + compiled workers. Same shape, one line
+# per runtime — the run_worker_scenario helper covers start/wait-for-
+# log/stop/delete so any runtime-specific regression is a single
+# failure, not a 10-line copy-paste.
 if command -v php >/dev/null; then
     echo "=== scenario: PHP worker ==="
-    lynxpm start "php $APPS_DIR/php-worker/worker.php" --name phpw --restart never
-    sleep 1
-    lynxpm logs phpw --stdout --lines 10 2>/dev/null | grep -q 'php-worker pid=' || \
-        die "php-worker never printed its startup line"
-    lynxpm stop   phpw
-    lynxpm delete phpw --purge
+    run_worker_scenario phpw "php $APPS_DIR/php-worker/worker.php" php-worker
 else
     echo "=== scenario: PHP worker (skipped — php not installed) ==="
 fi
 
-# Scenario 8: Ruby worker. Mirrors scenario 7 for a different
-# stdlib-only interpreter.
 if command -v ruby >/dev/null; then
     echo "=== scenario: Ruby worker ==="
-    lynxpm start "ruby $APPS_DIR/ruby-worker/worker.rb" --name rbw --restart never
-    sleep 1
-    lynxpm logs rbw --stdout --lines 10 2>/dev/null | grep -q 'ruby-worker pid=' || \
-        die "ruby-worker never printed its startup line"
-    lynxpm stop   rbw
-    lynxpm delete rbw --purge
+    run_worker_scenario rbw "ruby $APPS_DIR/ruby-worker/worker.rb" ruby-worker
 else
     echo "=== scenario: Ruby worker (skipped — ruby not installed) ==="
 fi
 
-# Scenario 9: Compiled Go binary. Lives at testdata/apps/go-compiled/
-# — cross-compiled by the build-deb job and shipped alongside the
-# .deb so the install-matrix containers (which don't carry the Go
-# toolchain) can still exercise a statically-linked binary.
 GO_BIN="$APPS_DIR/go-compiled/go-compiled"
 if [ -x "$GO_BIN" ]; then
     echo "=== scenario: compiled Go binary ==="
-    lynxpm start "$GO_BIN" --name gob --restart never
-    sleep 1
-    lynxpm logs gob --stdout --lines 10 2>/dev/null | grep -q 'go-compiled pid=' || \
-        die "go-compiled never printed its startup line"
-    lynxpm stop   gob
-    lynxpm delete gob --purge
+    run_worker_scenario gob "$GO_BIN" go-compiled
 else
     echo "=== scenario: Go binary (skipped — $GO_BIN not built) ==="
 fi
@@ -195,21 +194,16 @@ else
 fi
 
 # Scenario 11: scale. Starts 3 instances in one invocation, then
-# scales down to 1 and up to 2 to exercise the full scale surface.
+# scales down to 1 and up to 2. wait_count polls so slow container
+# runners don't race the daemon's spawn/reap.
 echo "=== scenario: scale up + down ==="
 lynxpm start "/bin/sleep 300" --name scaleapp --namespace scalens \
     --restart never --scale 3
-# scale target is set via the spec name in the namespace; verify count.
-COUNT=$(lynxpm list --namespace scalens --json | grep -o '"namespace":"scalens"' | wc -l)
-[ "$COUNT" -eq 3 ] || die "expected 3 scaleapp instances, got $COUNT"
+wait_count 3 scalens
 lynxpm scale scalens:scaleapp 1
-sleep 1
-COUNT=$(lynxpm list --namespace scalens --json | grep -o '"namespace":"scalens"' | wc -l)
-[ "$COUNT" -eq 1 ] || die "after scale 1, expected 1 instance, got $COUNT"
+wait_count 1 scalens
 lynxpm scale scalens:scaleapp 2
-sleep 1
-COUNT=$(lynxpm list --namespace scalens --json | grep -o '"namespace":"scalens"' | wc -l)
-[ "$COUNT" -eq 2 ] || die "after scale 2, expected 2 instances, got $COUNT"
+wait_count 2 scalens
 lynxpm delete 'scalens:*' --purge >/dev/null
 
 echo "=== all smoke scenarios passed ==="
