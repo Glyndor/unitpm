@@ -40,7 +40,8 @@ Start a new process managed by Lynx. This command creates a new application spec
 | `--memory-max` | string | unlimited | Hard memory ceiling: `512M`, `2G`, or raw bytes. | `--memory-max 512M` |
 | `--cpu-max` | int | unlimited | CPU cap as percent of one core (100=1 core, 200=2 cores). | `--cpu-max 100` |
 | `--tasks-max` | int | unlimited | Maximum tasks (threads + subprocesses). | `--tasks-max 64` |
-| `-n`, `--dry-run` | - | - | Print the resolved spec without starting. | `--dry-run` |
+| `-n`, `--dry-run` | - | - | Print the resolved spec without starting (rendered as a `Spec` table; pair with `--json` for machine-readable output). | `--dry-run` |
+| `--json` | boolean | false | Emit the start result as JSON on stdout (`{started, count}`). Works with `--dry-run` too (`{spec, scale}`). | `--json` |
 | `-q`, `--quiet` | - | - | Suppress success messages; errors still printed. | `--quiet` |
 | `-h`, `--help` | - | - | Show help message. | — |
 

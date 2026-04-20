@@ -66,9 +66,21 @@ install -m 0755 lynxpm_linux_amd64 ~/.local/bin/lynxpm
 ### Run something
 
 ```bash
-lynxpm start "node server.js" --name api --restart always
+lynxpm start "node server.js" --name api --namespace prod --restart always
 lynxpm list
 lynxpm logs api --follow
+```
+
+### Operate on a whole namespace
+
+Every lifecycle command (`stop`, `restart`, `reload`, `reset`, `delete`,
+`flush`) accepts `--namespace <ns>` or the `<ns>:*` selector — no more
+`xargs` loops:
+
+```bash
+lynxpm restart --namespace prod    # roll the prod tier
+lynxpm stop 'staging:*'            # halt everything in staging (quote the glob)
+lynxpm delete --namespace old --purge
 ```
 
 ---

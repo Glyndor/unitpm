@@ -5,12 +5,17 @@
 ## 📖 Synopsis
 
 ```bash
-lynxpm apply <Lynxfile.yml>
+lynxpm apply [--json] <Lynxfile.yml>
 ```
 
 ## Description
 
-Apply a declarative Lynxfile to create and start one or more applications. Each app entry in the file is converted into an AppSpec, saved securely, and started via the daemon.
+Apply a declarative Lynxfile to create and start one or more applications.
+Each app entry in the file is converted into an AppSpec, saved securely,
+and started via the daemon. Apply aborts on the first failure — any
+successfully-started apps remain running. When `--json` is used and an
+abort happens mid-file, the partial report is still emitted on stdout with
+`partial: true` so callers can see exactly which apps started.
 
 ## Lynxfile format
 
@@ -34,11 +39,23 @@ apps:
       backoff: "expo"
 ```
 
+## ⚙️ Flags
+
+| Flag | Type | Default | Description |
+|------|------|---------|-------------|
+| `--json` | boolean | false | Emit a machine-readable `{results, summary}` batch report on stdout. |
+| `-h`, `--help` | - | - | Show help message. |
+
 ## 🚀 Examples
 
 Apply a Lynxfile:
 ```bash
 lynxpm apply ./Lynxfile.yml
+```
+
+Apply and collect outcomes:
+```bash
+lynxpm apply ./Lynxfile.yml --json | jq '.results[] | {id, status, extra}'
 ```
 
 ## Notes

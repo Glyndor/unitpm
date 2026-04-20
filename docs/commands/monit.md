@@ -2,6 +2,8 @@
 
 > *Display live statistics for all managed processes.*
 
+**Aliases:** `top`, `monitor`
+
 ## 📖 Synopsis
 
 ```bash

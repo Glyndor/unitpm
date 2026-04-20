@@ -26,7 +26,8 @@ Direct answers, no detours. Grouped by topic.
 | Can I…? | Yes/No | Example |
 |---------|--------|---------|
 | Start and forget | ✅ | `lynxpm start app.js --restart always` |
-| Stop all in a namespace | ⚠️ | no `stop --all`; use: `lynxpm list --json \| jq -r '.[] \| .name' \| xargs lynxpm stop` |
+| Stop all in a namespace | ✅ | `lynxpm stop --namespace prod` or `lynxpm stop 'prod:*'` |
+| Stop / restart / delete every managed process | ✅ | `lynxpm stop '*'` (quote the glob) |
 | Restart several at once | ✅ | `lynxpm restart a b c` |
 | Reload spec without stopping process | ❌ | `lynxpm reload` does stop+start; no hot-reload of spec |
 | Send custom signal | ❌ | only `--stop-signal` for stop; use `kill -USR1 $(pidof app)` |
@@ -133,6 +134,7 @@ Direct answers, no detours. Grouped by topic.
 | Namespace:name syntax | ✅ | `lynxpm show prod:api` |
 | Resolve by ID prefix | ✅ | `lynxpm show 019d9` (if unique) |
 | Multiple lifecycle commands in 1 cmd | ✅ | `lynxpm stop a b c d` |
+| Bulk by namespace (stop/restart/reload/reset/delete/flush) | ✅ | `lynxpm restart --namespace prod` or `lynxpm restart 'prod:*'` |
 | HTTP API | ❌ | Unix socket IPC only |
 | Remote daemon via TCP | ❌ | socket is local-only by design |
 

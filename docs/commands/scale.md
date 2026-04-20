@@ -5,7 +5,7 @@
 ## 📖 Synopsis
 
 ```bash
-lynxpm scale <name> <N>
+lynxpm scale <name> <N> [--json]
 ```
 
 ## Description
@@ -27,6 +27,7 @@ Target must be in [0, 1024].
 
 | Flag | Type | Default | Description |
 |------|------|---------|-------------|
+| `--json` | boolean | false | Emit the `ScaleResponse` as JSON on stdout (`{before, after, created, deleted}`). |
 | `-h`, `--help` | - | - | Show help message. |
 
 ## 🚀 Examples
@@ -35,6 +36,7 @@ Target must be in [0, 1024].
 lynxpm scale worker 5          # set 'worker' to exactly 5 instances
 lynxpm scale prod:api 10       # namespace-qualified
 lynxpm scale worker 0          # stop and delete all instances
+lynxpm scale worker 5 --json | jq '.created, .deleted'
 ```
 
 ## Notes

@@ -19,6 +19,8 @@ internal/
     root/         Command dispatch + global flag parsing (--quiet)
     registry/     Maps command names to Run() functions
     help/         Shared help rendering (Hidden flag, Examples slot)
+    batch/        Aggregate result/summary shape for multi-target commands
+    expand/       Namespace selector resolution (NS:* / *:* / --namespace)
     errs/         Usage error type
   daemon/         Daemon runtime
     manager/      Process lifecycle (spawn, monitor, restart, cron, scale)

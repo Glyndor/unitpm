@@ -437,7 +437,7 @@ Update later:
 
 ```bash
 # Edit Lynxfile.yml, then:
-lynxpm delete prod:api prod:worker prod:scheduler
+lynxpm delete --namespace prod   # wipe the whole namespace in one shot
 lynxpm apply Lynxfile.yml
 ```
 
@@ -475,18 +475,27 @@ lynxpm flush api
    things clean. Filter with `lynxpm list --namespace prod`.
 3. **Use `namespace:name` syntax.** `lynxpm show prod:api`, `lynxpm stop
    staging:worker`.
-4. **Always set `--restart always` in production.** Default `on-failure`
+4. **Bulk lifecycle ops by namespace.** Every lifecycle command (`stop`,
+   `restart`, `reload`, `reset`, `delete`, `flush`) accepts `--namespace
+   <ns>` or the `<ns>:*` selector to target a whole namespace at once.
+   Use `'*'` (quoted) to hit every managed process. Examples:
+   ```bash
+   lynxpm restart --namespace prod    # roll the prod tier
+   lynxpm flush 'staging:*'           # truncate logs across staging
+   lynxpm delete --namespace prod --purge   # wipe + drop logs
+   ```
+5. **Always set `--restart always` in production.** Default `on-failure`
    doesn't restart on clean exit.
-5. **Set `--memory-max` in production.** Prevents a single leak from
+6. **Set `--memory-max` in production.** Prevents a single leak from
    killing the host. The daemon auto-restarts when the OOM kills the
    process.
-6. **Use `--stop-signal SIGINT` for Node.js/Python.** These runtimes
+7. **Use `--stop-signal SIGINT` for Node.js/Python.** These runtimes
    handle SIGINT more gracefully than SIGTERM by default.
-7. **Use `--dry-run` when unsure.** `lynxpm start "complex command" --dry-run`
+8. **Use `--dry-run` when unsure.** `lynxpm start "complex command" --dry-run`
    prints the resolved spec without touching the daemon.
-8. **Use `--quiet` in scripts.** `lynxpm start ... -q && echo ok` keeps
+9. **Use `--quiet` in scripts.** `lynxpm start ... -q && echo ok` keeps
    CI output clean.
-9. **Export + apply for backups.** `lynxpm export --namespace prod > backup.yml`
-   saves your running config. Restore with `lynxpm apply backup.yml`.
-10. **Shell completion saves keystrokes.**
+10. **Export + apply for backups.** `lynxpm export --namespace prod > backup.yml`
+    saves your running config. Restore with `lynxpm apply backup.yml`.
+11. **Shell completion saves keystrokes.**
     `lynxpm completion bash > ~/.local/share/bash-completion/completions/lynx`

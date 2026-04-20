@@ -2,10 +2,12 @@
 
 > *Check for updates and apply them.*
 
+**Aliases:** `upgrade`
+
 ## 📖 Synopsis
 
 ```bash
-lynxpm update [flags]
+lynxpm update|upgrade [flags]
 ```
 
 ## Description
