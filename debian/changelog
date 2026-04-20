@@ -1,3 +1,30 @@
+lynxpm (0.9.0-1) unstable; urgency=medium
+
+  * tests: new testdata/apps/ catalog of minimal sample applications
+    covering shell (forkstorm regression), node (graceful HTTP
+    listener + SIGTERM-ignoring variant), python (long-running worker
+    + crash-loop), and a compiled Go binary. Each app honours the
+    same invariants (prints its PID on start, no external deps,
+    stdlib only) so the test harness can correlate lifecycle events
+    without grepping ps.
+  * tests: new testdata/smoke.sh drives the installed lynxpm + lynxd
+    through the full lifecycle surface end-to-end — start / list /
+    show / stop / delete, plus restart / reset / flush with --json
+    shape assertions, plus the namespace bulk selectors (`--namespace
+    <ns>` and `ns:*` glob), plus the --max-restarts cap enforcement
+    for a crashing app, plus a real node HTTP listener when node is
+    available on the host. Reusable by local devs (`bash
+    testdata/smoke.sh`) and the CI matrix.
+  * ci: debian-tests install-matrix now checks the repo out alongside
+    the downloaded .deb, installs nodejs + python3 into each container,
+    and delegates to testdata/smoke.sh instead of inlining a bespoke
+    smoke into the workflow yaml. Every command in the lifecycle
+    surface and every language toolchain the sample apps use is
+    exercised against the binary the .deb actually installs, across
+    debian:bookworm, debian:trixie, ubuntu:22.04, and ubuntu:24.04.
+
+ -- Jaro-c <75870284+Jaro-c@users.noreply.github.com>  Sun, 19 Apr 2026 22:15:00 -0500
+
 lynxpm (0.8.6-1) unstable; urgency=medium
 
   * tests: the debian smoke and the Go lifecycle test were treating a
