@@ -1,3 +1,20 @@
+lynxpm (0.9.5-1) unstable; urgency=medium
+
+  * daemon: Restore() now loads disabled specs into the manager in
+    State=stopped instead of skipping them entirely. Before, a spec
+    the operator had explicitly stopped via `lynxpm stop` (which
+    writes Disabled=true to disk) vanished from `lynxpm list` after
+    any daemon restart — the JSON was still on disk but the CLI had
+    no way to see or interact with it, so the user had to edit the
+    JSON by hand or delete+recreate the spec. Now the spec is loaded
+    and reported as stopped, matches the "stop must never hide state"
+    invariant, and `lynxpm restart <name>` brings it back online.
+  * daemon: Manager.Restart clears Disabled=false on disk after a
+    successful manual restart so the spec auto-starts on the next
+    daemon boot instead of landing in stopped state again.
+
+ -- Jaro-c <75870284+Jaro-c@users.noreply.github.com>  Sun, 19 Apr 2026 23:58:00 -0500
+
 lynxpm (0.9.4-1) unstable; urgency=low
 
   * refactor: walkDescendants now scans /proc once, builds the
