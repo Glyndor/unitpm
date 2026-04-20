@@ -30,11 +30,8 @@ func NewManager() *Manager {
 	}
 }
 
-// Restore loads every spec on disk into the manager and starts the ones
-// that aren't marked Disabled. Disabled specs (explicitly stopped by the
-// user before the daemon exited) are added in State=stopped so they
-// remain visible via list/show and can be re-started without the
-// operator having to edit JSON by hand.
+// Restore loads all specs; Disabled ones are registered in State=stopped
+// so they stay listable and re-startable instead of silently vanishing.
 func (m *Manager) Restore() error {
 	specs, err := spec2.LoadAll()
 	if err != nil {
@@ -60,40 +57,44 @@ func (m *Manager) Restore() error {
 	return nil
 }
 
-// addStoppedSpec registers a spec with the manager in State=stopped
-// without spawning anything. The Process sits in m.processes so the
-// CLI can list / show / start it; noAutoRestart is set so a later
-// failure path cannot accidentally respawn it.
+// addStoppedSpec registers a spec in State=stopped without spawning it.
 func (m *Manager) addStoppedSpec(s protocol.AppSpec) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
+	proc, err := m.registerLocked(s)
+	if err != nil || proc == nil {
+		return err
+	}
+	// proc isn't published yet so no lock is needed; noAutoRestart also
+	// suppresses cron-scheduled respawns, stoppedByUser mirrors the
+	// bookkeeping a real user-initiated Stop would leave behind.
+	proc.noAutoRestart = true
+	proc.stoppedByUser = true
+	m.processes[s.ID] = proc
+	return nil
+}
+
+// registerLocked applies the namespace default, enforces ID and
+// (namespace, name) uniqueness, and constructs a Process. Caller must
+// hold m.mu. Returns (nil, nil) when the ID already exists — treated as
+// a benign no-op by idempotent callers like Restore.
+func (m *Manager) registerLocked(s protocol.AppSpec) (*Process, error) {
 	if s.Namespace == "" {
 		s.Namespace = DefaultNamespace
 	}
 	if _, exists := m.processes[s.ID]; exists {
-		return nil
+		return nil, nil
 	}
 	for _, existing := range m.processes {
 		if existing.info.Namespace == s.Namespace && existing.info.Name == s.Name {
-			return fmt.Errorf(
-				"ERR_CONFLICT: name %q already exists in namespace %q",
+			return nil, fmt.Errorf(
+				"ERR_CONFLICT: a process named %q already exists in namespace %q",
 				s.Name, s.Namespace,
 			)
 		}
 	}
-
-	proc, err := NewProcess(s.ID, s)
-	if err != nil {
-		return err
-	}
-	proc.mu.Lock()
-	proc.noAutoRestart = true
-	proc.stoppedByUser = true
-	proc.mu.Unlock()
-
-	m.processes[s.ID] = proc
-	return nil
+	return NewProcess(s.ID, s)
 }
 
 // Start creates and starts a new process.
@@ -127,27 +128,14 @@ func (m *Manager) StartWithSpec(spec protocol.AppSpec) (types.ProcessInfo, error
 		}
 	}
 
-	if spec.Namespace == "" {
-		spec.Namespace = DefaultNamespace
-	}
-
+	// StartWithSpec rejects duplicate IDs outright (not "silently
+	// succeed" like addStoppedSpec); use the shared register path for
+	// namespace default + uniqueness, then error on the ID collision.
 	if _, exists := m.processes[spec.ID]; exists {
 		return types.ProcessInfo{}, fmt.Errorf("process with ID %s already exists", spec.ID)
 	}
-
-	// Enforce (namespace, name) uniqueness so `namespace:name` resolution
-	// stays unambiguous.
-	for _, existing := range m.processes {
-		if existing.info.Namespace == spec.Namespace && existing.info.Name == spec.Name {
-			return types.ProcessInfo{}, fmt.Errorf(
-				"ERR_CONFLICT: a process named %q already exists in namespace %q",
-				spec.Name, spec.Namespace,
-			)
-		}
-	}
-
-	proc, err := NewProcess(spec.ID, spec)
-	if err != nil {
+	proc, err := m.registerLocked(spec)
+	if err != nil || proc == nil {
 		return types.ProcessInfo{}, err
 	}
 
@@ -155,7 +143,6 @@ func (m *Manager) StartWithSpec(spec protocol.AppSpec) (types.ProcessInfo, error
 		return types.ProcessInfo{}, err
 	}
 
-	// Ensure Disabled is false (in case it was restarted manually)
 	if spec.Disabled {
 		spec.Disabled = false
 		if _, err := spec2.SaveSpec(spec.ID, spec); err != nil {
@@ -225,22 +212,25 @@ func (m *Manager) Restart(id string) error {
 		return fmt.Errorf("process not found: %s", id)
 	}
 
-	// Manual restart resets backoff *and* re-enables auto-restart so
-	// a spec that was previously marked Disabled (explicitly stopped,
-	// then loaded in State=stopped by Restore) comes back to life.
+	// Manual restart resets backoff and re-enables auto-restart, so a
+	// spec previously loaded in State=stopped by Restore comes back to
+	// life instead of being a no-op.
 	proc.ResetBackoff()
 
 	if err := proc.Restart(); err != nil {
 		return err
 	}
 
-	// Persist Disabled=false so the next daemon boot auto-starts it
-	// instead of landing it in stopped state again.
-	if proc.spec.Disabled {
-		proc.mu.Lock()
+	// Persist Disabled=false so the next daemon boot auto-starts the
+	// spec. Read+write under the lock to avoid racing Stop/Reload.
+	proc.mu.Lock()
+	wasDisabled := proc.spec.Disabled
+	if wasDisabled {
 		proc.spec.Disabled = false
-		updated := proc.spec
-		proc.mu.Unlock()
+	}
+	updated := proc.spec
+	proc.mu.Unlock()
+	if wasDisabled {
 		if _, err := spec2.SaveSpec(id, updated); err != nil {
 			log.Printf("Warning: failed to clear Disabled flag for %s: %v", id, err)
 		}
