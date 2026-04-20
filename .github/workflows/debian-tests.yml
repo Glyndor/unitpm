@@ -166,6 +166,13 @@ jobs:
         # command plus the namespace bulk selectors, the process-group
         # forkstorm regression, the --max-restarts cap, and a real node
         # HTTP listener — against the binary the .deb actually installs.
+        env:
+          # The apt install below pulls tzdata in on ubuntu:22.04 via
+          # ruby's dependency chain; without the noninteractive frontend
+          # tzdata's postinst asks for a geographic area on the tty and
+          # the whole job hangs until GH Actions kills it.
+          DEBIAN_FRONTEND: noninteractive
+          TZ: Etc/UTC
         run: |
           set -eux
           # procps+util-linux for pgrep/pkill/runuser; one of each
