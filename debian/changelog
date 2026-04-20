@@ -1,3 +1,28 @@
+lynxpm (0.8.0-1) unstable; urgency=medium
+
+  * cli: lifecycle commands (stop, restart, reload, reset, delete,
+    flush) gain --json batch reports and namespace bulk selectors.
+    Operate on a whole namespace with `--namespace prod` or the
+    `prod:*` selector (quote the glob); `*` / `*:*` target every
+    managed process. Mutually exclusive with positional targets.
+  * cli: apply and scale also emit --json {results, summary} reports
+    so multi-target invocations are scriptable end-to-end.
+  * cli: start --json now emits the resolved spec for --dry-run and
+    a {started, count} document for the live path.
+  * cli: show is reworked into grouped box-drawing tables (identity,
+    runtime, restart, resources, logs, env, watch, git). Empty
+    sections are hidden.
+  * cli: monit accepts `top` and `monitor` as aliases.
+  * cli: logs, update, and version now honour the global --quiet
+    flag (previously bypassed via fmt.Print*).
+  * cli: new internal helpers (batch, format, table, expand) shared
+    across rendering and lifecycle commands.
+  * daemon: flush now reports bytes_freed in its response so the CLI
+    surfaces it in the per-target line and as
+    results[].extra.bytes_freed.
+
+ -- Jaro-c <75870284+Jaro-c@users.noreply.github.com>  Sun, 19 Apr 2026 20:18:00 -0500
+
 lynxpm (0.7.1-1) unstable; urgency=high
 
   * **debian: 0.7.0 shipped without its systemd unit file.** The rename
