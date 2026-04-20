@@ -193,10 +193,12 @@ jobs:
           CHILD_PID=$(cat "$PIDFILE")
           [ -n "$CHILD_PID" ] || { echo "FAIL: child PID never recorded"; exit 1; }
           kill -0 "$CHILD_PID" 2>/dev/null || { echo "FAIL: child $CHILD_PID not alive before stop"; exit 1; }
-          echo "----- pre-stop process tree -----"
-          ps -ef | awk 'NR==1 || $2=='"$CHILD_PID"' || $3=='"$CHILD_PID"' || $2==$(pgrep -P '"$DAEMON_PID"' | head -1) || $3==$(pgrep -P '"$DAEMON_PID"' | head -1)' || true
+          echo "----- pre-stop ps -ef (full) -----"
+          ps -ef || true
           echo "----- /proc/$CHILD_PID/stat -----"
-          cat /proc/$CHILD_PID/stat 2>/dev/null || true
+          cat /proc/$CHILD_PID/stat 2>/dev/null || echo "(unreadable)"
+          echo "----- /proc/$CHILD_PID/status (Uid/SigIgn/SigCgt) -----"
+          grep -E '^Uid|^SigIgn|^SigCgt|^Name|^State|^PPid' /proc/$CHILD_PID/status 2>/dev/null || echo "(unreadable)"
           echo "-----"
           lynxpm stop fork-smoke
           sleep 1
