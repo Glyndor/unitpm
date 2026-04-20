@@ -1,3 +1,25 @@
+lynxpm (0.9.6-1) unstable; urgency=low
+
+  * refactor(daemon): extract registerLocked(s) — the namespace
+    default + ID conflict + (namespace, name) uniqueness + NewProcess
+    sequence was copied verbatim between StartWithSpec and the newly
+    added addStoppedSpec. Single entry point now; StartWithSpec keeps
+    its own ID-collision error shape since it is a user-initiated
+    start, while addStoppedSpec treats duplicate IDs as a benign no-op
+    matching Restore's idempotent semantics.
+  * fix(daemon): read proc.spec.Disabled under proc.mu inside
+    Manager.Restart. The previous pattern read the flag outside the
+    lock and wrote it inside, which tripped -race under a concurrent
+    Stop/Reload even though the window was small. Same visible
+    behaviour, clean on `go test -race`.
+  * quality(daemon): drop the belt-and-suspenders proc.mu.Lock inside
+    addStoppedSpec — the Process isn't published into m.processes yet,
+    so no concurrent access is possible. Kept noAutoRestart /
+    stoppedByUser assignment (noAutoRestart is load-bearing for
+    cron-scheduled disabled specs).
+
+ -- Jaro-c <75870284+Jaro-c@users.noreply.github.com>  Sun, 20 Apr 2026 00:15:00 -0500
+
 lynxpm (0.9.5-1) unstable; urgency=medium
 
   * daemon: Restore() now loads disabled specs into the manager in
