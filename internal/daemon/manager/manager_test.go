@@ -14,6 +14,7 @@ import (
 	"github.com/Jaro-c/Lynx/internal/daemon/manager"
 	"github.com/Jaro-c/Lynx/internal/ipc/protocol"
 	"github.com/Jaro-c/Lynx/internal/spec"
+	"github.com/Jaro-c/Lynx/internal/types"
 )
 
 func TestRestoreAndPersistence(t *testing.T) {
@@ -67,9 +68,13 @@ func TestRestoreAndPersistence(t *testing.T) {
 		t.Error("App A (enabled) was not restored")
 	}
 
-	// App B should NOT exist in manager
-	if _, exists := mgr.Get(idB); exists {
-		t.Error("App B (disabled) was incorrectly restored")
+	// App B (disabled) is loaded into the manager in State=stopped so it
+	// remains visible via list / show / restart, but must not be spawned.
+	procB, exists := mgr.Get(idB)
+	if !exists {
+		t.Error("App B (disabled) should be loaded into manager so it's listable")
+	} else if procB.Info().State == types.StateRunning {
+		t.Errorf("App B (disabled) must not be spawned on Restore, got state=%s", procB.Info().State)
 	}
 
 	// 4. Test Stop Persistence

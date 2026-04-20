@@ -30,7 +30,11 @@ func NewManager() *Manager {
 	}
 }
 
-// Restore loads existing specs from disk and starts them.
+// Restore loads every spec on disk into the manager and starts the ones
+// that aren't marked Disabled. Disabled specs (explicitly stopped by the
+// user before the daemon exited) are added in State=stopped so they
+// remain visible via list/show and can be re-started without the
+// operator having to edit JSON by hand.
 func (m *Manager) Restore() error {
 	specs, err := spec2.LoadAll()
 	if err != nil {
@@ -41,16 +45,54 @@ func (m *Manager) Restore() error {
 
 	for _, s := range specs {
 		if s.Disabled {
-			log.Printf("Skipping disabled process: %s", s.Name)
+			log.Printf("Loading disabled process: %s (%s)", s.Name, s.ID)
+			if err := m.addStoppedSpec(s); err != nil {
+				log.Printf("Error loading disabled process %s: %v", s.ID, err)
+			}
 			continue
 		}
 		log.Printf("Restoring process: %s (%s)", s.Name, s.ID)
 		if _, err := m.StartWithSpec(s); err != nil {
 			log.Printf("Error restoring process %s: %v", s.ID, err)
-			// Continue restoring others
 		}
 	}
 
+	return nil
+}
+
+// addStoppedSpec registers a spec with the manager in State=stopped
+// without spawning anything. The Process sits in m.processes so the
+// CLI can list / show / start it; noAutoRestart is set so a later
+// failure path cannot accidentally respawn it.
+func (m *Manager) addStoppedSpec(s protocol.AppSpec) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	if s.Namespace == "" {
+		s.Namespace = DefaultNamespace
+	}
+	if _, exists := m.processes[s.ID]; exists {
+		return nil
+	}
+	for _, existing := range m.processes {
+		if existing.info.Namespace == s.Namespace && existing.info.Name == s.Name {
+			return fmt.Errorf(
+				"ERR_CONFLICT: name %q already exists in namespace %q",
+				s.Name, s.Namespace,
+			)
+		}
+	}
+
+	proc, err := NewProcess(s.ID, s)
+	if err != nil {
+		return err
+	}
+	proc.mu.Lock()
+	proc.noAutoRestart = true
+	proc.stoppedByUser = true
+	proc.mu.Unlock()
+
+	m.processes[s.ID] = proc
 	return nil
 }
 
@@ -183,10 +225,27 @@ func (m *Manager) Restart(id string) error {
 		return fmt.Errorf("process not found: %s", id)
 	}
 
-	// Manual restart resets backoff
+	// Manual restart resets backoff *and* re-enables auto-restart so
+	// a spec that was previously marked Disabled (explicitly stopped,
+	// then loaded in State=stopped by Restore) comes back to life.
 	proc.ResetBackoff()
 
-	return proc.Restart()
+	if err := proc.Restart(); err != nil {
+		return err
+	}
+
+	// Persist Disabled=false so the next daemon boot auto-starts it
+	// instead of landing it in stopped state again.
+	if proc.spec.Disabled {
+		proc.mu.Lock()
+		proc.spec.Disabled = false
+		updated := proc.spec
+		proc.mu.Unlock()
+		if _, err := spec2.SaveSpec(id, updated); err != nil {
+			log.Printf("Warning: failed to clear Disabled flag for %s: %v", id, err)
+		}
+	}
+	return nil
 }
 
 // Reset zeroes the Restarts counter and internal backoff state for a process
