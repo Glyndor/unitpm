@@ -832,6 +832,9 @@ func gracefulKill(proc *os.Process, stopSignal syscall.Signal, timeout time.Dura
 // since Stop is expected to be monotonic: never a no-op, never a hang.
 func signalTree(proc *os.Process, sig syscall.Signal) error {
 	descendants := walkDescendants(proc.Pid)
+	if os.Getenv("LYNX_DEBUG_STOP") != "" {
+		log.Printf("stop: root=%d descendants=%v sig=%d", proc.Pid, descendants, sig)
+	}
 
 	for _, pid := range descendants {
 		_ = syscall.Kill(pid, sig)

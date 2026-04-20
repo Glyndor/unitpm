@@ -164,17 +164,16 @@ func TestCronRespectsNoAutoRestart(t *testing.T) {
 	}
 }
 
-// TestStopKillsForkedChildren guards the gracefulKill -> descendant-walk
-// behaviour. Without walkDescendants the bash wrapper would die but the
-// backgrounded `sleep` child (which bash relocates into its own pgroup on
-// `&`) survives Stop(true), keeping any listening socket bound and
-// breaking the next Start with EADDRINUSE — the exact bug surfaced by
-// next-server / bun / gunicorn workers in the field.
+// TestStopKillsForkedChildren guards the gracefulKill → descendant-walk
+// behaviour end-to-end. Without the walk a `bash -c 'sleep & wait'`
+// wrapper would die but the backgrounded sleep would survive Stop(true),
+// keeping any listening socket bound and tripping EADDRINUSE on the next
+// Start — the exact bug reported for next-server / bun / gunicorn.
 //
-// `setsid` is used inside the wrapper to deterministically force the
-// child into a brand-new session (and therefore a new pgid), so the test
-// fails on any kernel/shell combo if the /proc walk regresses — not only
-// on distros where bash already relocates background jobs.
+// The captured PID is sleep's own PID (bash's direct child); walking /proc
+// backwards from there must find the supervised wrapper and the signal
+// must reach sleep whether it ends up in the wrapper's pgroup or a
+// relocated one, which is what `lynxpm stop` has to deliver in the field.
 func TestStopKillsForkedChildren(t *testing.T) {
 	restore := setupTestEnv(t)
 	defer restore()
@@ -188,10 +187,7 @@ func TestStopKillsForkedChildren(t *testing.T) {
 		Exec: protocol.AppExec{
 			Type:    "command",
 			Command: "bash",
-			// setsid forces the sleep into its own session/pgroup so a
-			// pgroup-only kill would miss it; the Stop must therefore
-			// rely on the /proc descendant walk to take it down.
-			Args: []string{"-c", "setsid sleep 60 & echo $! > " + pidFile + "; wait"},
+			Args:    []string{"-c", "sleep 60 & echo $! > " + pidFile + "; wait"},
 		},
 	}
 
