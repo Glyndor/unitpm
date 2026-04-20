@@ -1,3 +1,14 @@
+lynxpm (0.9.1-1) unstable; urgency=medium
+
+  * tests: drop the `node:` prefix in the sample HTTP apps'
+    require() calls. The prefix was added in Node 16 but
+    ubuntu:22.04's default `nodejs` package still ships Node 12,
+    which failed to load `node:http` and caused the v0.9.0 smoke
+    to regress on that one matrix entry only. Plain `require('http')`
+    works on every version the install matrix sees.
+
+ -- Jaro-c <75870284+Jaro-c@users.noreply.github.com>  Sun, 19 Apr 2026 22:22:00 -0500
+
 lynxpm (0.9.0-1) unstable; urgency=medium
 
   * tests: new testdata/apps/ catalog of minimal sample applications
