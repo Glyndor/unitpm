@@ -45,6 +45,14 @@ func Run(w io.Writer, args []string) error {
 		return &errs.UsageError{Message: fmt.Sprintf("Unexpected arguments: %v", fs.Args())}
 	}
 
+	// Honor the global --quiet flag: all progress/status lines below go
+	// through w, so redirecting w to io.Discard silences them cleanly
+	// without scattering `if !term.IsQuiet()` guards through the body.
+	// Errors still propagate via the returned error.
+	if term.IsQuiet() {
+		w = io.Discard
+	}
+
 	// 1. Check if managed by system package manager
 	isManaged := updater.IsManagedByPackageSystem()
 	if isManaged && *apply && !*force {
@@ -123,7 +131,8 @@ func Run(w io.Writer, args []string) error {
 func GetSpec() help.CommandSpec {
 	return help.CommandSpec{
 		Name:        "update",
-		Usage:       term.BoldString("lynxpm update [flags]"),
+		Aliases:     []string{"upgrade"},
+		Usage:       term.BoldString("lynxpm update|upgrade [flags]"),
 		Description: "Check for updates and apply them.",
 		Options: []help.Option{
 			{Short: "-a", Long: "--apply", Description: "Download and apply the update."},

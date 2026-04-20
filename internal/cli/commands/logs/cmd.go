@@ -152,7 +152,7 @@ func tailFile(ctx context.Context, path, label string, n int, follow bool, sleep
 		if os.IsNotExist(err) {
 			// File might not exist yet if process hasn't started/logged
 			if follow {
-				fmt.Printf("%s File not found, waiting...\n", colorLabel(label))
+				_, _ = term.Printf("%s File not found, waiting...\n", colorLabel(label))
 				for {
 					select {
 					case <-ctx.Done():
@@ -166,16 +166,16 @@ func tailFile(ctx context.Context, path, label string, n int, follow bool, sleep
 						break
 					}
 					if !os.IsNotExist(err) {
-						fmt.Printf("%s %s\n", colorLabel(label), term.RedString("Error: %v", err))
+						_, _ = fmt.Fprintf(os.Stderr, "%s %s\n", colorLabel(label), term.RedString("Error: %v", err))
 						return
 					}
 				}
 			} else {
-				fmt.Printf("%s File not found\n", colorLabel(label))
+				_, _ = term.Printf("%s File not found\n", colorLabel(label))
 				return
 			}
 		} else {
-			fmt.Printf("%s %s\n", colorLabel(label), term.RedString("Error: %v", err))
+			_, _ = fmt.Fprintf(os.Stderr, "%s %s\n", colorLabel(label), term.RedString("Error: %v", err))
 			return
 		}
 	}
@@ -204,7 +204,7 @@ func tailFile(ctx context.Context, path, label string, n int, follow bool, sleep
 				sleep(200 * time.Millisecond)
 				continue
 			}
-			fmt.Printf("%s %s\n", colorLabel(label), term.RedString("Error: %v", err))
+			_, _ = fmt.Fprintf(os.Stderr, "%s %s\n", colorLabel(label), term.RedString("Error: %v", err))
 			return
 		}
 		fmt.Printf("%s %s", colorLabel(label), line)

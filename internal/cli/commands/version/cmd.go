@@ -44,6 +44,12 @@ func Run(client transport.IPCClient, w io.Writer, args []string) error {
 		return &errs.UsageError{Message: fmt.Sprintf("Unexpected arguments: %v", fs.Args())}
 	}
 
+	// Honor --quiet by redirecting w to io.Discard. JSON mode is useful
+	// even when quiet, so we only suppress the human section below.
+	if term.IsQuiet() && !jsonOutput {
+		w = io.Discard
+	}
+
 	local := version.Get()
 
 	// 2. Attempt to connect to daemon
