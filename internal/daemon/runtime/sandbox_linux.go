@@ -84,11 +84,7 @@ func WrapSandbox(ctx context.Context, cmd *exec.Cmd, opts SandboxOptions) (*exec
 			{ContainerID: 0, HostID: gid, Size: 1},
 		},
 		GidMappingsEnableSetgroups: false,
-		// Make the wrapper its own process-group leader so Stop() can
-		// kill(-pid, sig) to reach the wrapper plus anything outside the
-		// PID namespace (none, in practice — but keeps Stop semantics
-		// uniform across modes).
-		Setpgid: true,
+		Setpgid:                    true,
 	}
 
 	return newCmd, nil

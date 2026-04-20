@@ -164,16 +164,11 @@ func TestCronRespectsNoAutoRestart(t *testing.T) {
 	}
 }
 
-// TestStopKillsForkedChildren guards the gracefulKill → descendant-walk
-// behaviour end-to-end. Without the walk a `bash -c 'sleep & wait'`
-// wrapper would die but the backgrounded sleep would survive Stop(true),
-// keeping any listening socket bound and tripping EADDRINUSE on the next
-// Start — the exact bug reported for next-server / bun / gunicorn.
-//
-// The captured PID is sleep's own PID (bash's direct child); walking /proc
-// backwards from there must find the supervised wrapper and the signal
-// must reach sleep whether it ends up in the wrapper's pgroup or a
-// relocated one, which is what `lynxpm stop` has to deliver in the field.
+// TestStopKillsForkedChildren asserts that Stop reaches a backgrounded
+// descendant even when the shell has relocated it out of the supervised
+// pgroup. Without walkDescendants a plain `bash -c 'sleep & wait'`
+// wrapper dies but leaves the sleep child alive, holding any listening
+// socket bound across the next Start.
 func TestStopKillsForkedChildren(t *testing.T) {
 	restore := setupTestEnv(t)
 	defer restore()
@@ -235,13 +230,9 @@ func TestStopKillsForkedChildren(t *testing.T) {
 	}
 }
 
-// aliveAndRunning reports whether pid exists AND is not already a zombie.
-// Zombies (State: Z in /proc/<pid>/status) hold no file descriptors, no
-// sockets, and no memory — they are indistinguishable from "dead" for any
-// purpose Stop cares about. Treating them as alive would false-positive
-// in containers whose PID 1 is not a reaper (debian/ubuntu runner images
-// launched without tini/dumb-init), where the supervised wrapper dies
-// before it can wait() on its own child.
+// aliveAndRunning reports whether pid exists and is not already a
+// zombie. Zombies hold no fds/sockets and are functionally dead for any
+// check Stop cares about, but kill(pid, 0) returns nil for them.
 func aliveAndRunning(pid int) bool {
 	if syscall.Kill(pid, 0) != nil {
 		return false
