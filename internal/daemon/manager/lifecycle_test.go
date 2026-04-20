@@ -5,7 +5,9 @@ package manager
 import (
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
+	"syscall"
 	"testing"
 	"time"
 
@@ -160,6 +162,80 @@ func TestCronRespectsNoAutoRestart(t *testing.T) {
 	if info.PID != 0 {
 		t.Fatalf("expected PID 0 after Stop(true), got %d", info.PID)
 	}
+}
+
+// TestStopKillsForkedChildren guards the gracefulKill -> kill(-pid, sig)
+// behaviour. Without process-group signalling the bash wrapper would die
+// but the backgrounded `sleep` child would survive Stop(true), keeping any
+// listening socket bound and breaking the next Start with EADDRINUSE — the
+// exact bug surfaced by next-server / bun / gunicorn workers.
+func TestStopKillsForkedChildren(t *testing.T) {
+	restore := setupTestEnv(t)
+	defer restore()
+
+	pidFile := filepath.Join(t.TempDir(), "child.pid")
+	id := uuid.Must(uuid.NewV7()).String()
+	spec := protocol.AppSpec{
+		Version: 1,
+		ID:      id,
+		Name:    "fork-test",
+		Exec: protocol.AppExec{
+			Type:    "command",
+			Command: "bash",
+			// Background a long sleep, record its PID, then wait so the
+			// wrapper itself stays alive and Lynx's PID is the bash one.
+			Args: []string{"-c", "sleep 60 & echo $! > " + pidFile + "; wait"},
+		},
+	}
+
+	p, err := NewProcess(id, spec)
+	if err != nil {
+		t.Fatalf("NewProcess failed: %v", err)
+	}
+	if err := p.Start(); err != nil {
+		t.Fatalf("Start failed: %v", err)
+	}
+
+	// Wait for the child PID to be written by the wrapper.
+	deadline := time.Now().Add(2 * time.Second)
+	var childPID int
+	for {
+		if b, err := os.ReadFile(pidFile); err == nil && len(b) > 0 {
+			childPID, err = strconv.Atoi(strings.TrimSpace(string(b)))
+			if err == nil && childPID > 0 {
+				break
+			}
+		}
+		if time.Now().After(deadline) {
+			t.Fatalf("timeout waiting for child PID file %s", pidFile)
+		}
+		time.Sleep(20 * time.Millisecond)
+	}
+
+	parentPID := p.Info().PID
+	if parentPID == 0 {
+		t.Fatal("expected parent PID to be set after Start")
+	}
+
+	if err := p.Stop(true); err != nil {
+		t.Fatalf("Stop(true) failed: %v", err)
+	}
+
+	// Give the kernel a moment to deliver SIGTERM -> SIGCHLD reaping.
+	time.Sleep(500 * time.Millisecond)
+
+	if alive(parentPID) {
+		t.Errorf("parent PID %d still alive after Stop", parentPID)
+	}
+	if alive(childPID) {
+		t.Errorf("child PID %d still alive after Stop — process group not killed", childPID)
+	}
+}
+
+// alive reports whether pid currently exists. Uses kill(pid, 0) which
+// returns ESRCH for dead processes and nil for live ones.
+func alive(pid int) bool {
+	return syscall.Kill(pid, 0) == nil
 }
 
 func TestCronEveryIntervalBounds(t *testing.T) {

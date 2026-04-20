@@ -775,16 +775,23 @@ func (p *Process) Stop(byUser bool) error {
 
 // gracefulKill sends the configured stop signal and waits for the process
 // to exit. If it does not exit within timeout, it sends SIGKILL.
-// It polls the process with Signal(0) to avoid a double-Wait conflict with
-// the monitor goroutine which already calls cmd.Wait().
+//
+// Signals are delivered to the entire process group (kill(-pid, sig)) so
+// children that the supervised app may have fork()+exec()'d — next-server,
+// gunicorn workers, bash wrappers — receive the signal alongside the parent
+// instead of being orphaned. This relies on ConfigureProcessIsolation having
+// set Setpgid:true so the spawned process is the group leader; if that
+// invariant is ever broken on a code path we fall back to single-PID
+// signalling so Stop never silently no-ops.
+//
+// Polls with Signal(0) on the parent PID — not the group — to detect exit
+// without racing the monitor goroutine that already calls cmd.Wait().
 func gracefulKill(proc *os.Process, stopSignal syscall.Signal, timeout time.Duration) error {
-	// 1. Send the stop signal to allow the process to clean up.
-	if err := proc.Signal(stopSignal); err != nil {
+	if err := signalGroupOrSelf(proc, stopSignal); err != nil {
 		// Process may have already exited; try Kill as last resort.
-		return proc.Kill()
+		return killGroupOrSelf(proc)
 	}
 
-	// 2. Poll until process exits or timeout expires.
 	deadline := time.After(timeout)
 	ticker := time.NewTicker(200 * time.Millisecond)
 	defer ticker.Stop()
@@ -792,16 +799,37 @@ func gracefulKill(proc *os.Process, stopSignal syscall.Signal, timeout time.Dura
 	for {
 		select {
 		case <-deadline:
-			// Process did not exit in time; force kill.
-			return proc.Kill()
+			return killGroupOrSelf(proc)
 		case <-ticker.C:
-			// Signal(0) checks if process is still alive without sending a signal.
 			if err := proc.Signal(syscall.Signal(0)); err != nil {
-				// Process has exited.
 				return nil
 			}
 		}
 	}
+}
+
+// signalGroupOrSelf delivers sig to the process group whose leader is proc
+// (kill(-pid, sig)). Falls back to a single-PID signal if the group send
+// fails with ESRCH — the leader exited but a child is still alive in a
+// different group, or Setpgid was not honoured.
+func signalGroupOrSelf(proc *os.Process, sig syscall.Signal) error {
+	if err := syscall.Kill(-proc.Pid, sig); err == nil {
+		return nil
+	} else if !errors.Is(err, syscall.ESRCH) {
+		return err
+	}
+	return proc.Signal(sig)
+}
+
+// killGroupOrSelf is signalGroupOrSelf hard-wired to SIGKILL with the same
+// fallback contract.
+func killGroupOrSelf(proc *os.Process) error {
+	if err := syscall.Kill(-proc.Pid, syscall.SIGKILL); err == nil {
+		return nil
+	} else if !errors.Is(err, syscall.ESRCH) {
+		return err
+	}
+	return proc.Kill()
 }
 
 // Info returns the current process info.

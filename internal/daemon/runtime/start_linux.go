@@ -17,8 +17,17 @@ import (
 // ConfigureProcessIsolation attaches the SysProcAttr appropriate for the
 // requested RunAs mode. It is a no-op for "self" (and unknown modes) because
 // "dynamic" and "sandbox" are wrapped at a higher layer.
+//
+// Setpgid is always enabled so the spawned process becomes the leader of its
+// own process group. That lets Stop() signal the whole group with kill(-pid),
+// which in turn reaches every fork()+exec() descendant — without it, a
+// supervised app whose child outlives its parent (next-server, gunicorn
+// pre-fork, bash wrappers) would leak orphans on stop, leave the listening
+// socket bound, and trigger EADDRINUSE on the next start.
 func ConfigureProcessIsolation(cmd *exec.Cmd, runAs protocol.RunAsPolicy) error {
-	cmd.SysProcAttr = &syscall.SysProcAttr{}
+	cmd.SysProcAttr = &syscall.SysProcAttr{
+		Setpgid: true,
+	}
 
 	switch runAs.Mode {
 	case "self":
