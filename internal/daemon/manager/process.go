@@ -1,6 +1,7 @@
 package manager
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"fmt"
@@ -9,6 +10,8 @@ import (
 	"os/exec"
 	"path/filepath"
 	"runtime"
+	"sort"
+	"strconv"
 	"strings"
 	"sync"
 	"syscall"
@@ -773,23 +776,30 @@ func (p *Process) Stop(byUser bool) error {
 	return gracefulKill(proc, sig, timeout)
 }
 
-// gracefulKill sends the configured stop signal and waits for the process
-// to exit. If it does not exit within timeout, it sends SIGKILL.
+// gracefulKill sends the configured stop signal to the supervised process
+// plus every one of its descendants, then waits for the parent to exit.
+// If it does not exit within timeout, everything still alive in the tree
+// is hit with SIGKILL.
 //
-// Signals are delivered to the entire process group (kill(-pid, sig)) so
-// children that the supervised app may have fork()+exec()'d — next-server,
-// gunicorn workers, bash wrappers — receive the signal alongside the parent
-// instead of being orphaned. This relies on ConfigureProcessIsolation having
-// set Setpgid:true so the spawned process is the group leader; if that
-// invariant is ever broken on a code path we fall back to single-PID
-// signalling so Stop never silently no-ops.
+// Two delivery paths are used together:
+//
+//  1. kill(-pid, sig) — the process group created by Setpgid:true in
+//     ConfigureProcessIsolation. Catches well-behaved apps that inherit
+//     the wrapper's pgid (next-server, gunicorn workers, most Go/Rust
+//     binaries).
+//
+//  2. walkDescendants — reads /proc and recursively collects every PID
+//     whose ppid-chain ends at the supervised process, then signals them
+//     individually. Catches shells that relocate background jobs into
+//     their own pgid (bash with `&` under `sh -c` on Debian/Ubuntu is
+//     the canonical case) and anything else that escapes the pgroup via
+//     setpgid() / setsid().
 //
 // Polls with Signal(0) on the parent PID — not the group — to detect exit
 // without racing the monitor goroutine that already calls cmd.Wait().
 func gracefulKill(proc *os.Process, stopSignal syscall.Signal, timeout time.Duration) error {
-	if err := signalGroupOrSelf(proc, stopSignal); err != nil {
-		// Process may have already exited; try Kill as last resort.
-		return killGroupOrSelf(proc)
+	if err := signalTree(proc, stopSignal); err != nil {
+		return killTree(proc)
 	}
 
 	deadline := time.After(timeout)
@@ -799,7 +809,7 @@ func gracefulKill(proc *os.Process, stopSignal syscall.Signal, timeout time.Dura
 	for {
 		select {
 		case <-deadline:
-			return killGroupOrSelf(proc)
+			return killTree(proc)
 		case <-ticker.C:
 			if err := proc.Signal(syscall.Signal(0)); err != nil {
 				return nil
@@ -808,28 +818,123 @@ func gracefulKill(proc *os.Process, stopSignal syscall.Signal, timeout time.Dura
 	}
 }
 
-// signalGroupOrSelf delivers sig to the process group whose leader is proc
-// (kill(-pid, sig)). Falls back to a single-PID signal if the group send
-// fails with ESRCH — the leader exited but a child is still alive in a
-// different group, or Setpgid was not honoured.
-func signalGroupOrSelf(proc *os.Process, sig syscall.Signal) error {
-	if err := syscall.Kill(-proc.Pid, sig); err == nil {
-		return nil
-	} else if !errors.Is(err, syscall.ESRCH) {
+// signalTree delivers sig to every process in the supervised tree.
+//
+// Descendants are collected **before** any signal is sent: once the
+// supervised parent receives a terminating signal the kernel may reap
+// it and reparent any grandchildren to init (PID 1) before the walk
+// runs, at which point their ppid-chain no longer leads back to the
+// supervised PID and the walk cannot rediscover them.
+//
+// Signal order: deepest descendants first (leaves before their shell
+// wrappers), then the process group, then the tracked parent. Each
+// delivery is best-effort — ESRCH / already-exited errors are swallowed
+// since Stop is expected to be monotonic: never a no-op, never a hang.
+func signalTree(proc *os.Process, sig syscall.Signal) error {
+	descendants := walkDescendants(proc.Pid)
+
+	for _, pid := range descendants {
+		_ = syscall.Kill(pid, sig)
+	}
+
+	if err := syscall.Kill(-proc.Pid, sig); err != nil && !errors.Is(err, syscall.ESRCH) {
+		// Non-ESRCH pgroup failure is unusual; surface it so the
+		// caller can decide whether to fall back to SIGKILL.
 		return err
 	}
-	return proc.Signal(sig)
+
+	if err := proc.Signal(sig); err != nil && !errors.Is(err, os.ErrProcessDone) {
+		return err
+	}
+	return nil
 }
 
-// killGroupOrSelf is signalGroupOrSelf hard-wired to SIGKILL with the same
-// fallback contract.
-func killGroupOrSelf(proc *os.Process) error {
-	if err := syscall.Kill(-proc.Pid, syscall.SIGKILL); err == nil {
-		return nil
-	} else if !errors.Is(err, syscall.ESRCH) {
-		return err
+// killTree is signalTree hard-wired to SIGKILL with the same pre-collect
+// invariant; used when the graceful timeout expires.
+func killTree(proc *os.Process) error {
+	descendants := walkDescendants(proc.Pid)
+	for _, pid := range descendants {
+		_ = syscall.Kill(pid, syscall.SIGKILL)
 	}
+	_ = syscall.Kill(-proc.Pid, syscall.SIGKILL)
 	return proc.Kill()
+}
+
+// walkDescendants returns every PID whose ppid-chain eventually ends at
+// root, scanning /proc/<pid>/stat. The returned slice excludes root itself
+// and is ordered deepest-first so leaves receive the signal before their
+// shell wrappers, which mirrors what a well-behaved init system does.
+//
+// Best-effort: any /proc entry that races with process exit is skipped
+// silently, since Stop is allowed to be noisy at the kernel layer.
+func walkDescendants(root int) []int {
+	entries, err := os.ReadDir("/proc")
+	if err != nil {
+		return nil
+	}
+
+	parent := make(map[int]int, len(entries))
+	for _, e := range entries {
+		if !e.IsDir() {
+			continue
+		}
+		pid, err := strconv.Atoi(e.Name())
+		if err != nil {
+			continue
+		}
+		ppid, ok := readPPID(pid)
+		if !ok {
+			continue
+		}
+		parent[pid] = ppid
+	}
+
+	var out []int
+	for pid := range parent {
+		if pid == root {
+			continue
+		}
+		cursor := pid
+		for depth := 0; depth < 1024; depth++ { // cap prevents infinite loop on corrupt /proc
+			pp, ok := parent[cursor]
+			if !ok || pp == 0 || pp == 1 {
+				break
+			}
+			if pp == root {
+				out = append(out, pid)
+				break
+			}
+			cursor = pp
+		}
+	}
+	// Deepest-first: longer ppid-chains tend to be the leaves; a stable
+	// sort by descending depth keeps the signal order predictable.
+	sort.Slice(out, func(i, j int) bool { return out[i] > out[j] })
+	return out
+}
+
+// readPPID parses /proc/<pid>/stat and returns the parent PID. Handles
+// the historical Linux quirk where the comm field (second column) can
+// contain spaces and parentheses — the ppid is always the field right
+// after the final ')' + state character.
+func readPPID(pid int) (int, bool) {
+	b, err := os.ReadFile("/proc/" + strconv.Itoa(pid) + "/stat")
+	if err != nil {
+		return 0, false
+	}
+	end := bytes.LastIndexByte(b, ')')
+	if end == -1 || end+4 >= len(b) {
+		return 0, false
+	}
+	fields := strings.Fields(string(b[end+1:]))
+	if len(fields) < 2 {
+		return 0, false
+	}
+	ppid, err := strconv.Atoi(fields[1])
+	if err != nil {
+		return 0, false
+	}
+	return ppid, true
 }
 
 // Info returns the current process info.
