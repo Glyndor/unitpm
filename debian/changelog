@@ -1,3 +1,32 @@
+lynxpm (0.9.4-1) unstable; urgency=low
+
+  * refactor: walkDescendants now scans /proc once, builds the
+    forward ppid→children adjacency, and DFS's from root. Drops the
+    1024-depth cap (no longer needed — downward walk terminates on
+    its own), trims ~30 lines of upward-walk bookkeeping, and
+    avoids the transient parent-map intermediate representation.
+  * refactor: readPPID in the manager package was a byte-for-byte
+    copy of internal/metrics's getPpid. Promoted the metrics helper
+    to GetPPID (exported) and have walkDescendants call it; one
+    /proc/<pid>/stat parser in the tree instead of two.
+  * perf: gracefulKill's exit-detection poll tick dropped from 200ms
+    to 50ms. The common "app exits in <100ms" path now returns in
+    ~50ms instead of ~200ms, shaving a visible fraction off every
+    `lynxpm restart` without generating a kill(pid,0) storm (still
+    at most 200 syscalls per 10-second timeout).
+  * tests: testdata/smoke.sh factored a run_worker_scenario helper
+    and a wait_count poll loop; collapses ~80 lines of copy-pasted
+    start/stop/assert boilerplate across the PHP / Ruby / Go /
+    scale scenarios, and removes the `sleep 1; assert` data races
+    that could flake under slow CI runners.
+  * docs: stripped PR-description prose from the v0.8.1+ process
+    package comments. Signal order, invariants, and the reason
+    walkDescendants must run pre-signal stay in; narrative about
+    "the bug reported in the field" moves where it belongs (commit
+    messages / changelog).
+
+ -- Jaro-c <75870284+Jaro-c@users.noreply.github.com>  Sun, 19 Apr 2026 23:15:00 -0500
+
 lynxpm (0.9.3-1) unstable; urgency=medium
 
   * ci: set DEBIAN_FRONTEND=noninteractive on the smoke step. Adding
