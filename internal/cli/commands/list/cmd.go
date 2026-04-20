@@ -463,4 +463,3 @@ func GetSpec() help.CommandSpec {
 func PrintHelp() {
 	help.RenderCommandHelp(os.Stdout, GetSpec())
 }
-

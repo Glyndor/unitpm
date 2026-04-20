@@ -149,10 +149,10 @@ func Run(client transport.IPCClient, args []string) error {
 				// Emit the partial result so callers can see which instances
 				// actually started before the failure.
 				b, _ := jsonx.Marshal(map[string]any{
-					"partial": true,
-					"started": started,
+					"partial":            true,
+					"started":            started,
 					"failed_at_instance": i + 1,
-					"error":   err.Error(),
+					"error":              err.Error(),
 				})
 				_, _ = fmt.Fprintln(os.Stdout, string(b))
 			}
