@@ -1,3 +1,30 @@
+lynxpm (0.9.2-1) unstable; urgency=medium
+
+  * tests: two new runtime samples — php-worker (uses pcntl for
+    signal handling) and ruby-worker (Signal.trap). Both mirror the
+    python-worker shape so any runtime-specific regression shows up
+    as a single failing scenario rather than contaminating the
+    broader lifecycle coverage.
+  * tests: testdata/apps/go-compiled is now wired into CI end-to-end.
+    The build-deb job cross-compiles it (CGO off, matching the
+    release binaries' zero-shlib-deps policy) and uploads it as a
+    separate artifact; the install-matrix downloads it alongside the
+    .deb so the smoke can exercise a statically-linked binary on
+    every distro in the matrix without shipping the Go toolchain
+    inside the containers.
+  * tests: two new scenarios in testdata/smoke.sh —
+    - SIGKILL fallback: spawns node-ignores-term with
+      `--stop-timeout 2000` and asserts Stop returns in the 2-4s
+      window, proving the grace period elapses and the fallback
+      SIGKILL fires when the app masks SIGTERM.
+    - scale up + down: `lynxpm start --scale 3` then scales to 1
+      and back to 2, asserting the instance count each time.
+  * ci: install-matrix now installs `php-cli` and `ruby` alongside
+    nodejs + python3 so the new scenarios run end-to-end against
+    the installed binary on every distro.
+
+ -- Jaro-c <75870284+Jaro-c@users.noreply.github.com>  Sun, 19 Apr 2026 22:42:00 -0500
+
 lynxpm (0.9.1-1) unstable; urgency=medium
 
   * tests: drop the `node:` prefix in the sample HTTP apps'
