@@ -207,6 +207,69 @@ func TestE2E_Delete_Roundtrip(t *testing.T) {
 	}
 }
 
+func TestE2E_Flush_BytesFreed(t *testing.T) {
+	client, mgr := setupE2E(t)
+
+	id := uuid.Must(uuid.NewV7()).String()
+	logDir := filepath.Join(t.TempDir(), "logs", id)
+	if err := os.MkdirAll(logDir, 0o700); err != nil {
+		t.Fatalf("mkdir log dir: %v", err)
+	}
+	stdoutPath := filepath.Join(logDir, "stdout.log")
+	stderrPath := filepath.Join(logDir, "stderr.log")
+	// Seed content in both files so the handler has bytes to reclaim.
+	if err := os.WriteFile(stdoutPath, []byte("hello stdout\n"), 0o600); err != nil {
+		t.Fatalf("write stdout: %v", err)
+	}
+	if err := os.WriteFile(stderrPath, []byte("hello stderr\n"), 0o600); err != nil {
+		t.Fatalf("write stderr: %v", err)
+	}
+	before := int64(len("hello stdout\n") + len("hello stderr\n"))
+
+	s := protocol.AppSpec{
+		Version: 1, ID: id, Name: "e2e-flush", Namespace: "default",
+		Exec: protocol.AppExec{Type: "command", Command: "sleep", Args: []string{"10"}},
+		Logs: &protocol.AppLogs{
+			Mode:   "file",
+			Dir:    logDir,
+			Stdout: stdoutPath,
+			Stderr: stderrPath,
+		},
+	}
+	if _, err := mgr.StartWithSpec(s); err != nil {
+		t.Fatalf("StartWithSpec: %v", err)
+	}
+	defer func() { _ = mgr.Stop(id) }()
+
+	var resp map[string]any
+	if err := client.Call("flush", map[string]string{"id": id}, &resp); err != nil {
+		t.Fatalf("flush: %v", err)
+	}
+	if resp["status"] != "flushed" {
+		t.Errorf("status = %v, want flushed", resp["status"])
+	}
+	// JSON numbers decode into float64 through map[string]any.
+	got, ok := resp["bytes_freed"].(float64)
+	if !ok {
+		t.Fatalf("bytes_freed missing or wrong type: %T %v", resp["bytes_freed"], resp["bytes_freed"])
+	}
+	if int64(got) != before {
+		t.Errorf("bytes_freed = %d, want %d", int64(got), before)
+	}
+
+	// Files should be truncated on disk.
+	for _, p := range []string{stdoutPath, stderrPath} {
+		info, err := os.Stat(p)
+		if err != nil {
+			t.Errorf("stat %s: %v", p, err)
+			continue
+		}
+		if info.Size() != 0 {
+			t.Errorf("expected %s truncated, size=%d", p, info.Size())
+		}
+	}
+}
+
 func TestE2E_Scale_NoTemplate(t *testing.T) {
 	client, _ := setupE2E(t)
 

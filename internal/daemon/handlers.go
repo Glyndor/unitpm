@@ -291,6 +291,7 @@ func RegisterHandlers(server *transport.Server, mgr *manager.Manager, privileged
 			return nil, fmt.Errorf("failed to resolve log root symlinks: %w", err)
 		}
 
+		var bytesFreed int64
 		for _, p := range []string{stdoutPath, stderrPath} {
 			if p == "" {
 				continue
@@ -350,12 +351,14 @@ func RegisterHandlers(server *transport.Server, mgr *manager.Manager, privileged
 				return nil, fmt.Errorf("refusing to truncate non-regular log file %s", targetPath)
 			}
 
+			sizeBefore := info.Size()
 			if err := os.Truncate(targetPath, 0); err != nil && !os.IsNotExist(err) {
 				return nil, fmt.Errorf("failed to truncate %s: %w", targetPath, err)
 			}
+			bytesFreed += sizeBefore
 		}
 
-		return jsonx.Marshal(map[string]string{"status": "flushed", "id": id})
+		return jsonx.Marshal(map[string]any{"status": "flushed", "id": id, "bytes_freed": bytesFreed})
 	})
 
 	// Register list handler (replacing status)
