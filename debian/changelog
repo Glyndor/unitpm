@@ -1,3 +1,17 @@
+lynxpm (0.8.4-1) unstable; urgency=medium
+
+  * daemon: optional `LYNX_DEBUG_STOP=1` env var makes Stop log the
+    set of descendants returned by walkDescendants before any signal
+    is delivered. Off by default; used by the debian smoke test to
+    investigate why the process-tree kill regressed on the install
+    matrix despite the Go unit test passing.
+  * ci: the debian smoke now dumps `ps` rows relevant to the forked
+    child and `/proc/<child>/stat` just before `lynxpm stop`, so the
+    workflow log shows the exact ppid chain walkDescendants is
+    supposed to pick up on each distro.
+
+ -- Jaro-c <75870284+Jaro-c@users.noreply.github.com>  Sun, 19 Apr 2026 21:40:00 -0500
+
 lynxpm (0.8.3-1) unstable; urgency=high
 
   * **daemon: v0.8.1's process-group stop was incomplete.** Apps that
