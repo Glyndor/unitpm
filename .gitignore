@@ -79,6 +79,7 @@ gosec*
 .gemini/
 .agents/
 .agent/
+.claude/
 
 # =====================
 # Misc
