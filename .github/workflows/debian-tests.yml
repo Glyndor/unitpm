@@ -173,6 +173,31 @@ jobs:
           lynxpm stop smoke-proc
           lynxpm delete smoke-proc
           [ "$(lynxpm list --json)" = "[]" ]
+
+          # Regression guard for the process-group stop bug (v0.8.1).
+          # Spawn a bash wrapper that backgrounds a long sleep and waits;
+          # then stop the wrapper and assert the child PID is also dead.
+          # Without kill(-pid, sig) this child would leak as an orphan
+          # and EADDRINUSE the next start in real deployments.
+          PIDFILE=/tmp/xdg-test/fork-child.pid
+          rm -f "$PIDFILE"
+          lynxpm start "bash -c 'sleep 300 & echo \$! > $PIDFILE; wait'" \
+              --name fork-smoke --restart never --shell
+          for i in $(seq 1 50); do
+              [ -s "$PIDFILE" ] && break
+              sleep 0.1
+          done
+          CHILD_PID=$(cat "$PIDFILE")
+          [ -n "$CHILD_PID" ] || { echo "FAIL: child PID never recorded"; exit 1; }
+          kill -0 "$CHILD_PID" 2>/dev/null || { echo "FAIL: child $CHILD_PID not alive before stop"; exit 1; }
+          lynxpm stop fork-smoke
+          sleep 1
+          if kill -0 "$CHILD_PID" 2>/dev/null; then
+              echo "FAIL: child $CHILD_PID survived Stop — process group not killed"
+              exit 1
+          fi
+          lynxpm delete fork-smoke
+          [ "$(lynxpm list --json)" = "[]" ]
           SMOKE
 
       - name: Dump lynxd log on failure
