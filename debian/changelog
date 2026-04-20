@@ -1,3 +1,23 @@
+lynxpm (0.8.1-1) unstable; urgency=high
+
+  * **daemon: 'lynxpm stop' would orphan child processes.** The
+    supervised app was spawned without Setpgid, so the SIGTERM (and
+    fallback SIGKILL) emitted by Stop only reached the wrapper PID
+    that Lynx tracked. Anything the wrapper had fork()+exec()'d —
+    next-server, gunicorn pre-fork workers, bash backgrounded jobs —
+    survived as orphans, kept the listening socket bound, and caused
+    EADDRINUSE on the next Start. Fixed by spawning every supervised
+    process as its own process-group leader and signalling the whole
+    group with kill(-pid, sig); affects every isolation mode (self,
+    sandbox; dynamic was already covered by systemd's cgroup kill).
+  * ci: a couple of older command files (list, start, apply, scale,
+    delete, flush, plus the newly-edited lifecycle commands) were
+    not formatted to the project's gofmt + golines (max-len 120)
+    style. Rewrapped; the v0.8.0 release tag itself shipped the
+    behaviourally-identical binaries before this fix landed.
+
+ -- Jaro-c <75870284+Jaro-c@users.noreply.github.com>  Sun, 19 Apr 2026 20:48:00 -0500
+
 lynxpm (0.8.0-1) unstable; urgency=medium
 
   * cli: lifecycle commands (stop, restart, reload, reset, delete,
