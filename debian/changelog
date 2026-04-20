@@ -1,3 +1,25 @@
+lynxpm (0.8.3-1) unstable; urgency=high
+
+  * **daemon: v0.8.1's process-group stop was incomplete.** Apps that
+    relocate themselves into a fresh session/pgroup after fork
+    (bash's `&` on Debian/Ubuntu job-control-disabled shells, any
+    child that calls setsid(), gunicorn workers in pre-fork mode)
+    escaped the kill(-pid, sig) and were left as orphans — exactly
+    the bug 0.8.1 was meant to fix, now caught end-to-end by the
+    regression smoke shipped in 0.8.2.
+    gracefulKill now walks /proc up front, collects every descendant
+    whose ppid-chain ends at the supervised PID, and signals them
+    leaves-first *before* touching the parent. The walk runs before
+    any signal is sent so orphans cannot race the kill by reparenting
+    to init between signal delivery and descendant discovery. Pgroup
+    signalling is kept as a cheap first-pass for well-behaved trees.
+  * tests: the Go regression now forces the child into a new session
+    with setsid(1), so the test fails on every platform if the /proc
+    walk regresses — not only on shells that happen to relocate
+    background jobs.
+
+ -- Jaro-c <75870284+Jaro-c@users.noreply.github.com>  Sun, 19 Apr 2026 21:22:00 -0500
+
 lynxpm (0.8.2-1) unstable; urgency=medium
 
   * ci: add an end-to-end regression guard for the v0.8.1

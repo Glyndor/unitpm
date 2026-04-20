@@ -4,7 +4,7 @@ package version
 // These variables are set at build time using -ldflags.
 var (
 	// Version is the current version of Lynx.
-	Version = "0.8.2"
+	Version = "0.8.3"
 
 	// Commit is the git commit hash of the build.
 	Commit = "none"
