@@ -1,3 +1,18 @@
+lynxpm (0.8.2-1) unstable; urgency=medium
+
+  * ci: add an end-to-end regression guard for the v0.8.1
+    process-group stop fix inside the Debian smoke test. The Go
+    unit test already covers the daemon logic, but it exercises a
+    source-built binary inside the test harness; this new smoke
+    step runs against the installed .deb under a real user-mode
+    lynxd, starts a bash wrapper that backgrounds a `sleep`,
+    stops the wrapper via `lynxpm stop`, and asserts the child
+    PID is also dead. Any future regression of Setpgid /
+    kill(-pid, sig) now trips the `Install (debian:*, ubuntu:*)`
+    matrix, not just the unit tests.
+
+ -- Jaro-c <75870284+Jaro-c@users.noreply.github.com>  Sun, 19 Apr 2026 21:00:00 -0500
+
 lynxpm (0.8.1-1) unstable; urgency=high
 
   * **daemon: 'lynxpm stop' would orphan child processes.** The
