@@ -34,7 +34,9 @@ func Run(client transport.IPCClient, args []string) error {
 	flagArgs, rest := batch.SplitArgs(args)
 	if err := fs.Parse(flagArgs); err != nil {
 		if strings.HasPrefix(err.Error(), "flag provided but not defined: -") {
-			return &errs.UsageError{Message: "Unknown flag: -" + strings.TrimPrefix(err.Error(), "flag provided but not defined: -")}
+			return &errs.UsageError{
+				Message: "Unknown flag: -" + strings.TrimPrefix(err.Error(), "flag provided but not defined: -"),
+			}
 		}
 		return &errs.UsageError{Message: err.Error()}
 	}
