@@ -1,0 +1,73 @@
+/* Lynx brand palette — lion-accent + dark-surface default. */
+:root {
+	--sl-color-accent-low: #1f2b18;
+	--sl-color-accent: #2ecc71;
+	--sl-color-accent-high: #a7f3c8;
+
+	--sl-color-white: #ffffff;
+	--sl-color-gray-1: #ebebeb;
+	--sl-color-gray-2: #c3c3c3;
+	--sl-color-gray-3: #8b8b8b;
+	--sl-color-gray-4: #575757;
+	--sl-color-gray-5: #383838;
+	--sl-color-gray-6: #262626;
+	--sl-color-black: #17171c;
+}
+
+:root[data-theme='light'] {
+	--sl-color-accent-low: #c2f0d6;
+	--sl-color-accent: #1f8a4e;
+	--sl-color-accent-high: #0a4f2a;
+
+	--sl-color-white: #17171c;
+	--sl-color-gray-1: #262626;
+	--sl-color-gray-2: #383838;
+	--sl-color-gray-3: #575757;
+	--sl-color-gray-4: #8b8b8b;
+	--sl-color-gray-5: #c3c3c3;
+	--sl-color-gray-6: #ebebeb;
+	--sl-color-gray-7: #f6f6f6;
+	--sl-color-black: #ffffff;
+}
+
+/* Tighten the hero so the CTA sits above the fold on a 13" laptop. */
+.hero {
+	padding-block: 2rem;
+}
+
+.hero h1 {
+	font-weight: 800;
+	letter-spacing: -0.02em;
+}
+
+/* Feature-card grid used on the landing page. */
+.feature-grid {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+	gap: 1rem;
+	margin-block: 2rem;
+}
+
+.feature-card {
+	border: 1px solid var(--sl-color-gray-5);
+	border-radius: 0.75rem;
+	padding: 1.25rem;
+	background: var(--sl-color-gray-6);
+	transition: border-color 120ms ease, transform 120ms ease;
+}
+
+.feature-card:hover {
+	border-color: var(--sl-color-accent);
+	transform: translateY(-2px);
+}
+
+.feature-card h3 {
+	margin-top: 0;
+	font-size: 1.05rem;
+}
+
+.feature-card p {
+	margin-bottom: 0;
+	color: var(--sl-color-gray-2);
+	font-size: 0.925rem;
+}
