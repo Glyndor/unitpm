@@ -318,6 +318,20 @@ type RenderOptions struct {
 	Highlight map[string]bool
 }
 
+// FetchAndRender calls the daemon for the current process list and renders
+// it with the given IDs or names highlighted. Used by start/stop/restart to
+// show a pm2-style follow-up table after their primary action. Errors are
+// silently swallowed — the primary action already succeeded, so a failure
+// here should not propagate a non-zero exit to the operator.
+func FetchAndRender(client transport.IPCClient, highlight map[string]bool) {
+	var processes []types.ProcessInfo
+	if err := client.Call("list", nil, &processes); err != nil {
+		return
+	}
+	_, _ = term.Printf("\n")
+	Render(processes, RenderOptions{Highlight: highlight})
+}
+
 // Render prints the process list as a box-drawing table. Exported so other
 // commands (start/stop/restart) can reuse the same rendering after an action.
 func Render(processes []types.ProcessInfo, opts RenderOptions) {
@@ -338,15 +352,15 @@ func Render(processes []types.ProcessInfo, opts RenderOptions) {
 		term.CyanString("%s", term.BoldString("git")),
 		term.CyanString("%s", term.BoldString("watch")),
 	}
-	showLong := opts.ShowLong
-
 	t := table.New(headers)
 	idColWidth := shortIDLen(processes)
-	if showLong {
+	if opts.ShowLong {
 		idColWidth = 36
 	}
-	// +2 to accommodate the highlight marker / alignment padding added below.
-	idColWidth += 2
+	hasHighlight := len(opts.Highlight) > 0
+	if hasHighlight {
+		idColWidth += 2
+	}
 	t.SetMaxColWidths([]int{
 		idColWidth, // id — dynamic width to avoid short-ID collisions
 		40,         // name — 128-char max upstream; 40 covers most labels
@@ -400,7 +414,7 @@ func Render(processes []types.ProcessInfo, opts RenderOptions) {
 		}
 
 		var idStr string
-		if showLong {
+		if opts.ShowLong {
 			idStr = p.ID
 		} else {
 			l := shortIDLen(processes)
@@ -411,11 +425,12 @@ func Render(processes []types.ProcessInfo, opts RenderOptions) {
 			}
 		}
 
-		highlighted := opts.Highlight[p.ID] || opts.Highlight[p.Name]
-		if highlighted {
-			idStr = term.GreenString("▸ ") + term.BoldString("%s", idStr)
-		} else {
-			idStr = "  " + idStr
+		if hasHighlight {
+			if opts.Highlight[p.ID] || opts.Highlight[p.Name] {
+				idStr = term.GreenString("▸ ") + term.BoldString("%s", idStr)
+			} else {
+				idStr = "  " + idStr
+			}
 		}
 
 		var gitStr string

@@ -16,7 +16,6 @@ import (
 	"github.com/Jaro-c/Lynx/internal/cli/help"
 	"github.com/Jaro-c/Lynx/internal/ipc/transport"
 	"github.com/Jaro-c/Lynx/internal/term"
-	"github.com/Jaro-c/Lynx/internal/types"
 )
 
 // Run executes the restart command. Client is created lazily after
@@ -66,7 +65,7 @@ func Run(client transport.IPCClient, args []string) error {
 	}
 
 	rep := batch.New("restart")
-	touched := make(map[string]bool)
+	touched := make(map[string]bool, len(ids))
 	for _, id := range ids {
 		var resp struct {
 			Status string `json:"status"`
@@ -94,20 +93,9 @@ func Run(client transport.IPCClient, args []string) error {
 	}
 	rep.PrintSummary()
 	if !noList && !term.IsQuiet() && len(touched) > 0 {
-		printPostActionList(client, touched)
+		list.FetchAndRender(client, touched)
 	}
 	return rep.Err()
-}
-
-// printPostActionList fetches the current process list and renders it with
-// the given IDs highlighted. Errors are silently ignored.
-func printPostActionList(client transport.IPCClient, highlight map[string]bool) {
-	var processes []types.ProcessInfo
-	if err := client.Call("list", nil, &processes); err != nil {
-		return
-	}
-	_, _ = term.Printf("\n")
-	list.Render(processes, list.RenderOptions{Highlight: highlight})
 }
 
 // GetSpec returns the command specification.
