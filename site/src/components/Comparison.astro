@@ -1,0 +1,40 @@
+---
+// A styled head-to-head table. The Lynx column is visually picked out with
+// a left-border accent + tinted background.
+const rows = [
+  ['Runtime', 'Compiled Go', 'Node.js (V8)', 'Python'],
+  ['Base RAM', '~10 MB', '60–100 MB', '~50 MB'],
+  ['Supervisor', 'systemd', 'Custom daemon', 'supervisord'],
+  ['Crash resilience', 'Apps outlive the CLI', 'Apps die with PM2', 'Apps die with daemon'],
+  ['Sandboxing', 'DynamicUser + landlock', 'User-space only', 'User-space only'],
+  ['Config', 'CLI or Lynxfile.yml', 'ecosystem.config.js', 'INI files'],
+];
+---
+<section class="lx-compare">
+  <header class="lx-compare__head">
+    <span class="lx-eyebrow">Head-to-head</span>
+    <h2>Stack up against the old guard.</h2>
+  </header>
+  <div class="lx-compare__wrap">
+    <table class="lx-compare__table">
+      <thead>
+        <tr>
+          <th></th>
+          <th class="lx-compare__th-lynx">🦁 Lynx</th>
+          <th>🐢 PM2</th>
+          <th>🦖 Supervisor</th>
+        </tr>
+      </thead>
+      <tbody>
+        {rows.map((r) => (
+          <tr>
+            <th scope="row">{r[0]}</th>
+            <td class="lx-compare__td-lynx"><strong>{r[1]}</strong></td>
+            <td>{r[2]}</td>
+            <td>{r[3]}</td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  </div>
+</section>

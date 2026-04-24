@@ -1,73 +1,617 @@
-/* Lynx brand palette — lion-accent + dark-surface default. */
+/* ===========================================================
+ * Lynx brand — dark-first palette keyed off the CLI's lion-green accent.
+ * The values below feed Starlight's built-in CSS variables; the landing
+ * page components add their own namespaced rules below.
+ * =========================================================== */
+
 :root {
-	--sl-color-accent-low: #1f2b18;
+	--sl-color-accent-low: #0f2319;
 	--sl-color-accent: #2ecc71;
 	--sl-color-accent-high: #a7f3c8;
 
-	--sl-color-white: #ffffff;
-	--sl-color-gray-1: #ebebeb;
-	--sl-color-gray-2: #c3c3c3;
-	--sl-color-gray-3: #8b8b8b;
-	--sl-color-gray-4: #575757;
-	--sl-color-gray-5: #383838;
-	--sl-color-gray-6: #262626;
-	--sl-color-black: #17171c;
+	--sl-color-white: #f5f7f9;
+	--sl-color-gray-1: #e4e7eb;
+	--sl-color-gray-2: #b7bcc3;
+	--sl-color-gray-3: #8a909b;
+	--sl-color-gray-4: #575b65;
+	--sl-color-gray-5: #383a42;
+	--sl-color-gray-6: #24262d;
+	--sl-color-black: #0d0f13;
+
+	--lx-accent: #2ecc71;
+	--lx-accent-soft: #6af29a;
+	--lx-accent-strong: #1aa35c;
+	--lx-bg-elev: #181b22;
+	--lx-bg-elev-2: #1f232c;
+	--lx-border: #2a2e38;
+	--lx-glow: 0 8px 40px -16px rgba(46, 204, 113, 0.35);
 }
 
 :root[data-theme='light'] {
-	--sl-color-accent-low: #c2f0d6;
-	--sl-color-accent: #1f8a4e;
+	--sl-color-accent-low: #cfefe0;
+	--sl-color-accent: #1aa35c;
 	--sl-color-accent-high: #0a4f2a;
 
-	--sl-color-white: #17171c;
-	--sl-color-gray-1: #262626;
-	--sl-color-gray-2: #383838;
-	--sl-color-gray-3: #575757;
-	--sl-color-gray-4: #8b8b8b;
-	--sl-color-gray-5: #c3c3c3;
-	--sl-color-gray-6: #ebebeb;
-	--sl-color-gray-7: #f6f6f6;
+	--sl-color-white: #0d0f13;
+	--sl-color-gray-1: #24262d;
+	--sl-color-gray-2: #383a42;
+	--sl-color-gray-3: #575b65;
+	--sl-color-gray-4: #8a909b;
+	--sl-color-gray-5: #b7bcc3;
+	--sl-color-gray-6: #e4e7eb;
+	--sl-color-gray-7: #f5f7f9;
 	--sl-color-black: #ffffff;
+
+	--lx-bg-elev: #f3f5f7;
+	--lx-bg-elev-2: #e7ebef;
+	--lx-border: #d6dbe2;
+	--lx-glow: 0 8px 40px -16px rgba(26, 163, 92, 0.35);
 }
 
-/* Tighten the hero so the CTA sits above the fold on a 13" laptop. */
-.hero {
-	padding-block: 2rem;
+/* ===========================================================
+ * Starlight splash tweaks — hide the default hero on the
+ * landing so our custom <Hero /> can own the viewport.
+ * =========================================================== */
+body:has(.lx-hero) .hero {
+	display: none;
 }
 
-.hero h1 {
-	font-weight: 800;
-	letter-spacing: -0.02em;
+body:has(.lx-hero) .sl-markdown-content {
+	max-width: none;
 }
 
-/* Feature-card grid used on the landing page. */
-.feature-grid {
+/* Reset the default content gutter on the landing; sections manage their own. */
+body:has(.lx-hero) main > .content-panel {
+	padding-inline: 0;
+}
+
+/* ===========================================================
+ * Generic section eyebrow used across the landing.
+ * =========================================================== */
+.lx-eyebrow {
+	display: inline-block;
+	padding: 0.25rem 0.6rem;
+	margin-bottom: 1rem;
+	font-size: 0.75rem;
+	font-weight: 600;
+	letter-spacing: 0.08em;
+	text-transform: uppercase;
+	color: var(--lx-accent-soft);
+	background: color-mix(in oklab, var(--lx-accent) 12%, transparent);
+	border: 1px solid color-mix(in oklab, var(--lx-accent) 28%, transparent);
+	border-radius: 999px;
+}
+
+/* ===========================================================
+ * Hero
+ * =========================================================== */
+.lx-hero {
+	position: relative;
+	padding: clamp(2.5rem, 6vw, 5rem) clamp(1rem, 4vw, 3rem) clamp(3rem, 7vw, 6rem);
+	overflow: hidden;
+	background:
+		radial-gradient(ellipse at 85% -10%, color-mix(in oklab, var(--lx-accent) 14%, transparent), transparent 55%),
+		radial-gradient(ellipse at 10% 110%, color-mix(in oklab, var(--lx-accent) 8%, transparent), transparent 55%);
+	border-bottom: 1px solid var(--lx-border);
+}
+
+.lx-hero::before {
+	content: '';
+	position: absolute;
+	inset: 0;
+	background-image:
+		linear-gradient(var(--lx-border) 1px, transparent 1px),
+		linear-gradient(90deg, var(--lx-border) 1px, transparent 1px);
+	background-size: 64px 64px;
+	mask-image: radial-gradient(ellipse at 50% 0%, #000 20%, transparent 70%);
+	opacity: 0.25;
+	pointer-events: none;
+}
+
+.lx-hero__inner {
+	position: relative;
 	display: grid;
-	grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+	grid-template-columns: 1.1fr 1fr;
+	gap: clamp(2rem, 5vw, 4rem);
+	align-items: center;
+	max-width: 1200px;
+	margin: 0 auto;
+}
+
+@media (max-width: 960px) {
+	.lx-hero__inner {
+		grid-template-columns: 1fr;
+	}
+}
+
+.lx-hero__pill {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.5rem;
+	padding: 0.35rem 0.75rem;
+	font-size: 0.8rem;
+	color: var(--sl-color-gray-2);
+	background: var(--lx-bg-elev);
+	border: 1px solid var(--lx-border);
+	border-radius: 999px;
+}
+
+.lx-hero__dot {
+	width: 0.5rem;
+	height: 0.5rem;
+	border-radius: 999px;
+	background: var(--lx-accent);
+	box-shadow: 0 0 10px var(--lx-accent);
+	animation: lx-pulse 2.4s ease-in-out infinite;
+}
+
+@keyframes lx-pulse {
+	0%, 100% { opacity: 1; transform: scale(1); }
+	50% { opacity: 0.5; transform: scale(0.85); }
+}
+
+.lx-hero__title {
+	margin: 1.25rem 0 1rem;
+	font-size: clamp(2.25rem, 5vw, 3.75rem);
+	line-height: 1.05;
+	letter-spacing: -0.03em;
+	font-weight: 800;
+	color: var(--sl-color-white);
+}
+
+.lx-hero__title-accent {
+	background: linear-gradient(120deg, var(--lx-accent-soft), var(--lx-accent) 60%, var(--lx-accent-strong));
+	-webkit-background-clip: text;
+	background-clip: text;
+	color: transparent;
+}
+
+.lx-hero__tagline {
+	max-width: 38em;
+	font-size: 1.1rem;
+	line-height: 1.6;
+	color: var(--sl-color-gray-2);
+}
+
+.lx-hero__tagline strong {
+	color: var(--sl-color-white);
+	font-weight: 600;
+}
+
+.lx-hero__cta {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.75rem;
+	margin-top: 1.75rem;
+}
+
+.lx-hero__cta-primary,
+.lx-hero__cta-secondary {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.5rem;
+	padding: 0.75rem 1.25rem;
+	border-radius: 0.6rem;
+	font-weight: 600;
+	font-size: 0.95rem;
+	text-decoration: none;
+	transition: transform 120ms ease, box-shadow 120ms ease, background 120ms ease;
+}
+
+.lx-hero__cta-primary {
+	background: linear-gradient(135deg, var(--lx-accent-soft), var(--lx-accent));
+	color: #0b1510;
+	box-shadow: var(--lx-glow);
+}
+
+.lx-hero__cta-primary:hover {
+	transform: translateY(-1px);
+	box-shadow: 0 10px 30px -10px color-mix(in oklab, var(--lx-accent) 60%, transparent);
+}
+
+.lx-hero__cta-primary svg {
+	width: 1em;
+	height: 1em;
+}
+
+.lx-hero__cta-secondary {
+	color: var(--sl-color-white);
+	background: var(--lx-bg-elev);
+	border: 1px solid var(--lx-border);
+}
+
+.lx-hero__cta-secondary:hover {
+	border-color: color-mix(in oklab, var(--lx-accent) 45%, var(--lx-border));
+}
+
+.lx-hero__cta-secondary svg {
+	width: 1.1em;
+	height: 1.1em;
+}
+
+.lx-hero__stats {
+	display: flex;
+	gap: 2rem;
+	margin: 2.25rem 0 0;
+	flex-wrap: wrap;
+}
+
+.lx-hero__stats > div {
+	display: flex;
+	flex-direction: column;
+}
+
+.lx-hero__stats dt {
+	font-size: 0.75rem;
+	color: var(--sl-color-gray-3);
+	text-transform: uppercase;
+	letter-spacing: 0.08em;
+	margin-bottom: 0.25rem;
+}
+
+.lx-hero__stats dd {
+	margin: 0;
+	font-size: 1.5rem;
+	font-weight: 700;
+	color: var(--sl-color-white);
+}
+
+.lx-hero__stats dd span {
+	font-size: 0.8em;
+	font-weight: 400;
+	color: var(--sl-color-gray-2);
+	margin-left: 0.2em;
+}
+
+/* Terminal preview card. Styled to read as a real shell screenshot
+ * without actually being one — keeps text crawlable. */
+.lx-hero__terminal {
+	position: relative;
+}
+
+.lx-term {
+	position: relative;
+	border-radius: 0.85rem;
+	overflow: hidden;
+	border: 1px solid var(--lx-border);
+	background: #0c0e13;
+	box-shadow: 0 24px 60px -20px rgba(0, 0, 0, 0.6), var(--lx-glow);
+}
+
+.lx-term::before {
+	content: '';
+	position: absolute;
+	inset: -1px;
+	border-radius: inherit;
+	padding: 1px;
+	background: linear-gradient(135deg, color-mix(in oklab, var(--lx-accent) 55%, transparent), transparent 45%, color-mix(in oklab, var(--lx-accent) 20%, transparent));
+	-webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+	mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+	-webkit-mask-composite: xor;
+	mask-composite: exclude;
+	pointer-events: none;
+}
+
+.lx-term__bar {
+	display: flex;
+	align-items: center;
+	gap: 0.35rem;
+	padding: 0.55rem 0.85rem;
+	background: #15181f;
+	border-bottom: 1px solid var(--lx-border);
+	font-size: 0.75rem;
+	color: var(--sl-color-gray-3);
+}
+
+.lx-term__dot {
+	width: 0.7rem;
+	height: 0.7rem;
+	border-radius: 999px;
+}
+
+.lx-term__dot--red { background: #ff5f56; }
+.lx-term__dot--amber { background: #ffbd2e; }
+.lx-term__dot--green { background: #27c93f; }
+
+.lx-term__path {
+	margin-left: 0.75rem;
+	font-family: var(--__sl-font-mono, ui-monospace, monospace);
+}
+
+.lx-term__body {
+	margin: 0;
+	padding: 1rem 1.1rem 1.3rem;
+	font-family: var(--__sl-font-mono, ui-monospace, monospace);
+	font-size: 0.78rem;
+	line-height: 1.6;
+	color: #d3d6dc;
+	overflow-x: auto;
+	white-space: pre;
+}
+
+.lx-term__prompt { color: var(--lx-accent-soft); font-weight: 700; margin-right: 0.3rem; }
+.lx-term__cmd { color: #e8eaee; }
+.lx-term__ok { color: var(--lx-accent); font-weight: 700; }
+.lx-term__hl { color: var(--lx-accent); font-weight: 700; text-shadow: 0 0 8px var(--lx-accent); }
+
+.lx-term__cursor {
+	display: inline-block;
+	width: 0.5em;
+	height: 1em;
+	margin-left: 0.1em;
+	background: var(--lx-accent-soft);
+	vertical-align: -0.1em;
+	animation: lx-cursor 1s steps(2, start) infinite;
+}
+
+@keyframes lx-cursor {
+	0%, 49% { opacity: 1; }
+	50%, 100% { opacity: 0; }
+}
+
+/* ===========================================================
+ * Feature grid
+ * =========================================================== */
+.lx-features {
+	padding: clamp(3rem, 6vw, 5rem) clamp(1rem, 4vw, 3rem);
+	max-width: 1200px;
+	margin: 0 auto;
+}
+
+.lx-features__head {
+	text-align: center;
+	margin-bottom: 2.5rem;
+}
+
+.lx-features__head h2 {
+	margin: 0.5rem 0 0;
+	font-size: clamp(1.5rem, 3vw, 2.25rem);
+	letter-spacing: -0.02em;
+	color: var(--sl-color-white);
+}
+
+.lx-features__grid {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(270px, 1fr));
 	gap: 1rem;
-	margin-block: 2rem;
 }
 
-.feature-card {
-	border: 1px solid var(--sl-color-gray-5);
-	border-radius: 0.75rem;
-	padding: 1.25rem;
-	background: var(--sl-color-gray-6);
-	transition: border-color 120ms ease, transform 120ms ease;
+.lx-feature {
+	position: relative;
+	padding: 1.5rem 1.4rem;
+	border: 1px solid var(--lx-border);
+	border-radius: 0.85rem;
+	background: linear-gradient(180deg, var(--lx-bg-elev) 0%, var(--lx-bg-elev-2) 100%);
+	transition: transform 160ms ease, border-color 160ms ease, box-shadow 160ms ease;
+	overflow: hidden;
 }
 
-.feature-card:hover {
-	border-color: var(--sl-color-accent);
+.lx-feature::before {
+	content: '';
+	position: absolute;
+	inset: 0;
+	background: radial-gradient(600px circle at var(--x, 50%) var(--y, 50%), color-mix(in oklab, var(--lx-accent) 10%, transparent), transparent 40%);
+	opacity: 0;
+	transition: opacity 200ms ease;
+	pointer-events: none;
+}
+
+.lx-feature:hover {
 	transform: translateY(-2px);
+	border-color: color-mix(in oklab, var(--lx-accent) 45%, var(--lx-border));
+	box-shadow: 0 12px 30px -12px rgba(0, 0, 0, 0.45);
 }
 
-.feature-card h3 {
-	margin-top: 0;
+.lx-feature:hover::before { opacity: 1; }
+
+.lx-feature__icon {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 2.5rem;
+	height: 2.5rem;
+	border-radius: 0.6rem;
+	background: color-mix(in oklab, var(--lx-accent) 12%, transparent);
+	color: var(--lx-accent-soft);
+	margin-bottom: 1rem;
+	border: 1px solid color-mix(in oklab, var(--lx-accent) 28%, transparent);
+}
+
+.lx-feature__icon svg {
+	width: 1.3rem;
+	height: 1.3rem;
+}
+
+.lx-feature h3 {
+	margin: 0 0 0.5rem;
 	font-size: 1.05rem;
+	color: var(--sl-color-white);
+	letter-spacing: -0.01em;
 }
 
-.feature-card p {
-	margin-bottom: 0;
+.lx-feature p {
+	margin: 0;
 	color: var(--sl-color-gray-2);
 	font-size: 0.925rem;
+	line-height: 1.55;
+}
+
+/* ===========================================================
+ * Comparison table
+ * =========================================================== */
+.lx-compare {
+	padding: clamp(2rem, 5vw, 4rem) clamp(1rem, 4vw, 3rem);
+	max-width: 1200px;
+	margin: 0 auto;
+}
+
+.lx-compare__head {
+	text-align: center;
+	margin-bottom: 2rem;
+}
+
+.lx-compare__head h2 {
+	margin: 0.5rem 0 0;
+	font-size: clamp(1.5rem, 3vw, 2.25rem);
+	letter-spacing: -0.02em;
+	color: var(--sl-color-white);
+}
+
+.lx-compare__wrap {
+	overflow-x: auto;
+	border: 1px solid var(--lx-border);
+	border-radius: 0.85rem;
+	background: var(--lx-bg-elev);
+}
+
+.lx-compare__table {
+	width: 100%;
+	border-collapse: collapse;
+	font-size: 0.95rem;
+}
+
+.lx-compare__table th,
+.lx-compare__table td {
+	padding: 0.85rem 1rem;
+	text-align: left;
+	border-bottom: 1px solid var(--lx-border);
+}
+
+.lx-compare__table tbody tr:last-child th,
+.lx-compare__table tbody tr:last-child td {
+	border-bottom: none;
+}
+
+.lx-compare__table thead th {
+	font-weight: 600;
+	color: var(--sl-color-gray-2);
+	background: var(--lx-bg-elev-2);
+	border-bottom: 1px solid var(--lx-border);
+}
+
+.lx-compare__table tbody th {
+	color: var(--sl-color-gray-3);
+	font-weight: 500;
+	width: 18ch;
+}
+
+.lx-compare__th-lynx,
+.lx-compare__td-lynx {
+	color: var(--sl-color-white) !important;
+	background: color-mix(in oklab, var(--lx-accent) 8%, transparent) !important;
+	border-left: 2px solid var(--lx-accent);
+	border-right: 2px solid var(--lx-accent);
+}
+
+.lx-compare__table tbody tr:last-child .lx-compare__td-lynx {
+	border-bottom: 2px solid var(--lx-accent);
+}
+
+.lx-compare__table thead tr .lx-compare__th-lynx {
+	border-top: 2px solid var(--lx-accent);
+}
+
+/* ===========================================================
+ * Final CTA
+ * =========================================================== */
+.lx-cta {
+	padding: clamp(2rem, 5vw, 4rem) clamp(1rem, 4vw, 3rem) clamp(3rem, 6vw, 5rem);
+	max-width: 1200px;
+	margin: 0 auto;
+}
+
+.lx-cta__inner {
+	display: grid;
+	grid-template-columns: 1fr 1fr;
+	gap: clamp(1.5rem, 4vw, 3rem);
+	align-items: center;
+	padding: clamp(1.75rem, 4vw, 3rem);
+	border-radius: 1rem;
+	border: 1px solid var(--lx-border);
+	background:
+		radial-gradient(circle at 85% 0%, color-mix(in oklab, var(--lx-accent) 18%, transparent), transparent 50%),
+		var(--lx-bg-elev);
+	position: relative;
+	overflow: hidden;
+}
+
+@media (max-width: 820px) {
+	.lx-cta__inner { grid-template-columns: 1fr; }
+}
+
+.lx-cta__left h2 {
+	margin: 0 0 0.75rem;
+	font-size: clamp(1.4rem, 2.8vw, 2rem);
+	letter-spacing: -0.02em;
+	color: var(--sl-color-white);
+}
+
+.lx-cta__left p {
+	margin: 0;
+	color: var(--sl-color-gray-2);
+	line-height: 1.55;
+}
+
+.lx-cta__left code {
+	background: var(--lx-bg-elev-2);
+	padding: 0.05rem 0.4rem;
+	border-radius: 0.3rem;
+	font-size: 0.9em;
+}
+
+.lx-cta__right {
+	display: flex;
+	flex-direction: column;
+	gap: 0.85rem;
+}
+
+.lx-cta__code {
+	display: flex;
+	align-items: center;
+	gap: 0.5rem;
+	padding: 0.9rem 1rem;
+	border-radius: 0.6rem;
+	background: #0c0e13;
+	border: 1px solid var(--lx-border);
+	font-family: var(--__sl-font-mono, ui-monospace, monospace);
+	font-size: 0.9rem;
+}
+
+.lx-cta__prompt {
+	color: var(--lx-accent-soft);
+	font-weight: 700;
+}
+
+.lx-cta__code code {
+	background: transparent;
+	color: var(--sl-color-gray-1);
+	padding: 0;
+}
+
+.lx-cta__button {
+	align-self: flex-start;
+	padding: 0.75rem 1.15rem;
+	background: var(--lx-accent);
+	color: #0b1510;
+	border-radius: 0.6rem;
+	text-decoration: none;
+	font-weight: 600;
+	transition: transform 120ms ease, background 120ms ease;
+}
+
+.lx-cta__button:hover {
+	transform: translateY(-1px);
+	background: var(--lx-accent-soft);
+}
+
+/* ===========================================================
+ * Shared — section headings + generic typography polish
+ * =========================================================== */
+@media (prefers-reduced-motion: reduce) {
+	.lx-hero__dot,
+	.lx-term__cursor,
+	.lx-feature {
+		animation: none !important;
+		transition: none !important;
+	}
 }
