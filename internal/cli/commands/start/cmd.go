@@ -20,7 +20,6 @@ import (
 	"github.com/Jaro-c/Lynx/internal/jsonx"
 	"github.com/Jaro-c/Lynx/internal/spec"
 	"github.com/Jaro-c/Lynx/internal/term"
-	"github.com/Jaro-c/Lynx/internal/types"
 )
 
 // startedInstance summarizes one spawned instance for both the --json
@@ -184,8 +183,8 @@ func Run(client transport.IPCClient, args []string) error {
 	return finalizeStart(client, started, scale, jsonOut, noList)
 }
 
-// finalizeStart emits the post-loop output: JSON batch report, multi-instance
-// summary, or the pm2-style process list with started IDs highlighted.
+// finalizeStart emits the post-loop output: JSON batch, plain summary, or
+// the pm2-style highlighted list.
 func finalizeStart(client transport.IPCClient, started []startedInstance, scale int, jsonOut, noList bool) error {
 	if jsonOut {
 		shape := map[string]any{"started": started, "count": len(started)}
@@ -206,21 +205,9 @@ func finalizeStart(client transport.IPCClient, started []startedInstance, scale 
 		for _, s := range started {
 			highlight[s.ID] = true
 		}
-		printPostActionList(client, highlight)
+		list.FetchAndRender(client, highlight)
 	}
 	return nil
-}
-
-// printPostActionList fetches the current process list and renders it with
-// the given IDs highlighted. Errors are silently ignored — the primary action
-// already succeeded, so a list-render failure should not surface as an error.
-func printPostActionList(client transport.IPCClient, highlight map[string]bool) {
-	var processes []types.ProcessInfo
-	if err := client.Call("list", nil, &processes); err != nil {
-		return
-	}
-	_, _ = term.Printf("\n")
-	list.Render(processes, list.RenderOptions{Highlight: highlight})
 }
 
 // ParseAppSpec parses command-line arguments into an AppSpec.
