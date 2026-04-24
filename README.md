@@ -87,6 +87,10 @@ lynxpm delete --namespace old --purge
 
 ## Documentation
 
+📘 **Full docs site: <https://jaro-c.github.io/Lynx/>** — searchable,
+with the landing page, quickstart, runtimes, tutorials, and every
+command's flag reference.
+
 | Topic | Link |
 |-------|------|
 | Runtime recipes — Node / Bun / Python / Go / Rust / Ruby / JVM / … | [`docs/RUNTIMES.md`](docs/RUNTIMES.md) |
