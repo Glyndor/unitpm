@@ -1,3 +1,22 @@
+lynxpm (0.9.8-1) unstable; urgency=low
+
+  * refactor(cli): unify the three byte-identical printPostActionList
+    copies in start/stop/restart behind a single
+    list.FetchAndRender(client, highlight). The helper lives in the
+    list package since all three callers already imported it for
+    Render, and the fetch+render sequence mirrors list.Run itself.
+    Drops the types import each action command was carrying only for
+    the dup'd helper. Net −22 lines.
+  * fix(cli): the highlight marker's id-column width bump (+2) and
+    per-row "▸ " / "  " prefix now fire only when a non-empty
+    Highlight set is passed. Before this, a plain `lynxpm list`
+    rendered two chars wider than 0.9.6 and prepended two blank
+    padding chars to every id cell — pure overhead in the common
+    no-highlight path. Post-action renders (with a Highlight set)
+    still align correctly.
+
+ -- Jaro-c <75870284+Jaro-c@users.noreply.github.com>  Thu, 23 Apr 2026 21:10:00 -0500
+
 lynxpm (0.9.7-1) unstable; urgency=low
 
   * cli: start / stop / restart now print the process list after the
