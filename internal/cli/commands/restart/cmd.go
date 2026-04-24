@@ -10,11 +10,13 @@ import (
 	"strings"
 
 	"github.com/Jaro-c/Lynx/internal/cli/batch"
+	"github.com/Jaro-c/Lynx/internal/cli/commands/list"
 	"github.com/Jaro-c/Lynx/internal/cli/errs"
 	"github.com/Jaro-c/Lynx/internal/cli/expand"
 	"github.com/Jaro-c/Lynx/internal/cli/help"
 	"github.com/Jaro-c/Lynx/internal/ipc/transport"
 	"github.com/Jaro-c/Lynx/internal/term"
+	"github.com/Jaro-c/Lynx/internal/types"
 )
 
 // Run executes the restart command. Client is created lazily after
@@ -29,9 +31,11 @@ func Run(client transport.IPCClient, args []string) error {
 	fs.SetOutput(io.Discard)
 	var (
 		jsonOut   bool
+		noList    bool
 		namespace string
 	)
 	fs.BoolVar(&jsonOut, "json", false, "Emit a machine-readable batch report")
+	fs.BoolVar(&noList, "no-list", false, "Skip the process list printed after the action")
 	fs.StringVar(&namespace, expand.NamespaceFlag, "", "Restart every process in this namespace")
 
 	flagArgs, ids := batch.SplitArgsWithValues(args, map[string]bool{expand.NamespaceFlag: true})
@@ -62,6 +66,7 @@ func Run(client transport.IPCClient, args []string) error {
 	}
 
 	rep := batch.New("restart")
+	touched := make(map[string]bool)
 	for _, id := range ids {
 		var resp struct {
 			Status string `json:"status"`
@@ -78,6 +83,7 @@ func Run(client transport.IPCClient, args []string) error {
 			_, _ = term.Printf("%s Restarted %s\n", term.GreenString("✓"), resp.ID)
 		}
 		rep.OK(resp.ID, nil)
+		touched[resp.ID] = true
 	}
 
 	if jsonOut {
@@ -87,7 +93,21 @@ func Run(client transport.IPCClient, args []string) error {
 		return rep.Err()
 	}
 	rep.PrintSummary()
+	if !noList && !term.IsQuiet() && len(touched) > 0 {
+		printPostActionList(client, touched)
+	}
 	return rep.Err()
+}
+
+// printPostActionList fetches the current process list and renders it with
+// the given IDs highlighted. Errors are silently ignored.
+func printPostActionList(client transport.IPCClient, highlight map[string]bool) {
+	var processes []types.ProcessInfo
+	if err := client.Call("list", nil, &processes); err != nil {
+		return
+	}
+	_, _ = term.Printf("\n")
+	list.Render(processes, list.RenderOptions{Highlight: highlight})
 }
 
 // GetSpec returns the command specification.
@@ -100,6 +120,7 @@ func GetSpec() help.CommandSpec {
 			{Short: "-h", Long: "--help", Description: "Show this help message."},
 			{Short: "", Long: "--namespace <ns>", Description: "Restart every process in this namespace."},
 			{Short: "", Long: "--json", Description: "Emit a machine-readable batch report."},
+			{Short: "", Long: "--no-list", Description: "Skip the process list printed after the action."},
 		},
 		Examples: []string{
 			"lynxpm restart api",

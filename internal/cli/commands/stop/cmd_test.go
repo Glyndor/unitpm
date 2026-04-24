@@ -51,7 +51,7 @@ func TestRun_Success_WasRunning(t *testing.T) {
 			"was_running": true,
 		},
 	}
-	err := stop.Run(mc, []string{"abc-123"})
+	err := stop.Run(mc, []string{"abc-123", "--no-list"})
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
@@ -93,7 +93,7 @@ func TestRun_MultipleIDs(t *testing.T) {
 			"was_running": true,
 		},
 	}
-	err := stop.Run(mc, []string{"a", "b", "c"})
+	err := stop.Run(mc, []string{"a", "b", "c", "--no-list"})
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
