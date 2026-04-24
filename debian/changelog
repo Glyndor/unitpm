@@ -1,3 +1,20 @@
+lynxpm (0.9.7-1) unstable; urgency=low
+
+  * cli: start / stop / restart now print the process list after the
+    action completes, pm2-style, so the operator can confirm in one
+    shot what changed without typing `lynxpm list` as a follow-up.
+    Rows the action touched are flagged with a ▸ marker so they're
+    easy to spot in a populated list. Skipped under --json, --quiet,
+    or the new --no-list flag (useful for scripts that only care
+    about the primary action's exit code).
+  * cli: list rendering (previously private renderTable) is now an
+    exported list.Render(procs, RenderOptions{ShowLong, Highlight})
+    so start/stop/restart can share the same table formatting code.
+    Highlight is a set matching process id OR name, whichever the
+    caller has on hand.
+
+ -- Jaro-c <75870284+Jaro-c@users.noreply.github.com>  Thu, 23 Apr 2026 20:49:00 -0500
+
 lynxpm (0.9.6-1) unstable; urgency=low
 
   * refactor(daemon): extract registerLocked(s) — the namespace
