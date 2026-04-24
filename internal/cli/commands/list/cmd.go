@@ -125,7 +125,7 @@ func Run(client transport.IPCClient, args []string) error {
 		return err
 	}
 
-	renderTable(processes, showLong)
+	Render(processes, RenderOptions{ShowLong: showLong})
 
 	if updateCh != nil {
 		waitUpdateAndNotify(updateCh, updateDeadline)
@@ -308,7 +308,19 @@ func shortIDLen(processes []types.ProcessInfo) int {
 	return 36 // full UUID as last resort
 }
 
-func renderTable(processes []types.ProcessInfo, showLong bool) {
+// RenderOptions controls how the process table is rendered.
+type RenderOptions struct {
+	// ShowLong expands the id column to the full 36-char UUID.
+	ShowLong bool
+	// Highlight is a set of process IDs or names that should be visually
+	// marked in the rendered table (used to emphasize the targets of a
+	// preceding start/stop/restart action, pm2-style).
+	Highlight map[string]bool
+}
+
+// Render prints the process list as a box-drawing table. Exported so other
+// commands (start/stop/restart) can reuse the same rendering after an action.
+func Render(processes []types.ProcessInfo, opts RenderOptions) {
 	// id | name | namespace | version | mode | pid | uptime | ↺ | status | cpu | mem | user | watch
 	headers := []string{
 		term.CyanString("%s", term.BoldString("id")),
@@ -326,12 +338,15 @@ func renderTable(processes []types.ProcessInfo, showLong bool) {
 		term.CyanString("%s", term.BoldString("git")),
 		term.CyanString("%s", term.BoldString("watch")),
 	}
+	showLong := opts.ShowLong
 
 	t := table.New(headers)
 	idColWidth := shortIDLen(processes)
 	if showLong {
 		idColWidth = 36
 	}
+	// +2 to accommodate the highlight marker / alignment padding added below.
+	idColWidth += 2
 	t.SetMaxColWidths([]int{
 		idColWidth, // id — dynamic width to avoid short-ID collisions
 		40,         // name — 128-char max upstream; 40 covers most labels
@@ -394,6 +409,13 @@ func renderTable(processes []types.ProcessInfo, showLong bool) {
 			} else {
 				idStr = p.ID
 			}
+		}
+
+		highlighted := opts.Highlight[p.ID] || opts.Highlight[p.Name]
+		if highlighted {
+			idStr = term.GreenString("▸ ") + term.BoldString("%s", idStr)
+		} else {
+			idStr = "  " + idStr
 		}
 
 		var gitStr string

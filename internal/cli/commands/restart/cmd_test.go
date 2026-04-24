@@ -46,7 +46,7 @@ func TestRun_Success(t *testing.T) {
 	mc := &mockClient{
 		response: map[string]any{"status": "restarted", "id": "abc-123"},
 	}
-	err := restart.Run(mc, []string{"abc-123"})
+	err := restart.Run(mc, []string{"abc-123", "--no-list"})
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
@@ -67,7 +67,7 @@ func TestRun_MultipleIDs(t *testing.T) {
 	mc := &mockClient{
 		response: map[string]any{"status": "restarted", "id": "x"},
 	}
-	err := restart.Run(mc, []string{"a", "b", "c"})
+	err := restart.Run(mc, []string{"a", "b", "c", "--no-list"})
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}

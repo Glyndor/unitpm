@@ -27,6 +27,7 @@ Bulk selectors:
 |------|------|---------|-------------|
 | `--namespace <ns>` | string | - | Restart every process in this namespace. Mutually exclusive with positional targets. |
 | `--json` | boolean | false | Emit a machine-readable `{results, summary}` batch report on stdout. |
+| `--no-list` | boolean | false | Skip the process list printed after the action. The restarted instances are otherwise highlighted (▸) in the list for easy scanning. |
 | `-h`, `--help` | - | - | Show help message. |
 
 ## 🚀 Examples

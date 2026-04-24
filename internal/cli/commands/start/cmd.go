@@ -11,6 +11,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/Jaro-c/Lynx/internal/cli/commands/list"
 	"github.com/Jaro-c/Lynx/internal/cli/errs"
 	"github.com/Jaro-c/Lynx/internal/cli/help"
 	"github.com/Jaro-c/Lynx/internal/cli/table"
@@ -19,7 +20,18 @@ import (
 	"github.com/Jaro-c/Lynx/internal/jsonx"
 	"github.com/Jaro-c/Lynx/internal/spec"
 	"github.com/Jaro-c/Lynx/internal/term"
+	"github.com/Jaro-c/Lynx/internal/types"
 )
+
+// startedInstance summarizes one spawned instance for both the --json
+// batch report and the post-action list highlight set.
+type startedInstance struct {
+	Name      string `json:"name"`
+	ID        string `json:"id"`
+	PID       int    `json:"pid"`
+	Status    string `json:"status"`
+	Namespace string `json:"namespace,omitempty"`
+}
 
 // Run executes the start command. If client is nil, it is created lazily
 // *after* argument validation so bad invocations fail without touching the
@@ -32,6 +44,7 @@ func Run(client transport.IPCClient, args []string) error {
 
 	dryRun := false
 	jsonOut := false
+	noList := false
 	filtered := make([]string, 0, len(args))
 	for _, a := range args {
 		switch a {
@@ -40,6 +53,9 @@ func Run(client transport.IPCClient, args []string) error {
 			continue
 		case "--json":
 			jsonOut = true
+			continue
+		case "--no-list":
+			noList = true
 			continue
 		}
 		filtered = append(filtered, a)
@@ -80,13 +96,6 @@ func Run(client transport.IPCClient, args []string) error {
 		}
 	}
 
-	type startedInstance struct {
-		Name      string `json:"name"`
-		ID        string `json:"id"`
-		PID       int    `json:"pid"`
-		Status    string `json:"status"`
-		Namespace string `json:"namespace,omitempty"`
-	}
 	var started []startedInstance
 
 	for i := 0; i < scale; i++ {
@@ -172,6 +181,12 @@ func Run(client transport.IPCClient, args []string) error {
 		}
 	}
 
+	return finalizeStart(client, started, scale, jsonOut, noList)
+}
+
+// finalizeStart emits the post-loop output: JSON batch report, multi-instance
+// summary, or the pm2-style process list with started IDs highlighted.
+func finalizeStart(client transport.IPCClient, started []startedInstance, scale int, jsonOut, noList bool) error {
 	if jsonOut {
 		shape := map[string]any{"started": started, "count": len(started)}
 		b, err := jsonx.Marshal(shape)
@@ -185,7 +200,27 @@ func Run(client transport.IPCClient, args []string) error {
 	if scale > 1 {
 		_, _ = term.Printf("\n%s Started %d instances\n", term.GreenString("✓"), len(started))
 	}
+
+	if !noList && !term.IsQuiet() && len(started) > 0 {
+		highlight := make(map[string]bool, len(started))
+		for _, s := range started {
+			highlight[s.ID] = true
+		}
+		printPostActionList(client, highlight)
+	}
 	return nil
+}
+
+// printPostActionList fetches the current process list and renders it with
+// the given IDs highlighted. Errors are silently ignored — the primary action
+// already succeeded, so a list-render failure should not surface as an error.
+func printPostActionList(client transport.IPCClient, highlight map[string]bool) {
+	var processes []types.ProcessInfo
+	if err := client.Call("list", nil, &processes); err != nil {
+		return
+	}
+	_, _ = term.Printf("\n")
+	list.Render(processes, list.RenderOptions{Highlight: highlight})
 }
 
 // ParseAppSpec parses command-line arguments into an AppSpec.
@@ -735,6 +770,7 @@ func GetSpec() help.CommandSpec {
 			{Short: "-n", Long: "--dry-run", Description: "Print the resolved spec without starting anything"},
 			{Short: "", Long: "--json", Description: "Emit the start result as JSON on stdout"},
 			{Short: "-q", Long: "--quiet", Description: "Suppress success messages (errors still printed)"},
+			{Short: "", Long: "--no-list", Description: "Skip the process list printed after the action"},
 		},
 		Examples: []string{
 			`lynxpm start "node server.js" --name api`,

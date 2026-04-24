@@ -388,6 +388,59 @@ func TestRun_JSON_Empty(t *testing.T) {
 	}
 }
 
+func TestRender_HighlightByID(t *testing.T) {
+	procs := []types.ProcessInfo{
+		{ID: "aaaaaaaa-0000-0000-0000-000000000000", Name: "api", Namespace: "prod", State: types.StateRunning},
+		{ID: "bbbbbbbb-0000-0000-0000-000000000000", Name: "worker", Namespace: "prod", State: types.StateRunning},
+	}
+	out := captureStdout(t, func() {
+		list.Render(procs, list.RenderOptions{
+			Highlight: map[string]bool{"aaaaaaaa-0000-0000-0000-000000000000": true},
+		})
+	})
+	plain := stripAnsi(out)
+	if !strings.Contains(plain, "▸") {
+		t.Fatalf("expected highlight marker ▸ in output, got:\n%s", plain)
+	}
+	// The highlighted row must precede the non-highlighted row text.
+	markerIdx := strings.Index(plain, "▸")
+	workerIdx := strings.Index(plain, "worker")
+	if markerIdx < 0 || workerIdx < 0 || markerIdx >= workerIdx {
+		t.Errorf("marker should appear on api row (before worker row). marker=%d worker=%d\n%s",
+			markerIdx, workerIdx, plain)
+	}
+	// Non-highlighted row must not carry a marker; only one ▸ in the output.
+	if strings.Count(plain, "▸") != 1 {
+		t.Errorf("expected exactly one ▸, got %d:\n%s", strings.Count(plain, "▸"), plain)
+	}
+}
+
+func TestRender_HighlightByName(t *testing.T) {
+	procs := []types.ProcessInfo{
+		{ID: "aaa", Name: "api", Namespace: "prod", State: types.StateRunning},
+	}
+	out := captureStdout(t, func() {
+		list.Render(procs, list.RenderOptions{
+			Highlight: map[string]bool{"api": true},
+		})
+	})
+	if !strings.Contains(stripAnsi(out), "▸") {
+		t.Fatalf("expected ▸ marker when highlighting by name, got:\n%s", out)
+	}
+}
+
+func TestRender_NoHighlight(t *testing.T) {
+	procs := []types.ProcessInfo{
+		{ID: "aaa", Name: "api", Namespace: "prod", State: types.StateRunning},
+	}
+	out := captureStdout(t, func() {
+		list.Render(procs, list.RenderOptions{})
+	})
+	if strings.Contains(stripAnsi(out), "▸") {
+		t.Errorf("no highlight requested but marker appeared:\n%s", out)
+	}
+}
+
 // stripAnsi removes ANSI escape codes for comparison.
 func stripAnsi(s string) string {
 	var b strings.Builder

@@ -43,6 +43,7 @@ Start a new process managed by Lynx. This command creates a new application spec
 | `-n`, `--dry-run` | - | - | Print the resolved spec without starting (rendered as a `Spec` table; pair with `--json` for machine-readable output). | `--dry-run` |
 | `--json` | boolean | false | Emit the start result as JSON on stdout (`{started, count}`). Works with `--dry-run` too (`{spec, scale}`). | `--json` |
 | `-q`, `--quiet` | - | - | Suppress success messages; errors still printed. | `--quiet` |
+| `--no-list` | boolean | false | Skip the process list printed after the action. The started instances are otherwise highlighted (▸) in the list for easy scanning. | `--no-list` |
 | `-h`, `--help` | - | - | Show help message. | — |
 
 ## Supported Runtimes

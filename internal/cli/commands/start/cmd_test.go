@@ -61,7 +61,7 @@ func TestRun_Success(t *testing.T) {
 			Status: "running",
 		},
 	}
-	err := start.Run(mc, []string{"echo", "hello"})
+	err := start.Run(mc, []string{"echo", "hello", "--no-list"})
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
@@ -80,7 +80,7 @@ func TestRun_Scale(t *testing.T) {
 			Status: "running",
 		},
 	}
-	err := start.Run(mc, []string{"echo", "--scale", "3"})
+	err := start.Run(mc, []string{"echo", "--scale", "3", "--no-list"})
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
