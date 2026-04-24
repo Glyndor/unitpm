@@ -85,6 +85,7 @@ gosec*
 # Misc
 # =====================
 *.txt
+!site/public/robots.txt
 readme_tag.md
 
 # =====================
