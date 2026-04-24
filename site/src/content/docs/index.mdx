@@ -1,101 +1,21 @@
 ---
 title: Lynx
-description: The secure, systemd-native process manager for Linux. A lean, hardened alternative to PM2 and Supervisor.
+description: The secure, systemd-native process manager for Linux. A lean, hardened alternative to PM2 and Supervisor — ~10 MB of compiled Go with zero-privilege deploy out of the box.
 template: splash
 hero:
-  tagline: The secure, systemd-native process manager for Linux. Lean, hardened, production-ready.
-  image:
-    file: ../../assets/lynx.svg
-  actions:
-    - text: Get started
-      link: /start/install/
-      icon: right-arrow
-      variant: primary
-    - text: View on GitHub
-      link: https://github.com/Jaro-c/Lynx
-      icon: external
-      variant: minimal
+  tagline: " "
+  actions: []
 ---
 
-import { Card, CardGrid, Code, Tabs, TabItem } from '@astrojs/starlight/components';
+import Hero from '../../components/Hero.astro';
+import FeatureGrid from '../../components/FeatureGrid.astro';
+import Comparison from '../../components/Comparison.astro';
+import FinalCTA from '../../components/FinalCTA.astro';
 
-## Why Lynx?
+<Hero />
 
-<CardGrid stagger>
-  <Card title="~10 MB base RAM" icon="rocket">
-    Compiled Go daemon. One-tenth the footprint of PM2 on Node.
-  </Card>
-  <Card title="systemd-native" icon="setting">
-    Your apps outlive the CLI. `systemd` supervises directly — no custom
-    watchdog to crash.
-  </Card>
-  <Card title="Zero-privilege deploy" icon="approve-check">
-    `DynamicUser` + landlock isolation out of the box. Secrets never hit
-    `/proc/<pid>/environ`.
-  </Card>
-  <Card title="Namespace-native ops" icon="list-format">
-    Roll the whole tier with `--namespace prod` or `'prod:*'`. No more
-    `xargs` loops.
-  </Card>
-  <Card title="Lynxfile OR CLI" icon="document">
-    Declarative YAML for production, one-shot flags for dev. Export one
-    into the other any time.
-  </Card>
-  <Card title="Built for Linux" icon="linux">
-    Debian / Ubuntu `.deb` + prebuilt amd64 & arm64 binaries. Signed +
-    SLSA provenance + SBOM on every release.
-  </Card>
-</CardGrid>
+<FeatureGrid />
 
-## 30-second install
+<Comparison />
 
-<Tabs>
-  <TabItem label="Debian / Ubuntu">
-```bash
-# Grab the latest .deb from https://github.com/Jaro-c/Lynx/releases
-sudo apt install ./lynxpm_*_amd64.deb
-sudo usermod -aG lynxadm "$USER" && newgrp lynxadm
-sudo systemctl enable --now lynxd
-```
-  </TabItem>
-  <TabItem label="Prebuilt binary">
-```bash
-gh release download --repo Jaro-c/Lynx --pattern 'lynxpm_linux_amd64'
-install -m 0755 lynxpm_linux_amd64 ~/.local/bin/lynxpm
-lynxd &   # user-mode daemon
-```
-  </TabItem>
-</Tabs>
-
-## Run your first process
-
-```bash
-lynxpm start "node server.js" --name api --namespace prod --restart always
-lynxpm list
-lynxpm logs api --follow
-```
-
-That's it. `api` now outlives your shell, restarts on failure, and
-surfaces in `lynxpm list` with full lifecycle control.
-
-## Head-to-head
-
-| | 🦁 Lynx | 🐢 PM2 | 🦖 Supervisor |
-| --- | --- | --- | --- |
-| **Runtime** | Compiled Go | Node.js (V8) | Python |
-| **Base RAM** | **~10 MB** | 60–100 MB | ~50 MB |
-| **Supervisor** | **systemd** | Custom daemon | `supervisord` |
-| **Crash resilience** | Apps outlive the CLI | Apps die with PM2 | Apps die with daemon |
-| **Sandboxing** | **`DynamicUser` + landlock** | User-space only | User-space only |
-| **Config** | CLI flags or `Lynxfile.yml` | `ecosystem.config.js` | INI |
-
-<CardGrid>
-  <Card title="Ready to deploy?" icon="rocket">
-    Walk the [Quickstart](/start/quickstart/) — run a real app end to
-    end in under two minutes.
-  </Card>
-  <Card title="Want the full reference?" icon="open-book">
-    Every flag, every command, every selector — in the
-    [commands reference](/reference/commands/start/).
-  </Card>
-</CardGrid>
+<FinalCTA />
