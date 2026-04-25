@@ -129,6 +129,7 @@ body:has(.lx-hero) h1#_top {
 	grid-template-columns: 1.1fr 1fr;
 	gap: clamp(2rem, 5vw, 4rem);
 	align-items: center;
+	max-width: 1400px;
 	margin: 0 auto;
 }
 
@@ -390,8 +391,16 @@ body:has(.lx-hero) h1#_top {
 
 .lx-features__grid {
 	display: grid;
-	grid-template-columns: repeat(auto-fit, minmax(270px, 1fr));
+	grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr));
 	gap: 1rem;
+	max-width: 1400px;
+	margin: 0 auto;
+}
+
+@media (min-width: 960px) {
+	.lx-features__grid {
+		grid-template-columns: repeat(3, 1fr);
+	}
 }
 
 .lx-feature {
@@ -478,9 +487,12 @@ body:has(.lx-hero) h1#_top {
 	border: 1px solid var(--lx-border);
 	border-radius: 0.85rem;
 	background: var(--lx-bg-elev);
+	max-width: 960px;
+	margin: 0 auto;
 }
 
 .lx-compare__table {
+	display: table;
 	width: 100%;
 	border-collapse: collapse;
 	font-size: 0.95rem;
@@ -547,6 +559,8 @@ body:has(.lx-hero) h1#_top {
 		var(--lx-bg-elev);
 	position: relative;
 	overflow: hidden;
+	max-width: 1200px;
+	margin: 0 auto;
 }
 
 @media (max-width: 820px) {
