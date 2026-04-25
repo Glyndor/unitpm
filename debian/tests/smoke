@@ -26,3 +26,16 @@ getent group lynxadm
 [ -d /var/log/lynx-pm ]
 [ "$(stat -c '%U:%G' /var/lib/lynx-pm)" = "lynx:lynx" ]
 [ "$(stat -c '%U:%G' /var/log/lynx-pm)" = "lynx:lynx" ]
+
+# Daemon binary lives in /usr/sbin (debian/install), not /usr/bin. Catches
+# a bad install layout that would still pass `command -v lynxd` on root's
+# PATH but break non-root users that only have /usr/bin.
+[ -x /usr/sbin/lynxd ]
+[ -x /usr/bin/lynxpm ]
+
+# logrotate config present and parseable. `logrotate -d` exits non-zero on
+# a broken stanza, so this catches both packaging drops and syntax bugs.
+[ -f /etc/logrotate.d/lynxpm ]
+if command -v logrotate >/dev/null 2>&1; then
+    logrotate -d /etc/logrotate.d/lynxpm >/dev/null
+fi
