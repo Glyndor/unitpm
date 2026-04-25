@@ -51,12 +51,12 @@ fi
 		printf '%s' "$r"
 	done
 	printf ']'
-} | jq '{
+} | jq --arg kernel "$(uname -r)" --arg host "${HOSTNAME:-unknown}" '{
 	timestamp: now | strftime("%Y-%m-%dT%H:%M:%SZ"),
-	host: env.HOSTNAME // "unknown",
+	host: $host,
 	kernel: $kernel,
 	results: .
-}' --arg kernel "$(uname -r)" >"$OUT/results.json"
+}' >"$OUT/results.json"
 
 python3 "$HERE/render.py" "$OUT/results.json" >"$OUT/results.md"
 
