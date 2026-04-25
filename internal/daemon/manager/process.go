@@ -40,7 +40,10 @@ type Process struct {
 	logFiles      []*os.File
 	stdoutPath    string // cached for banner reopen after files closed
 	stderrPath    string
-	inRestart     bool // suppresses STARTED/STOPPED banners during Restart()
+	stdoutWriter  *timestampWriter // nil in inherit mode; held so the rotation ticker can drive it
+	stderrWriter  *timestampWriter
+	rotateCancel  context.CancelFunc // stops the rotation ticker started in Start()
+	inRestart     bool               // suppresses STARTED/STOPPED banners during Restart()
 	metrics       metrics.Collector
 	scheduler     *cron.Cron
 	restartCount  int
@@ -209,6 +212,12 @@ func (p *Process) Start() error {
 
 	if !p.inRestart {
 		p.emitBanner("STARTED", "")
+	}
+
+	if p.stdoutWriter != nil {
+		ctx, cancel := context.WithCancel(context.Background())
+		p.rotateCancel = cancel
+		go p.rotateLoop(ctx, p.stdoutWriter, p.stderrWriter)
 	}
 
 	go p.monitor()
@@ -569,6 +578,8 @@ func (p *Process) setupLogs(cmd *exec.Cmd) error {
 		cmd.Stderr = os.Stderr
 		p.stdoutPath = ""
 		p.stderrPath = ""
+		p.stdoutWriter = nil
+		p.stderrWriter = nil
 		return nil
 	}
 
@@ -610,21 +621,49 @@ func (p *Process) setupLogs(cmd *exec.Cmd) error {
 		return fmt.Errorf("failed to open stdout log: %w", err)
 	}
 	p.logFiles = append(p.logFiles, fOut)
-	cmd.Stdout = newTimestampWriter(fOut)
+	p.stdoutWriter = newRotatingTimestampWriter(fOut, stdoutPath)
+	cmd.Stdout = p.stdoutWriter
 
 	// Open Stderr
 	if stderrPath == stdoutPath {
-		cmd.Stderr = cmd.Stdout
+		p.stderrWriter = p.stdoutWriter
+		cmd.Stderr = p.stdoutWriter
 	} else {
 		fErr, err := os.OpenFile(stderrPath, logFlags, 0600)
 		if err != nil {
 			return fmt.Errorf("failed to open stderr log: %w", err)
 		}
 		p.logFiles = append(p.logFiles, fErr)
-		cmd.Stderr = newTimestampWriter(fErr)
+		p.stderrWriter = newRotatingTimestampWriter(fErr, stderrPath)
+		cmd.Stderr = p.stderrWriter
 	}
 
 	return nil
+}
+
+// rotateLoop ticks every LYNX_LOG_ROTATE_INTERVAL_MS milliseconds and asks
+// each writer to rotate if it has crossed the size threshold. Without this
+// loop, internal rotation only fires at Start() — a long-running app in
+// user mode (where logrotate is not configured) would grow logs without
+// bound between restarts.
+func (p *Process) rotateLoop(ctx context.Context, stdout, stderr *timestampWriter) {
+	intervalMs := env.Int64("LYNX_LOG_ROTATE_INTERVAL_MS", 60_000)
+	if intervalMs <= 0 {
+		return
+	}
+	ticker := time.NewTicker(time.Duration(intervalMs) * time.Millisecond)
+	defer ticker.Stop()
+	for {
+		select {
+		case <-ticker.C:
+			stdout.maybeRotate()
+			if stderr != stdout {
+				stderr.maybeRotate()
+			}
+		case <-ctx.Done():
+			return
+		}
+	}
 }
 
 // monitor waits for process exit and updates state.
@@ -642,6 +681,12 @@ func (p *Process) monitor() {
 	}
 
 	p.mu.Lock()
+	// Stop the rotation ticker before closing files so it cannot stat a
+	// closed-and-soon-reopened path during a restart race.
+	if p.rotateCancel != nil {
+		p.rotateCancel()
+		p.rotateCancel = nil
+	}
 	// Emit EXITED banner before closing files. Skipped for user-initiated
 	// stop (STOPPED already written) and Restart() (RESTARTED suffices).
 	if !p.stoppedByUser && !p.inRestart {
@@ -652,6 +697,8 @@ func (p *Process) monitor() {
 		_ = f.Close()
 	}
 	p.logFiles = nil
+	p.stdoutWriter = nil
+	p.stderrWriter = nil
 	if p.watcher != nil {
 		p.watcher.Stop()
 	}
