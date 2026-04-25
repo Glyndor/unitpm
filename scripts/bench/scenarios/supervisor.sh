@@ -68,7 +68,10 @@ start_ns=$(date +%s%N)
 supervisord -c "$CONF" >"$WORK/supervisord.stderr" 2>&1 &
 DAEMON_PID=$!
 
-cold_ns=$(time_until "$COLD_TIMEOUT_MS" supervisorctl -c "$CONF" status) || {
+# Probe with `pid` — it returns 0 as soon as the RPC server is bound, while
+# `status` exits 3 when no programs are running, which would never satisfy
+# time_until.
+cold_ns=$(time_until "$COLD_TIMEOUT_MS" supervisorctl -c "$CONF" pid) || {
 	echo "supervisord did not become ready (stderr below):" >&2
 	cat "$WORK/supervisord.stderr" >&2 || true
 	exit 1
@@ -77,8 +80,14 @@ cold_ns=$(time_until "$COLD_TIMEOUT_MS" supervisorctl -c "$CONF" status) || {
 idle_samples=$(for _ in 1 2 3; do sleep 0.2; rss_kb "$DAEMON_PID"; done)
 idle_kb=$(echo "$idle_samples" | median)
 
-# Start the N programs.
-supervisorctl -c "$CONF" start "noop-*" >/dev/null 2>&1 || true
+# Start the N programs. supervisorctl takes a space-separated list, not a
+# glob, when used non-interactively.
+names=""
+for i in $(seq 1 "$NOOP_N"); do
+	names="$names noop-$i"
+done
+# shellcheck disable=SC2086
+supervisorctl -c "$CONF" start $names >/dev/null 2>&1 || true
 sleep 2
 
 with_n_samples=$(for _ in 1 2 3; do sleep 0.2; rss_kb "$DAEMON_PID"; done)
