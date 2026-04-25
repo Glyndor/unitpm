@@ -1,9 +1,10 @@
 /var/log/lynx-pm/*/*.log {
     weekly
-    missingok
+    size 50M
     rotate 12
     compress
     delaycompress
     notifempty
     copytruncate
+    missingok
 }

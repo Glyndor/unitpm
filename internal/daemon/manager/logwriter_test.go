@@ -2,6 +2,8 @@ package manager
 
 import (
 	"bytes"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 )
@@ -98,6 +100,91 @@ func TestTimestampWriter_EmptyWrite(t *testing.T) {
 	}
 	if buf.Len() != 0 {
 		t.Error("empty write should produce no output")
+	}
+}
+
+// TestRotatingTimestampWriter_MaybeRotate verifies the writer's rotation
+// path: when the underlying file has grown past LYNX_LOG_MAX_BYTES, a
+// call to maybeRotate produces .1 (plain) — the production defaults
+// match logrotate's `delaycompress` so the most recent rotation is left
+// uncompressed. The current file is truncated; the daemon's open fd
+// keeps writing to the same inode.
+func TestRotatingTimestampWriter_MaybeRotate(t *testing.T) {
+	t.Setenv("LYNX_LOG_MAX_BYTES", "100")
+	t.Setenv("LYNX_LOG_KEEP", "3")
+
+	dir := t.TempDir()
+	path := filepath.Join(dir, "stdout.log")
+
+	// Seed the file above the threshold before opening with O_APPEND.
+	if err := os.WriteFile(path, bytes.Repeat([]byte("x"), 500), 0o600); err != nil {
+		t.Fatalf("seed: %v", err)
+	}
+
+	f, err := os.OpenFile(path, os.O_APPEND|os.O_WRONLY, 0o600)
+	if err != nil {
+		t.Fatalf("open: %v", err)
+	}
+	defer func() { _ = f.Close() }()
+
+	tw := newRotatingTimestampWriter(f, path)
+	tw.maybeRotate()
+
+	if _, err := os.Stat(path + ".1"); err != nil {
+		t.Fatalf("expected %s.1 (plain, delaycompress on): %v", path, err)
+	}
+	if _, err := os.Stat(path + ".1.gz"); !os.IsNotExist(err) {
+		t.Errorf("did not expect .1.gz on first rotation with delaycompress: err=%v", err)
+	}
+	info, err := os.Stat(path)
+	if err != nil {
+		t.Fatalf("stat current: %v", err)
+	}
+	if info.Size() != 0 {
+		t.Errorf("current log not truncated, size=%d", info.Size())
+	}
+}
+
+// TestRotatingTimestampWriter_NoRotateBelowThreshold pins down the negative
+// case: if size < threshold, maybeRotate is a no-op.
+func TestRotatingTimestampWriter_NoRotateBelowThreshold(t *testing.T) {
+	t.Setenv("LYNX_LOG_MAX_BYTES", "1000000")
+
+	dir := t.TempDir()
+	path := filepath.Join(dir, "stdout.log")
+	if err := os.WriteFile(path, []byte("small"), 0o600); err != nil {
+		t.Fatalf("seed: %v", err)
+	}
+
+	f, err := os.OpenFile(path, os.O_APPEND|os.O_WRONLY, 0o600)
+	if err != nil {
+		t.Fatalf("open: %v", err)
+	}
+	defer func() { _ = f.Close() }()
+
+	tw := newRotatingTimestampWriter(f, path)
+	tw.maybeRotate()
+
+	if _, err := os.Stat(path + ".1.gz"); !os.IsNotExist(err) {
+		t.Errorf("did not expect rotation, but %s.1.gz exists (err=%v)", path, err)
+	}
+}
+
+// TestRotatingTimestampWriter_DisabledWithEmptyPath ensures the
+// non-rotating constructor (used by unit tests that wrap a bytes.Buffer)
+// never tries to stat or rotate. Regression guard for accidentally
+// enabling rotation on the test path.
+func TestRotatingTimestampWriter_DisabledWithEmptyPath(t *testing.T) {
+	var buf bytes.Buffer
+	tw := newTimestampWriter(&buf)
+
+	// Force a rotation attempt — should be a silent no-op since path == "".
+	tw.maybeRotate()
+	if _, err := tw.Write([]byte("hello\n")); err != nil {
+		t.Fatalf("Write: %v", err)
+	}
+	if !strings.HasSuffix(buf.String(), " hello\n") {
+		t.Errorf("write path should still work: %q", buf.String())
 	}
 }
 
