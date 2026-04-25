@@ -104,9 +104,11 @@ func TestTimestampWriter_EmptyWrite(t *testing.T) {
 }
 
 // TestRotatingTimestampWriter_MaybeRotate verifies the writer's rotation
-// path: when the underlying file has grown past LYNX_LOG_MAX_BYTES, a call
-// to maybeRotate compresses the current file to .1.gz and truncates it.
-// This is the same code path the periodic ticker drives in production.
+// path: when the underlying file has grown past LYNX_LOG_MAX_BYTES, a
+// call to maybeRotate produces .1 (plain) — the production defaults
+// match logrotate's `delaycompress` so the most recent rotation is left
+// uncompressed. The current file is truncated; the daemon's open fd
+// keeps writing to the same inode.
 func TestRotatingTimestampWriter_MaybeRotate(t *testing.T) {
 	t.Setenv("LYNX_LOG_MAX_BYTES", "100")
 	t.Setenv("LYNX_LOG_KEEP", "3")
@@ -128,8 +130,11 @@ func TestRotatingTimestampWriter_MaybeRotate(t *testing.T) {
 	tw := newRotatingTimestampWriter(f, path)
 	tw.maybeRotate()
 
-	if _, err := os.Stat(path + ".1.gz"); err != nil {
-		t.Fatalf("expected %s.1.gz: %v", path, err)
+	if _, err := os.Stat(path + ".1"); err != nil {
+		t.Fatalf("expected %s.1 (plain, delaycompress on): %v", path, err)
+	}
+	if _, err := os.Stat(path + ".1.gz"); !os.IsNotExist(err) {
+		t.Errorf("did not expect .1.gz on first rotation with delaycompress: err=%v", err)
 	}
 	info, err := os.Stat(path)
 	if err != nil {

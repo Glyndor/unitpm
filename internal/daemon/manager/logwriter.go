@@ -18,10 +18,14 @@ type timestampWriter struct {
 	// Rotation state. path == "" disables in-writer rotation entirely
 	// (used by unit tests that wrap a bytes.Buffer). When set, every
 	// writeRotateBytesEvery bytes that flow through the writer trigger a
-	// best-effort size check via rotateIfLarge.
+	// best-effort size check via maybeRotate. lastRotateAt anchors the
+	// age-based trigger; logrotate-style "weekly" semantics need a
+	// per-stream baseline because file mtime gets refreshed by every
+	// write and would never cross the age threshold for an active log.
 	rotateMu        sync.Mutex
 	path            string
 	bytesSinceCheck int64
+	lastRotateAt    time.Time
 }
 
 // writeRotateBytesEvery bounds how often the writer pays for a stat() to
@@ -36,9 +40,11 @@ func newTimestampWriter(w interface{ Write([]byte) (int, error) }) *timestampWri
 
 // newRotatingTimestampWriter wraps w with a path so the writer can rotate
 // the underlying file on its own. Only used by setupLogs; tests use the
-// non-rotating constructor.
+// non-rotating constructor. lastRotateAt is seeded to time.Now so the
+// age trigger only fires after maxAge elapsed since the writer opened
+// (i.e. since the daemon started writing this stream).
 func newRotatingTimestampWriter(w interface{ Write([]byte) (int, error) }, path string) *timestampWriter {
-	return &timestampWriter{w: w, path: path}
+	return &timestampWriter{w: w, path: path, lastRotateAt: time.Now()}
 }
 
 const maxLogBuf = 1 << 20 // 1 MB
@@ -99,9 +105,11 @@ func (tw *timestampWriter) Write(p []byte) (int, error) {
 	return n, err
 }
 
-// maybeRotate runs rotateIfLarge with TryLock so a rotation already in
+// maybeRotate runs rotation under TryLock so a rotation already in
 // flight (from the periodic ticker or another goroutine) is left alone
 // rather than queued — duplicate work would just produce a no-op stat.
+// On a successful rotation we advance lastRotateAt so the age trigger
+// resets cleanly.
 func (tw *timestampWriter) maybeRotate() {
 	if tw == nil || tw.path == "" {
 		return
@@ -110,7 +118,9 @@ func (tw *timestampWriter) maybeRotate() {
 		return
 	}
 	defer tw.rotateMu.Unlock()
-	rotateIfLarge(tw.path)
+	if rotateNowCfg(tw.path, currentRotateConfig(), tw.lastRotateAt) {
+		tw.lastRotateAt = time.Now()
+	}
 }
 
 // bannerWidth is the fixed column width of the lifecycle banner block.
