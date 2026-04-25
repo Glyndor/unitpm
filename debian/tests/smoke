@@ -39,3 +39,10 @@ getent group lynxadm
 if command -v logrotate >/dev/null 2>&1; then
     logrotate -d /etc/logrotate.d/lynxpm >/dev/null
 fi
+
+# logrotate must rotate at the same threshold + retention as the daemon's
+# internal rotateIfLarge (50 MiB / 3 keeps). If these drift, system mode
+# and user mode rotate at different sizes — exactly the inconsistency we
+# care about preventing.
+grep -qE '^[[:space:]]*size[[:space:]]+50M[[:space:]]*$' /etc/logrotate.d/lynxpm
+grep -qE '^[[:space:]]*rotate[[:space:]]+3[[:space:]]*$' /etc/logrotate.d/lynxpm
