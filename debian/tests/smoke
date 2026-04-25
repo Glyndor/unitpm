@@ -39,3 +39,13 @@ getent group lynxadm
 if command -v logrotate >/dev/null 2>&1; then
     logrotate -d /etc/logrotate.d/lynxpm >/dev/null
 fi
+
+# logrotate must rotate at the same triggers + retention as the daemon's
+# internal rotation: 50 MiB OR weekly, keep 12, delaycompress, skip
+# empty. If these drift, system mode and user mode behave differently —
+# exactly the inconsistency we care about preventing.
+grep -qE '^[[:space:]]*size[[:space:]]+50M[[:space:]]*$'   /etc/logrotate.d/lynxpm
+grep -qE '^[[:space:]]*rotate[[:space:]]+12[[:space:]]*$'  /etc/logrotate.d/lynxpm
+grep -qE '^[[:space:]]*weekly[[:space:]]*$'                /etc/logrotate.d/lynxpm
+grep -qE '^[[:space:]]*delaycompress[[:space:]]*$'         /etc/logrotate.d/lynxpm
+grep -qE '^[[:space:]]*notifempty[[:space:]]*$'            /etc/logrotate.d/lynxpm
