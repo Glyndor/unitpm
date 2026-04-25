@@ -20,7 +20,9 @@
 | Feature | 🦁 Lynx | 🐢 PM2 | 🦖 Supervisor |
 | :--- | :--- | :--- | :--- |
 | **Runtime** | Compiled Go, native | Node.js (V8) | Python (interpreted) |
-| **Base RAM** | **~10 MB** | ~60–100 MB | ~50 MB |
+| **Idle RSS** | **~13 MB** | ~60–100 MB | ~50 MB |
+| **Daemon binary** | **7.2 MB** | Node + deps | Python + libs |
+| **Cold start** | **~8 ms** | hundreds of ms | hundreds of ms |
 | **Supervisor** | **`systemd`** | Custom daemon | `supervisord` |
 | **Crash resilience** | Apps outlive the CLI | Apps die with PM2 | Apps die with the daemon |
 | **Sandboxing** | **`DynamicUser` + landlock** | User-space only | User-space only |

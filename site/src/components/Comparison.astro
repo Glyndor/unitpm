@@ -3,7 +3,8 @@
 // a left-border accent + tinted background.
 const rows = [
   ['Runtime', 'Compiled Go', 'Node.js (V8)', 'Python'],
-  ['Base RAM', '~10 MB', '60–100 MB', '~50 MB'],
+  ['Idle RSS', '~13 MB', '60–100 MB', '~50 MB'],
+  ['Daemon binary', '7.2 MB', 'Node + deps', 'Python + libs'],
   ['Supervisor', 'systemd', 'Custom daemon', 'supervisord'],
   ['Crash resilience', 'Apps outlive the CLI', 'Apps die with PM2', 'Apps die with daemon'],
   ['Sandboxing', 'DynamicUser + landlock', 'User-space only', 'User-space only'],
