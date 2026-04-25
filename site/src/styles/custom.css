@@ -636,13 +636,155 @@ body:has(.lx-hero) h1#_top {
 }
 
 /* ===========================================================
+ * Scroll-reveal — applied via JS, fades the section up on entry.
+ * =========================================================== */
+.lx-reveal {
+	opacity: 0;
+	transform: translateY(24px);
+	transition: opacity 700ms cubic-bezier(0.22, 1, 0.36, 1),
+		transform 700ms cubic-bezier(0.22, 1, 0.36, 1);
+	will-change: opacity, transform;
+}
+
+.lx-reveal.is-in {
+	opacity: 1;
+	transform: none;
+}
+
+/* ===========================================================
+ * Terminal tilt — JS sets the transform on .lx-term directly.
+ * Smooth out returns + add a small idle float.
+ * =========================================================== */
+.lx-term {
+	transition: transform 320ms cubic-bezier(0.22, 1, 0.36, 1);
+	animation: lx-float 7s ease-in-out infinite;
+}
+
+@keyframes lx-float {
+	0%, 100% { translate: 0 0; }
+	50% { translate: 0 -6px; }
+}
+
+/* ===========================================================
+ * Shimmer on the primary hero CTA — moving highlight band.
+ * =========================================================== */
+.lx-hero__cta-primary {
+	position: relative;
+	overflow: hidden;
+	isolation: isolate;
+}
+
+.lx-hero__cta-primary::after {
+	content: '';
+	position: absolute;
+	inset: 0;
+	background: linear-gradient(
+		120deg,
+		transparent 30%,
+		rgba(255, 255, 255, 0.55) 50%,
+		transparent 70%
+	);
+	transform: translateX(-120%);
+	animation: lx-shimmer 3.6s ease-in-out infinite;
+	pointer-events: none;
+	mix-blend-mode: overlay;
+}
+
+@keyframes lx-shimmer {
+	0%, 25% { transform: translateX(-120%); }
+	60%, 100% { transform: translateX(120%); }
+}
+
+/* ===========================================================
+ * Copy-to-clipboard button — used in the CTA install line.
+ * =========================================================== */
+.lx-copy {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 2rem;
+	height: 2rem;
+	margin-left: auto;
+	padding: 0;
+	border: 1px solid var(--lx-border);
+	border-radius: 0.4rem;
+	background: var(--lx-bg-elev);
+	color: var(--sl-color-gray-2);
+	cursor: pointer;
+	transition: color 120ms ease, border-color 120ms ease, background 120ms ease, transform 120ms ease;
+	flex-shrink: 0;
+}
+
+.lx-copy:hover {
+	color: var(--sl-color-white);
+	border-color: color-mix(in oklab, var(--lx-accent) 45%, var(--lx-border));
+	transform: translateY(-1px);
+}
+
+.lx-copy svg {
+	width: 1rem;
+	height: 1rem;
+	transition: opacity 160ms ease, transform 160ms ease;
+}
+
+.lx-copy__check {
+	position: absolute;
+	color: var(--lx-accent);
+	opacity: 0;
+	transform: scale(0.6);
+}
+
+.lx-copy.is-ok {
+	border-color: color-mix(in oklab, var(--lx-accent) 60%, transparent);
+	color: var(--lx-accent);
+}
+
+.lx-copy.is-ok .lx-copy__icon {
+	opacity: 0;
+	transform: scale(0.6);
+}
+
+.lx-copy.is-ok .lx-copy__check {
+	opacity: 1;
+	transform: scale(1);
+}
+
+.lx-cta__copy {
+	position: relative;
+}
+
+/* ===========================================================
+ * Comparison row hover — subtle accent on the row under cursor.
+ * =========================================================== */
+.lx-compare__table tbody tr {
+	transition: background 160ms ease;
+}
+
+.lx-compare__table tbody tr:hover td:not(.lx-compare__td-lynx),
+.lx-compare__table tbody tr:hover th {
+	background: color-mix(in oklab, var(--lx-accent) 4%, transparent);
+}
+
+/* ===========================================================
  * Shared — section headings + generic typography polish
  * =========================================================== */
+html {
+	scroll-behavior: smooth;
+}
+
 @media (prefers-reduced-motion: reduce) {
+	html { scroll-behavior: auto; }
 	.lx-hero__dot,
+	.lx-term,
 	.lx-term__cursor,
-	.lx-feature {
+	.lx-feature,
+	.lx-hero__cta-primary::after {
 		animation: none !important;
 		transition: none !important;
+	}
+	.lx-reveal {
+		opacity: 1;
+		transform: none;
+		transition: none;
 	}
 }

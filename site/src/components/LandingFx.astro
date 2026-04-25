@@ -1,0 +1,114 @@
+---
+// Client-side polish for the landing: scroll reveals, cursor-tracking glow,
+// terminal tilt, stat count-up, and copy-to-clipboard buttons. All effects
+// progressively enhance — page is fully readable without JS.
+---
+<script>
+const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+// Scroll-triggered reveal — sections fade up when they enter the viewport.
+const revealTargets = document.querySelectorAll(
+  '.lx-hero__copy, .lx-hero__terminal, .lx-feature, .lx-compare__head, .lx-compare__wrap, .lx-cta__inner, .lx-features__head'
+);
+revealTargets.forEach((el) => el.classList.add('lx-reveal'));
+
+if (!prefersReduced && 'IntersectionObserver' in window) {
+  const io = new IntersectionObserver(
+    (entries) => {
+      entries.forEach((entry, i) => {
+        if (entry.isIntersecting) {
+          const target = entry.target as HTMLElement;
+          target.style.transitionDelay = `${Math.min(i, 5) * 60}ms`;
+          target.classList.add('is-in');
+          io.unobserve(target);
+        }
+      });
+    },
+    { threshold: 0.12, rootMargin: '0px 0px -8% 0px' }
+  );
+  revealTargets.forEach((el) => io.observe(el));
+  // Safety net: if a target never gets observed (print, headless screenshot,
+  // crawlers without scroll), reveal it after a short grace period.
+  window.setTimeout(() => {
+    revealTargets.forEach((el) => el.classList.add('is-in'));
+  }, 1400);
+} else {
+  revealTargets.forEach((el) => el.classList.add('is-in'));
+}
+
+// Cursor-tracking glow on feature cards — wires the existing --x/--y CSS vars.
+if (!prefersReduced) {
+  document.querySelectorAll<HTMLElement>('.lx-feature').forEach((card) => {
+    card.addEventListener('pointermove', (e) => {
+      const r = card.getBoundingClientRect();
+      card.style.setProperty('--x', `${e.clientX - r.left}px`);
+      card.style.setProperty('--y', `${e.clientY - r.top}px`);
+    });
+  });
+}
+
+// Subtle 3D tilt on the hero terminal — follows the cursor inside the hero.
+const hero = document.querySelector<HTMLElement>('.lx-hero');
+const term = document.querySelector<HTMLElement>('.lx-term');
+if (!prefersReduced && hero && term) {
+  let raf = 0;
+  hero.addEventListener('pointermove', (e) => {
+    const r = hero.getBoundingClientRect();
+    const px = (e.clientX - r.left) / r.width - 0.5;
+    const py = (e.clientY - r.top) / r.height - 0.5;
+    cancelAnimationFrame(raf);
+    raf = requestAnimationFrame(() => {
+      term.style.transform = `perspective(1200px) rotateY(${px * 4}deg) rotateX(${-py * 4}deg) translateY(${py * 6}px)`;
+    });
+  });
+  hero.addEventListener('pointerleave', () => {
+    term.style.transform = '';
+  });
+}
+
+// Count-up on hero stats once they enter the viewport.
+const statEls = document.querySelectorAll<HTMLElement>('.lx-hero__stats dd[data-count]');
+if (!prefersReduced && statEls.length && 'IntersectionObserver' in window) {
+  const animate = (el: HTMLElement) => {
+    const target = Number(el.dataset.count);
+    const prefix = el.dataset.prefix ?? '';
+    const suffix = el.querySelector('span')?.outerHTML ?? '';
+    const dur = 900;
+    const start = performance.now();
+    const tick = (now: number) => {
+      const t = Math.min(1, (now - start) / dur);
+      const eased = 1 - Math.pow(1 - t, 3);
+      const v = Math.round(target * eased);
+      el.innerHTML = `${prefix}${v} ${suffix}`;
+      if (t < 1) requestAnimationFrame(tick);
+    };
+    requestAnimationFrame(tick);
+  };
+  const io2 = new IntersectionObserver((entries) => {
+    entries.forEach((e) => {
+      if (e.isIntersecting) {
+        animate(e.target as HTMLElement);
+        io2.unobserve(e.target);
+      }
+    });
+  }, { threshold: 0.4 });
+  statEls.forEach((el) => io2.observe(el));
+}
+
+// Copy-to-clipboard on any element marked with .lx-copy.
+document.querySelectorAll<HTMLButtonElement>('.lx-copy').forEach((btn) => {
+  btn.addEventListener('click', async () => {
+    const text = btn.dataset.copy ?? btn.previousElementSibling?.textContent ?? '';
+    try {
+      await navigator.clipboard.writeText(text.trim());
+      btn.classList.add('is-ok');
+      const prev = btn.getAttribute('aria-label') ?? 'Copy';
+      btn.setAttribute('aria-label', 'Copied');
+      setTimeout(() => {
+        btn.classList.remove('is-ok');
+        btn.setAttribute('aria-label', prev);
+      }, 1400);
+    } catch {}
+  });
+});
+</script>
