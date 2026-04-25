@@ -1,0 +1,49 @@
+name: Bench
+
+# Weekly supervisor benchmark. Numbers feed README + site stats; rerun on
+# demand via workflow_dispatch.
+
+on:
+  schedule:
+    - cron: "17 6 * * 1" # Mondays 06:17 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: bench
+  cancel-in-progress: false
+
+jobs:
+  bench:
+    name: Run supervisor bench
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+
+      - name: Build the bench image
+        run: docker build -f scripts/bench/Dockerfile -t lynx-bench .
+
+      - name: Run the bench
+        run: |
+          mkdir -p out
+          docker run --rm \
+            -v "$PWD/out:/src/scripts/bench/out" \
+            lynx-bench
+
+      - name: Show results
+        run: |
+          echo "## Bench results" >> "$GITHUB_STEP_SUMMARY"
+          cat out/results.md >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: bench-${{ github.run_id }}
+          path: |
+            out/results.json
+            out/results.md
+          if-no-files-found: error
+          retention-days: 90

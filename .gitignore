@@ -94,3 +94,8 @@ readme_tag.md
 # Built by CI (and `make -C testdata/apps/go-compiled build` locally),
 # never checked in — the source is enough.
 testdata/apps/go-compiled/go-compiled
+
+# =====================
+# Bench output
+# =====================
+scripts/bench/out/
