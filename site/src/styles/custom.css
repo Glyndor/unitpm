@@ -257,10 +257,10 @@ body:has(.lx-hero) h1#_top {
 }
 
 .lx-hero__stats {
-	display: flex;
+	display: grid;
+	grid-template-columns: repeat(3, minmax(7rem, max-content));
 	gap: 2rem;
 	margin: 2.25rem 0 0;
-	flex-wrap: wrap;
 }
 
 .lx-hero__stats > div {
