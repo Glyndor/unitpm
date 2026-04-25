@@ -65,6 +65,16 @@ body:has(.lx-hero) main > .content-panel {
 	padding-inline: 0;
 }
 
+/* Let landing sections span the full viewport — no Starlight container cap. */
+body:has(.lx-hero) .main-frame .main-pane,
+body:has(.lx-hero) main,
+body:has(.lx-hero) main > .content-panel,
+body:has(.lx-hero) .content-panel > .sl-container {
+	max-width: none;
+	width: 100%;
+	margin-inline: 0;
+}
+
 /* Hide Starlight's auto-injected page H1 on the splash so the hero owns <h1>. */
 body:has(.lx-hero) h1#_top {
 	display: none;
@@ -119,7 +129,6 @@ body:has(.lx-hero) h1#_top {
 	grid-template-columns: 1.1fr 1fr;
 	gap: clamp(2rem, 5vw, 4rem);
 	align-items: center;
-	max-width: 1200px;
 	margin: 0 auto;
 }
 
@@ -365,8 +374,6 @@ body:has(.lx-hero) h1#_top {
  * =========================================================== */
 .lx-features {
 	padding: clamp(3rem, 6vw, 5rem) clamp(1rem, 4vw, 3rem);
-	max-width: 1200px;
-	margin: 0 auto;
 }
 
 .lx-features__head {
@@ -452,8 +459,6 @@ body:has(.lx-hero) h1#_top {
  * =========================================================== */
 .lx-compare {
 	padding: clamp(2rem, 5vw, 4rem) clamp(1rem, 4vw, 3rem);
-	max-width: 1200px;
-	margin: 0 auto;
 }
 
 .lx-compare__head {
@@ -527,8 +532,6 @@ body:has(.lx-hero) h1#_top {
  * =========================================================== */
 .lx-cta {
 	padding: clamp(2rem, 5vw, 4rem) clamp(1rem, 4vw, 3rem) clamp(3rem, 6vw, 5rem);
-	max-width: 1200px;
-	margin: 0 auto;
 }
 
 .lx-cta__inner {
