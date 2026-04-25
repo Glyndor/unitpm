@@ -489,6 +489,19 @@ body:has(.lx-hero) h1#_top {
 	color: var(--sl-color-white);
 }
 
+.lx-compare__source {
+	margin: 0.75rem auto 0;
+	max-width: 48em;
+	font-size: 0.85rem;
+	color: var(--sl-color-gray-3);
+}
+
+.lx-compare__source a {
+	color: var(--lx-accent-soft);
+	text-decoration: underline;
+	text-underline-offset: 2px;
+}
+
 .lx-compare__wrap {
 	overflow-x: auto;
 	border: 1px solid var(--lx-border);

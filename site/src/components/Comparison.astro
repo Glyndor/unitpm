@@ -3,7 +3,9 @@
 // a left-border accent + tinted background.
 const rows = [
   ['Runtime', 'Compiled Go', 'Node.js (V8)', 'Python'],
-  ['Idle RSS', '~13 MB', '60–100 MB', '~50 MB'],
+  ['Cold start', '7.8 ms', '366 ms', '252 ms'],
+  ['Idle RSS', '14.7 MB', '66.7 MB', '27.1 MB'],
+  ['RSS w/ 10 procs', '22.8 MB', '69.3 MB', '27.3 MB'],
   ['Daemon binary', '7.2 MB', 'Node + deps', 'Python + libs'],
   ['Supervisor', 'systemd', 'Custom daemon', 'supervisord'],
   ['Crash resilience', 'Apps outlive the CLI', 'Apps die with PM2', 'Apps die with daemon'],
@@ -15,6 +17,11 @@ const rows = [
   <header class="lx-compare__head">
     <span class="lx-eyebrow">Head-to-head</span>
     <h2>Stack up against the old guard.</h2>
+    <p class="lx-compare__source">
+      Numbers from
+      <a href="https://github.com/Jaro-c/Lynx/actions/workflows/bench.yml">CI bench</a>
+      — Ubuntu 24.04, kernel 6.17, idle daemon supervising 10 noop processes.
+    </p>
   </header>
   <div class="lx-compare__wrap">
     <table class="lx-compare__table">

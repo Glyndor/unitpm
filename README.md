@@ -20,13 +20,18 @@
 | Feature | 🦁 Lynx | 🐢 PM2 | 🦖 Supervisor |
 | :--- | :--- | :--- | :--- |
 | **Runtime** | Compiled Go, native | Node.js (V8) | Python (interpreted) |
-| **Idle RSS** | **~13 MB** | ~60–100 MB | ~50 MB |
+| **Cold start** | **7.8 ms** | 366 ms | 252 ms |
+| **Idle RSS** | **14.7 MB** | 66.7 MB | 27.1 MB |
+| **RSS w/ 10 procs** | **22.8 MB** | 69.3 MB | 27.3 MB |
 | **Daemon binary** | **7.2 MB** | Node + deps | Python + libs |
-| **Cold start** | **~8 ms** | hundreds of ms | hundreds of ms |
 | **Supervisor** | **`systemd`** | Custom daemon | `supervisord` |
 | **Crash resilience** | Apps outlive the CLI | Apps die with PM2 | Apps die with the daemon |
 | **Sandboxing** | **`DynamicUser` + landlock** | User-space only | User-space only |
 | **Config** | CLI flags or `Lynxfile.yml` | `ecosystem.config.js` | INI files |
+
+> Numbers from [`scripts/bench`](./scripts/bench/) running in CI on Ubuntu 24.04
+> (kernel 6.17). PM2 5.4.3, supervisord 4.2.5. Reproduce locally with
+> `docker build -f scripts/bench/Dockerfile -t lynx-bench . && docker run --rm lynx-bench`.
 
 ---
 
