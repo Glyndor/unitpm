@@ -224,7 +224,6 @@ func TestE2E_Flush_BytesFreed(t *testing.T) {
 	if err := os.WriteFile(stderrPath, []byte("hello stderr\n"), 0o600); err != nil {
 		t.Fatalf("write stderr: %v", err)
 	}
-	before := int64(len("hello stdout\n") + len("hello stderr\n"))
 
 	s := protocol.AppSpec{
 		Version: 1, ID: id, Name: "e2e-flush", Namespace: "default",
@@ -240,6 +239,18 @@ func TestE2E_Flush_BytesFreed(t *testing.T) {
 		t.Fatalf("StartWithSpec: %v", err)
 	}
 	defer func() { _ = mgr.Stop(id) }()
+
+	// Read actual on-disk sizes after Start (which appends a STARTED banner)
+	// so the assertion is robust to banner length changes.
+	siOut, err := os.Stat(stdoutPath)
+	if err != nil {
+		t.Fatalf("stat stdout pre-flush: %v", err)
+	}
+	siErr, err := os.Stat(stderrPath)
+	if err != nil {
+		t.Fatalf("stat stderr pre-flush: %v", err)
+	}
+	before := siOut.Size() + siErr.Size()
 
 	var resp map[string]any
 	if err := client.Call("flush", map[string]string{"id": id}, &resp); err != nil {
