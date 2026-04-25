@@ -58,6 +58,7 @@ body:has(.lx-hero) .hero {
 
 body:has(.lx-hero) .sl-markdown-content {
 	max-width: none;
+	margin-block-start: 0;
 }
 
 /* Reset the default content gutter on the landing; sections manage their own. */
@@ -108,7 +109,7 @@ body:has(.lx-hero) h1#_top {
  * =========================================================== */
 .lx-hero {
 	position: relative;
-	padding: clamp(1.5rem, 3vw, 2.5rem) clamp(1rem, 4vw, 3rem) clamp(3rem, 7vw, 6rem);
+	padding: clamp(1rem, 2vw, 1.5rem) clamp(1rem, 4vw, 3rem) clamp(3rem, 7vw, 6rem);
 	overflow: hidden;
 	background:
 		radial-gradient(ellipse at 85% -10%, color-mix(in oklab, var(--lx-accent) 14%, transparent), transparent 55%),
