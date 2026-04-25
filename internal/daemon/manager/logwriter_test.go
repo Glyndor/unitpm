@@ -100,3 +100,47 @@ func TestTimestampWriter_EmptyWrite(t *testing.T) {
 		t.Error("empty write should produce no output")
 	}
 }
+
+func TestWriteBanner_Format(t *testing.T) {
+	var buf bytes.Buffer
+	writeBanner(&buf, "STARTED", "")
+
+	lines := strings.Split(strings.TrimRight(buf.String(), "\n"), "\n")
+	if len(lines) != 3 {
+		t.Fatalf("expected 3 lines, got %d: %q", len(lines), buf.String())
+	}
+	for i, line := range lines {
+		if i == 1 {
+			continue
+		}
+		if line != strings.Repeat("==", bannerWidth/2) {
+			t.Errorf("line %d not full sep: %q", i, line)
+		}
+	}
+	if !strings.Contains(lines[1], "STARTED") {
+		t.Errorf("middle missing event: %q", lines[1])
+	}
+	if !strings.HasSuffix(lines[1], "==") {
+		t.Errorf("middle should end with ==: %q", lines[1])
+	}
+	if len(lines[1]) != bannerWidth {
+		t.Errorf("middle width = %d, want %d: %q", len(lines[1]), bannerWidth, lines[1])
+	}
+}
+
+func TestWriteBanner_WithDetail(t *testing.T) {
+	var buf bytes.Buffer
+	writeBanner(&buf, "AUTO-RESTART", "attempt=3 delay=4s")
+
+	out := buf.String()
+	if !strings.Contains(out, "AUTO-RESTART") || !strings.Contains(out, "attempt=3 delay=4s") {
+		t.Errorf("missing event/detail: %q", out)
+	}
+	lines := strings.Split(strings.TrimRight(out, "\n"), "\n")
+	if len(lines) != 3 {
+		t.Fatalf("expected 3 lines, got %d", len(lines))
+	}
+	if len(lines[1]) < bannerWidth {
+		t.Errorf("middle width %d below min %d: %q", len(lines[1]), bannerWidth, lines[1])
+	}
+}
