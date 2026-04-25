@@ -63,6 +63,12 @@ body:has(.lx-hero) .sl-markdown-content {
 /* Reset the default content gutter on the landing; sections manage their own. */
 body:has(.lx-hero) main > .content-panel {
 	padding-inline: 0;
+	padding-block: 0;
+}
+
+/* Kill the prose top margin so the hero sits flush against the header. */
+body:has(.lx-hero) .sl-markdown-content > :first-child {
+	margin-block-start: 0;
 }
 
 /* Let landing sections span the full viewport — no Starlight container cap. */
@@ -102,7 +108,7 @@ body:has(.lx-hero) h1#_top {
  * =========================================================== */
 .lx-hero {
 	position: relative;
-	padding: clamp(2.5rem, 6vw, 5rem) clamp(1rem, 4vw, 3rem) clamp(3rem, 7vw, 6rem);
+	padding: clamp(1.5rem, 3vw, 2.5rem) clamp(1rem, 4vw, 3rem) clamp(3rem, 7vw, 6rem);
 	overflow: hidden;
 	background:
 		radial-gradient(ellipse at 85% -10%, color-mix(in oklab, var(--lx-accent) 14%, transparent), transparent 55%),
