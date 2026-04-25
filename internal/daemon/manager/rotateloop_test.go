@@ -59,7 +59,7 @@ func TestRotateLoop_FiresWhileProcessRunning(t *testing.T) {
 
 	// Sanity: STARTED banner alone is below threshold, so no early rotation.
 	time.Sleep(300 * time.Millisecond) // ~3 ticks
-	if _, err := os.Stat(stdoutPath + ".1.gz"); !os.IsNotExist(err) {
+	if _, err := os.Stat(stdoutPath + ".1"); !os.IsNotExist(err) {
 		t.Fatalf("unexpected early rotation (.1.gz exists before threshold cross): err=%v", err)
 	}
 
@@ -83,7 +83,7 @@ func TestRotateLoop_FiresWhileProcessRunning(t *testing.T) {
 	deadline := time.Now().Add(3 * time.Second)
 	for time.Now().Before(deadline) {
 		curInfo, curErr := os.Stat(stdoutPath)
-		_, gzErr := os.Stat(stdoutPath + ".1.gz")
+		_, gzErr := os.Stat(stdoutPath + ".1")
 		if curErr == nil && gzErr == nil && curInfo.Size() < 1500 {
 			return
 		}
@@ -217,7 +217,7 @@ func TestRotateLoop_BannerOnSeparatorIntact(t *testing.T) {
 
 	deadline := time.Now().Add(2 * time.Second)
 	for time.Now().Before(deadline) {
-		if _, err := os.Stat(stdoutPath + ".1.gz"); err == nil {
+		if _, err := os.Stat(stdoutPath + ".1"); err == nil {
 			return
 		}
 		time.Sleep(30 * time.Millisecond)
