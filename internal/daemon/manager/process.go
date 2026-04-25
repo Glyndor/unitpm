@@ -38,6 +38,9 @@ type Process struct {
 	exitError     error
 	startTime     time.Time
 	logFiles      []*os.File
+	stdoutPath    string // cached for banner reopen after files closed
+	stderrPath    string
+	inRestart     bool // suppresses STARTED/STOPPED banners during Restart()
 	metrics       metrics.Collector
 	scheduler     *cron.Cron
 	restartCount  int
@@ -111,6 +114,36 @@ func NewProcess(id string, spec protocol.AppSpec) (*Process, error) {
 	return proc, nil
 }
 
+// emitBanner writes a 3-line lifecycle marker to every currently-open log
+// file. Caller must hold p.mu. No-op when logs are inherit mode.
+func (p *Process) emitBanner(event, detail string) {
+	for _, f := range p.logFiles {
+		writeBanner(f, event, detail)
+	}
+}
+
+// emitBannerByPath writes a banner by reopening cached log paths. Used
+// after monitor() has closed p.logFiles (handleRestart). No-op for inherit
+// mode (paths empty) or when reopen fails.
+func (p *Process) emitBannerByPath(event, detail string) {
+	seen := map[string]struct{}{}
+	for _, path := range []string{p.stdoutPath, p.stderrPath} {
+		if path == "" {
+			continue
+		}
+		if _, ok := seen[path]; ok {
+			continue
+		}
+		seen[path] = struct{}{}
+		f, err := os.OpenFile(path, os.O_APPEND|os.O_WRONLY|syscall.O_NOFOLLOW, 0600)
+		if err != nil {
+			continue
+		}
+		writeBanner(f, event, detail)
+		_ = f.Close()
+	}
+}
+
 // Start runs the process and spawns the monitor goroutine.
 func (p *Process) Start() error {
 	p.mu.Lock()
@@ -174,6 +207,10 @@ func (p *Process) Start() error {
 		})
 	}
 
+	if !p.inRestart {
+		p.emitBanner("STARTED", "")
+	}
+
 	go p.monitor()
 
 	if watchEnabled {
@@ -187,6 +224,32 @@ func (p *Process) Start() error {
 // Increments the Restarts counter regardless of the trigger (manual via
 // `lynx restart`, cron schedule, or failure-driven via handleRestart).
 func (p *Process) Restart() error {
+	p.mu.Lock()
+	if p.noAutoRestart {
+		p.mu.Unlock()
+		return nil
+	}
+	p.info.Restarts++
+	p.inRestart = true
+	p.emitBanner("RESTARTED", "")
+	p.mu.Unlock()
+
+	defer func() {
+		p.mu.Lock()
+		p.inRestart = false
+		p.mu.Unlock()
+	}()
+
+	_ = p.Stop(false) //nolint:errcheck
+	time.Sleep(100 * time.Millisecond)
+	return p.Start()
+}
+
+// autoRestart is the failure-path equivalent of Restart(): same Stop→Start
+// sequence, but emits no RESTARTED banner (handleRestart writes
+// AUTO-RESTART instead) and lets Start emit STARTED so the new log files
+// get a fresh boundary marker.
+func (p *Process) autoRestart() error {
 	p.mu.Lock()
 	if p.noAutoRestart {
 		p.mu.Unlock()
@@ -504,6 +567,8 @@ func (p *Process) setupLogs(cmd *exec.Cmd) error {
 	if logs.Mode == "inherit" {
 		cmd.Stdout = os.Stdout
 		cmd.Stderr = os.Stderr
+		p.stdoutPath = ""
+		p.stderrPath = ""
 		return nil
 	}
 
@@ -519,6 +584,8 @@ func (p *Process) setupLogs(cmd *exec.Cmd) error {
 	if err != nil {
 		return err
 	}
+	p.stdoutPath = stdoutPath
+	p.stderrPath = stderrPath
 
 	// Create per-app log directory (stdoutPath/stderrPath are usually in the same dir)
 	if err := os.MkdirAll(filepath.Dir(stdoutPath), 0700); err != nil {
@@ -564,17 +631,6 @@ func (p *Process) setupLogs(cmd *exec.Cmd) error {
 func (p *Process) monitor() {
 	err := p.cmd.Wait()
 
-	p.mu.Lock()
-	// Close log files under lock to prevent races with concurrent Start() calls.
-	for _, f := range p.logFiles {
-		_ = f.Close()
-	}
-	p.logFiles = nil
-	if p.watcher != nil {
-		p.watcher.Stop()
-	}
-	p.exitError = err
-
 	exitCode := 0
 	if err != nil {
 		var exitErr *exec.ExitError
@@ -584,6 +640,22 @@ func (p *Process) monitor() {
 			exitCode = 1
 		}
 	}
+
+	p.mu.Lock()
+	// Emit EXITED banner before closing files. Skipped for user-initiated
+	// stop (STOPPED already written) and Restart() (RESTARTED suffices).
+	if !p.stoppedByUser && !p.inRestart {
+		p.emitBanner("EXITED", fmt.Sprintf("code=%d", exitCode))
+	}
+	// Close log files under lock to prevent races with concurrent Start() calls.
+	for _, f := range p.logFiles {
+		_ = f.Close()
+	}
+	p.logFiles = nil
+	if p.watcher != nil {
+		p.watcher.Stop()
+	}
+	p.exitError = err
 
 	if p.stoppedByUser {
 		p.info.State = types.StateStopped
@@ -604,6 +676,15 @@ func (p *Process) monitor() {
 }
 
 func (p *Process) handleRestart(exitCode int) {
+	// If a user Restart() is in flight, it is already orchestrating Stop+Start
+	// — do not race it with a second auto-restart goroutine.
+	p.mu.Lock()
+	inRestart := p.inRestart
+	p.mu.Unlock()
+	if inRestart {
+		return
+	}
+
 	restart := p.spec.Restart
 	if restart == nil {
 		restart = &protocol.AppRestart{
@@ -677,12 +758,16 @@ func (p *Process) handleRestart(exitCode int) {
 		p.cancelRestart()
 	}
 	p.cancelRestart = cancel
+	// Files are closed by monitor at this point; reopen by path to write
+	// the AUTO-RESTART marker so the next iteration's STARTED banner has
+	// context.
+	p.emitBannerByPath("AUTO-RESTART", fmt.Sprintf("attempt=%d delay=%s", count, delay))
 	p.mu.Unlock()
 
 	go func() {
 		select {
 		case <-time.After(delay):
-			_ = p.Restart() //nolint:errcheck
+			_ = p.autoRestart() //nolint:errcheck
 		case <-ctx.Done():
 		}
 	}()
@@ -762,6 +847,9 @@ func (p *Process) Stop(byUser bool) error {
 		p.stoppedByUser = true
 		p.info.State = types.StateStopped
 		p.info.PID = 0
+		if !p.inRestart {
+			p.emitBanner("STOPPED", "")
+		}
 	}
 	proc := p.cmd.Process
 	sig, timeout := p.resolveStop()

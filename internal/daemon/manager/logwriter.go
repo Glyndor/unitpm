@@ -2,6 +2,8 @@ package manager
 
 import (
 	"bytes"
+	"io"
+	"strings"
 	"sync"
 	"time"
 )
@@ -53,4 +55,40 @@ func (tw *timestampWriter) Write(p []byte) (int, error) {
 	}
 
 	return total, nil
+}
+
+// bannerWidth is the fixed column width of the lifecycle banner block.
+const bannerWidth = 80
+
+// writeBanner writes a 3-line lifecycle marker (===/middle/===) to w.
+// The middle line carries `event` on the left and the current timestamp on
+// the right, padded with `=` to bannerWidth. Bypasses timestampWriter so
+// the banner is not double-prefixed when the underlying file is wrapped.
+func writeBanner(w io.Writer, event, detail string) {
+	ts := time.Now().Format("2006-01-02 15:04:05")
+	sep := strings.Repeat("=", bannerWidth)
+
+	left := "==  " + event
+	if detail != "" {
+		left += "  " + detail
+	}
+	left += "  "
+	right := "  " + ts + "  =="
+
+	fillN := bannerWidth - len(left) - len(right)
+	if fillN < 4 {
+		fillN = 4
+	}
+	mid := left + strings.Repeat("=", fillN) + right
+
+	var b bytes.Buffer
+	b.Grow(len(sep)*2 + len(mid) + 3)
+	b.WriteString(sep)
+	b.WriteByte('\n')
+	b.WriteString(mid)
+	b.WriteByte('\n')
+	b.WriteString(sep)
+	b.WriteByte('\n')
+
+	_, _ = w.Write(b.Bytes())
 }
