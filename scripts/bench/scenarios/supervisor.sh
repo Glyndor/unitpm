@@ -36,8 +36,9 @@ CONF="$WORK/supervisord.conf"
 [supervisord]
 logfile=$WORK/supervisord.log
 pidfile=$WORK/supervisord.pid
-nodaemon=false
+nodaemon=true
 silent=false
+loglevel=warn
 
 [unix_http_server]
 file=$WORK/supervisor.sock
@@ -61,20 +62,17 @@ EOF
 	done
 } >"$CONF"
 
-# Cold start: launch supervisord with autostart=false (no programs yet) -> the
-# control socket is ready. We measure with no programs running so it's a fair
-# comparison to lynxd / pm2's "daemon-only" startup.
+# Cold start: launch supervisord (nodaemon=true so it stays in fg and we own
+# its PID) -> the control socket becomes responsive.
 start_ns=$(date +%s%N)
-supervisord -c "$CONF" >/dev/null 2>&1 &
+supervisord -c "$CONF" >"$WORK/supervisord.stderr" 2>&1 &
 DAEMON_PID=$!
 
 cold_ns=$(time_until "$COLD_TIMEOUT_MS" supervisorctl -c "$CONF" status) || {
-	echo "supervisord did not become ready" >&2
+	echo "supervisord did not become ready (stderr below):" >&2
+	cat "$WORK/supervisord.stderr" >&2 || true
 	exit 1
 }
-
-# Re-bind to the actual daemon PID (the launched process forks).
-DAEMON_PID=$(cat "$WORK/supervisord.pid")
 
 idle_samples=$(for _ in 1 2 3; do sleep 0.2; rss_kb "$DAEMON_PID"; done)
 idle_kb=$(echo "$idle_samples" | median)
