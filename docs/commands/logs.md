@@ -16,7 +16,7 @@ View and follow process log files managed by Lynx. Resolves per‑app stdout/std
 
 | Flag | Type | Default | Description |
 |------|------|---------|-------------|
-| `-n`, `--lines` | int | 200 | Number of lines to show initially. |
+| `-n`, `--lines` | int | 40 | Number of lines to show initially. |
 | `-f`, `--follow` | boolean | false | Stream new log lines (tail -f). |
 | `-o`, `--stdout` | boolean | auto | Show stdout only (if set). |
 | `-e`, `--stderr` | boolean | auto | Show stderr only (if set). |
@@ -24,7 +24,7 @@ View and follow process log files managed by Lynx. Resolves per‑app stdout/std
 
 ## 🚀 Examples
 
-Show last 200 lines of both streams:
+Show last 40 lines of both streams:
 ```bash
 lynxpm logs my-api
 ```
