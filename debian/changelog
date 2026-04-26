@@ -1,3 +1,34 @@
+lynxpm (0.11.0-1) unstable; urgency=medium
+
+  * feat(logs): `lynxpm logs` now merges stdout and stderr by
+    timestamp instead of tailing each file in its own goroutine.
+    Output ordering matches what the daemon wrote, not what the Go
+    scheduler picked. Default `--lines 40` reads via seek-from-end +
+    k-way merge (RAM ~2N entries); `--all` switches to a streaming
+    merge with constant RAM regardless of file size.
+  * feat(logs): new flags — `--all` (read full file with size guard),
+    `--since DUR` (drop entries older than now-DUR), `--grep RE`
+    (regex filter on body), `--yes` (skip the >10 MiB confirmation
+    prompt), `--no-merge` (escape hatch reproducing pre-0.11
+    per-stream behaviour). `--tail` is accepted as an alias for
+    `--lines`.
+  * feat(logs): size guard rails on `--all` — pass under 10 MiB,
+    warn between 10 and 100 MiB (TTY prompts, non-TTY proceeds with
+    a warning), block at 100 MiB unless `--yes` is set. Avoids
+    accidentally hogging RAM/IO on multi-GiB log files.
+  * fix(logs): lifecycle banners (STARTED / STOPPED / RESTARTED /
+    EXITED / AUTO-RESTART) now surface in merged output. Previously
+    writeBanner wrote the 3-line block directly to *os.File,
+    bypassing the timestamp prefix the merge parser keys on, and the
+    new merger silently dropped them. The parser now recognises the
+    banner shape and recovers the embedded ts from the middle line.
+  * test(logs): deflaked TestFollowMerge_OrdersAcrossStreams — fixed
+    sleeps were not enough margin under -race on CI runners, so the
+    test now polls the captured buffer for expected content with a
+    5 s deadline.
+
+ -- Jaro-c <75870284+Jaro-c@users.noreply.github.com>  Sun, 26 Apr 2026 17:00:00 -0500
+
 lynxpm (0.10.0-1) unstable; urgency=medium
 
   * fix(daemon): manager.getLynxBinary looked up `lynx` in PATH and
