@@ -35,9 +35,9 @@ func baseSpec() protocol.AppSpec {
 func TestValidateSpec_ExecBranches(t *testing.T) {
 	mgr := manager.NewManager()
 	cases := []struct {
-		name  string
-		mod   func(s *protocol.AppSpec)
-		want  string
+		name string
+		mod  func(s *protocol.AppSpec)
+		want string
 	}{
 		{"invalid exec type", func(s *protocol.AppSpec) { s.Exec.Type = "weird" }, "invalid exec type"},
 		{"entry missing", func(s *protocol.AppSpec) { s.Exec = protocol.AppExec{Type: "entry"} }, "entry file is required"},
