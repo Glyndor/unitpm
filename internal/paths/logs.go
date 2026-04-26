@@ -32,15 +32,13 @@ func IsRoot() bool {
 
 // GetLogDir resolves the root log directory.
 func GetLogDir(configuredDir string) (string, error) {
-	euid := currentEuid()
-
 	if configuredDir != "" {
-		return resolveConfiguredDir(configuredDir, euid)
+		return resolveConfiguredDir(configuredDir)
 	}
-	return resolveDefaultDir(euid)
+	return resolveDefaultDir()
 }
 
-func resolveConfiguredDir(configuredDir string, euid int) (string, error) {
+func resolveConfiguredDir(configuredDir string) (string, error) {
 	if len(configuredDir) > 4096 {
 		return "", errors.New("log dir too long")
 	}
@@ -49,7 +47,7 @@ func resolveConfiguredDir(configuredDir string, euid int) (string, error) {
 		return "", errors.New("invalid log dir")
 	}
 
-	if euid == 0 {
+	if IsSystemMode() {
 		return resolveRootLogDir(clean)
 	}
 
@@ -58,7 +56,7 @@ func resolveConfiguredDir(configuredDir string, euid int) (string, error) {
 
 func resolveRootLogDir(candidate string) (string, error) {
 	if !filepath.IsAbs(candidate) {
-		return "", errors.New("invalid log dir: must be absolute when running as root")
+		return "", errors.New("invalid log dir: must be absolute in system mode")
 	}
 
 	allowedRoots := []string{LogRoot}
@@ -102,8 +100,8 @@ func matchResolvedRoot(root, candidate string) bool {
 	return WithinRoot(root, candidate) && !pathContainsUnsafeSymlink(root, candidate)
 }
 
-func resolveDefaultDir(euid int) (string, error) {
-	if euid == 0 {
+func resolveDefaultDir() (string, error) {
+	if IsSystemMode() {
 		return LogRoot, nil
 	}
 	stateHome := os.Getenv("XDG_STATE_HOME")
