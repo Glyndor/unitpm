@@ -1,17 +1,15 @@
 // Package logs implements the logs command: tails and streams a
-// process's stdout/stderr log files.
+// process's stdout/stderr log files merged in chronological order.
 package logs
 
 import (
-	"bufio"
 	"context"
 	"errors"
 	"fmt"
-	"io"
 	"os"
+	"regexp"
 	"strconv"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/Jaro-c/Lynx/internal/cli/help"
@@ -25,55 +23,134 @@ import (
 // Sleeper is a function type for pausing execution, usually for polling.
 type Sleeper func(time.Duration)
 
+// options bundles parsed flags for the logs command.
+type options struct {
+	lines      int
+	follow     bool
+	all        bool
+	yes        bool
+	noMerge    bool
+	since      time.Duration
+	grep       string
+	target     string
+	showStdout bool
+	showStderr bool
+	explicit   bool
+}
+
 // Run executes the logs command.
 func Run(args []string) error {
 	return runWithContext(context.Background(), args)
 }
 
 func runWithContext(ctx context.Context, args []string) error {
-	var (
-		lines      = 40
-		follow     = false
-		showStdout = false
-		showStderr = false
-		target     string
-		explicit   = false
-	)
+	opts, err := parseArgs(args)
+	if err != nil {
+		return err
+	}
+
+	match, err := resolveTarget(opts.target)
+	if err != nil {
+		return err
+	}
+
+	sources, err := buildSources(match, opts)
+	if err != nil {
+		return err
+	}
+
+	fs, err := buildFilter(opts)
+	if err != nil {
+		return err
+	}
+
+	_, _ = term.Printf("Showing logs for %s (%s)\n", match.Name, match.ID)
+	for _, s := range sources {
+		_, _ = term.Printf("%s %s\n", colorLabel(s.label), s.path)
+	}
+	_, _ = term.Printf("\n")
+
+	if opts.noMerge {
+		return runLegacySplit(ctx, sources, opts)
+	}
+
+	if opts.all {
+		if err := guardLargeRead(sources, opts.yes, os.Stdin); err != nil {
+			return err
+		}
+		if err := streamMerge(ctx, os.Stdout, fs, sources...); err != nil {
+			return err
+		}
+	} else {
+		if err := boundedTail(os.Stdout, sources, opts.lines, fs); err != nil {
+			return err
+		}
+	}
+
+	if !opts.follow {
+		return nil
+	}
+	return followMerge(ctx, os.Stdout, sources, fs, time.Sleep)
+}
+
+func parseArgs(args []string) (options, error) {
+	opts := options{lines: 40}
 
 	for i := 0; i < len(args); i++ {
 		arg := args[i]
 		switch {
-		case arg == "--lines" || arg == "-n":
+		case arg == "--lines" || arg == "-n" || arg == "--tail":
 			if i+1 < len(args) {
 				if l, err := strconv.Atoi(args[i+1]); err == nil {
-					lines = l
+					opts.lines = l
 					i++
 				}
 			}
 		case arg == "--follow" || arg == "-f":
-			follow = true
+			opts.follow = true
+		case arg == "--all":
+			opts.all = true
+		case arg == "--yes" || arg == "-y":
+			opts.yes = true
+		case arg == "--no-merge":
+			opts.noMerge = true
+		case arg == "--since":
+			if i+1 < len(args) {
+				d, err := time.ParseDuration(args[i+1])
+				if err != nil {
+					return opts, fmt.Errorf("invalid --since duration %q: %w", args[i+1], err)
+				}
+				opts.since = d
+				i++
+			}
+		case arg == "--grep" || arg == "-g":
+			if i+1 < len(args) {
+				opts.grep = args[i+1]
+				i++
+			}
 		case arg == "--stdout" || arg == "-o":
-			showStdout = true
-			explicit = true
+			opts.showStdout = true
+			opts.explicit = true
 		case arg == "--stderr" || arg == "-e":
-			showStderr = true
-			explicit = true
+			opts.showStderr = true
+			opts.explicit = true
 		case !strings.HasPrefix(arg, "-"):
-			target = arg
+			opts.target = arg
 		}
 	}
 
-	if !explicit {
-		showStdout = true
-		showStderr = true
+	if !opts.explicit {
+		opts.showStdout = true
+		opts.showStderr = true
 	}
-
-	if target == "" {
-		return errors.New("missing process ID or name")
+	if opts.target == "" {
+		return opts, errors.New("missing process ID or name")
 	}
+	return opts, nil
+}
 
-	var namespace string
-	var nameOrID string
+func resolveTarget(target string) (*protocol.AppSpec, error) {
+	var namespace, nameOrID string
 	if idx := strings.Index(target, ":"); idx != -1 {
 		namespace = target[:idx]
 		nameOrID = target[idx+1:]
@@ -83,7 +160,7 @@ func runWithContext(ctx context.Context, args []string) error {
 
 	specs, err := spec.LoadAll()
 	if err != nil {
-		return fmt.Errorf("failed to load specs: %w", err)
+		return nil, fmt.Errorf("failed to load specs: %w", err)
 	}
 
 	var match *protocol.AppSpec
@@ -97,158 +174,55 @@ func runWithContext(ctx context.Context, args []string) error {
 		}
 		if s.ID == nameOrID || s.Name == nameOrID || strings.HasPrefix(s.ID, nameOrID) {
 			if match != nil && match.ID != s.ID {
-				return fmt.Errorf("ambiguous argument '%s': matches multiple processes", target)
+				return nil, fmt.Errorf("ambiguous argument '%s': matches multiple processes", target)
 			}
 			current := s
 			match = &current
 		}
 	}
-
 	if match == nil {
-		return fmt.Errorf("process '%s' not found", target)
+		return nil, fmt.Errorf("process '%s' not found", target)
 	}
+	return match, nil
+}
 
+func buildSources(match *protocol.AppSpec, opts options) ([]streamSource, error) {
 	var logsDir, stdout, stderr string
 	if match.Logs != nil {
 		logsDir = match.Logs.Dir
 		stdout = match.Logs.Stdout
 		stderr = match.Logs.Stderr
 	}
-
 	stdoutPath, stderrPath, err := paths.ResolveLogPaths(match.ID, logsDir, stdout, stderr)
 	if err != nil {
-		return fmt.Errorf("failed to resolve log paths: %w", err)
+		return nil, fmt.Errorf("failed to resolve log paths: %w", err)
 	}
 
-	_, _ = term.Printf("Showing logs for %s (%s)\n", match.Name, match.ID)
-	_, _ = term.Printf("Stdout: %s\n", stdoutPath)
-	_, _ = term.Printf("Stderr: %s\n\n", stderrPath)
-
-	var wg sync.WaitGroup
-
-	if showStdout {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
-			tailFile(ctx, stdoutPath, "STDOUT", lines, follow, time.Sleep)
-		}()
+	out := make([]streamSource, 0, 2)
+	if opts.showStdout {
+		out = append(out, streamSource{path: stdoutPath, label: "STDOUT"})
 	}
-
-	if showStderr && stderrPath != stdoutPath {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
-			tailFile(ctx, stderrPath, "STDERR", lines, follow, time.Sleep)
-		}()
+	// Same path = single physical file. Adding it twice would double
+	// every line in the merge.
+	if opts.showStderr && stderrPath != stdoutPath {
+		out = append(out, streamSource{path: stderrPath, label: "STDERR"})
 	}
-
-	wg.Wait()
-	return nil
+	return out, nil
 }
 
-func tailFile(ctx context.Context, path, label string, n int, follow bool, sleep Sleeper) {
-	f, err := os.Open(path)
-	if err != nil {
-		if os.IsNotExist(err) {
-			// File might not exist yet if process hasn't started/logged
-			if follow {
-				_, _ = term.Printf("%s File not found, waiting...\n", colorLabel(label))
-				for {
-					select {
-					case <-ctx.Done():
-						return
-					default:
-					}
-
-					sleep(1 * time.Second)
-					f, err = os.Open(path)
-					if err == nil {
-						break
-					}
-					if !os.IsNotExist(err) {
-						_, _ = fmt.Fprintf(os.Stderr, "%s %s\n", colorLabel(label), term.RedString("Error: %v", err))
-						return
-					}
-				}
-			} else {
-				_, _ = term.Printf("%s File not found\n", colorLabel(label))
-				return
-			}
-		} else {
-			_, _ = fmt.Fprintf(os.Stderr, "%s %s\n", colorLabel(label), term.RedString("Error: %v", err))
-			return
-		}
+func buildFilter(opts options) (filter, error) {
+	var fs filter
+	if opts.since > 0 {
+		fs.since = time.Now().Add(-opts.since)
 	}
-	defer func() { _ = f.Close() }()
-
-	printLastNLines(f, label, n)
-
-	if !follow {
-		return
-	}
-
-	_, _ = f.Seek(0, io.SeekEnd) //nolint:errcheck
-
-	reader := bufio.NewReader(f)
-	for {
-		select {
-		case <-ctx.Done():
-			return
-		default:
-		}
-
-		line, err := reader.ReadString('\n')
+	if opts.grep != "" {
+		re, err := regexp.Compile(opts.grep)
 		if err != nil {
-			if err == io.EOF {
-				sleep(200 * time.Millisecond)
-				continue
-			}
-			_, _ = fmt.Fprintf(os.Stderr, "%s %s\n", colorLabel(label), term.RedString("Error: %v", err))
-			return
+			return fs, fmt.Errorf("invalid --grep regex: %w", err)
 		}
-		fmt.Printf("%s %s", colorLabel(label), line)
+		fs.grep = re
 	}
-}
-
-func printLastNLines(f *os.File, label string, n int) {
-	stat, err := f.Stat()
-	if err != nil {
-		return
-	}
-
-	fileSize := stat.Size()
-	// Heuristic: average line 100 bytes
-	offset := fileSize - int64(n*150)
-	if offset < 0 {
-		offset = 0
-	}
-
-	_, _ = f.Seek(offset, io.SeekStart) //nolint:errcheck
-
-	scanner := bufio.NewScanner(f)
-	// If we seeked, discard first partial line
-	if offset > 0 {
-		scanner.Scan()
-	}
-
-	ring := make([]string, n)
-	idx := 0
-	for scanner.Scan() {
-		ring[idx%n] = scanner.Text()
-		idx++
-	}
-
-	total := idx
-	if total > n {
-		total = n
-	}
-	start := 0
-	if idx > n {
-		start = idx % n
-	}
-	for i := 0; i < total; i++ {
-		fmt.Printf("%s %s\n", colorLabel(label), ring[(start+i)%n])
-	}
+	return fs, nil
 }
 
 func colorLabel(label string) string {
@@ -256,7 +230,7 @@ func colorLabel(label string) string {
 	case "STDOUT":
 		return term.CyanString("[STDOUT]")
 	case "STDERR":
-		return term.YellowString("[STDERR]")
+		return term.RedString("[STDERR]")
 	default:
 		return term.DimString("[%s]", label)
 	}
@@ -267,12 +241,14 @@ func GetSpec() help.CommandSpec {
 	return help.CommandSpec{
 		Name:        "logs",
 		Aliases:     []string{"log"},
-		Description: "View and follow process logs",
-		Usage:       "lynxpm logs <id|name> [--lines N] [--follow] [--stdout] [--stderr]",
+		Description: "View and follow process logs (chronologically merged)",
+		Usage:       "lynxpm logs <id|name> [-n N] [--all] [-f] [--since DUR] [--grep RE] [--stdout|--stderr] [--no-merge]",
 		Examples: []string{
 			`lynxpm logs api`,
 			`lynxpm logs api --follow`,
-			`lynxpm logs api --lines 100 --stderr`,
+			`lynxpm logs api --tail 100`,
+			`lynxpm logs api --all --grep "ERROR"`,
+			`lynxpm logs api --since 30m`,
 			`lynxpm logs prod:api`,
 		},
 	}
