@@ -71,6 +71,53 @@ func TestTableSetMaxColWidthsIgnoresMismatch(t *testing.T) {
 	_ = captureStdout(t, tbl.Render)
 }
 
+func TestTableMaxColWidthsWraps(t *testing.T) {
+	got := captureStdout(t, func() {
+		tbl := table.New([]string{"col"})
+		tbl.SetMaxColWidths([]int{5})
+		tbl.AddRow([]string{"hello world this is long"})
+		tbl.Render()
+	})
+	plain := format.StripAnsi(got)
+	if !strings.Contains(plain, "hello") || !strings.Contains(plain, "world") {
+		t.Errorf("expected wrapped words; got:\n%s", plain)
+	}
+	maxLineLen := 0
+	for _, line := range strings.Split(plain, "\n") {
+		if l := len([]rune(line)); l > maxLineLen {
+			maxLineLen = l
+		}
+	}
+	if maxLineLen > 30 {
+		t.Errorf("lines wider than expected (%d):\n%s", maxLineLen, plain)
+	}
+}
+
+func TestTableLongWordSplit(t *testing.T) {
+	got := captureStdout(t, func() {
+		tbl := table.New([]string{"col"})
+		tbl.SetMaxColWidths([]int{4})
+		tbl.AddRow([]string{"abcdefghij"})
+		tbl.Render()
+	})
+	plain := format.StripAnsi(got)
+	if !strings.Contains(plain, "abcd") || !strings.Contains(plain, "efgh") {
+		t.Errorf("long word should be split into 4-char chunks; got:\n%s", plain)
+	}
+}
+
+func TestTableShrinksWidestColumn(t *testing.T) {
+	got := captureStdout(t, func() {
+		tbl := table.New([]string{"a", "wide-column-header"})
+		tbl.AddRow([]string{"x", "this is some content that should force shrink due to terminal width constraints applied"})
+		tbl.Render()
+	})
+	plain := format.StripAnsi(got)
+	if !strings.Contains(plain, "wide-column-header") {
+		t.Errorf("missing header; got:\n%s", plain)
+	}
+}
+
 func captureStdout(t *testing.T, fn func()) string {
 	t.Helper()
 	orig := os.Stdout
