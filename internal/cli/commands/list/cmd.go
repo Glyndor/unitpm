@@ -2,6 +2,7 @@
 package list
 
 import (
+	"cmp"
 	"context"
 	"flag"
 	"fmt"
@@ -36,10 +37,6 @@ var checkForUpdate = func(ctx context.Context) *updater.Release {
 	rel, _ := updater.CheckCached(ctx, updateCheckTTL)
 	return rel
 }
-
-// DefaultNamespace is the namespace used when an AppSpec has no explicit
-// namespace set, both for storage and for `lynxpm list --namespace` filtering.
-const DefaultNamespace = "default"
 
 // Run executes the list command.
 func Run(client transport.IPCClient, args []string) error {
@@ -170,7 +167,7 @@ func filterProcesses(processes []types.ProcessInfo, filter string) []types.Proce
 	for _, p := range processes {
 		ns := p.Namespace
 		if ns == "" {
-			ns = DefaultNamespace
+			ns = types.DefaultNamespace
 		}
 		if ns == filter {
 			filtered = append(filtered, p)
@@ -206,75 +203,29 @@ func sortProcesses(processes []types.ProcessInfo, spec string) error {
 }
 
 func compareProcess(pi, pj types.ProcessInfo, f SortField) int {
+	cmpDir := func(a, b string, asc bool) int {
+		if asc {
+			return cmp.Compare(a, b)
+		}
+		return cmp.Compare(b, a)
+	}
 	switch f.Field {
 	case "namespace":
 		ni := pi.Namespace
 		if ni == "" {
-			ni = DefaultNamespace
+			ni = types.DefaultNamespace
 		}
 		nj := pj.Namespace
 		if nj == "" {
-			nj = DefaultNamespace
+			nj = types.DefaultNamespace
 		}
-		if ni == nj {
-			return 0
-		}
-		if f.Asc {
-			if ni < nj {
-				return -1
-			}
-			return 1
-		}
-		if ni > nj {
-			return -1
-		}
-		return 1
+		return cmpDir(ni, nj, f.Asc)
 	case "name":
-		ni := strings.ToLower(pi.Name)
-		nj := strings.ToLower(pj.Name)
-		if ni == nj {
-			return 0
-		}
-		if f.Asc {
-			if ni < nj {
-				return -1
-			}
-			return 1
-		}
-		if ni > nj {
-			return -1
-		}
-		return 1
+		return cmpDir(strings.ToLower(pi.Name), strings.ToLower(pj.Name), f.Asc)
 	case "createdAt":
-		ci := pi.CreatedAt
-		cj := pj.CreatedAt
-		if ci == cj {
-			return 0
-		}
-		if f.Asc {
-			if ci < cj {
-				return -1
-			}
-			return 1
-		}
-		if ci > cj {
-			return -1
-		}
-		return 1
+		return cmpDir(pi.CreatedAt, pj.CreatedAt, f.Asc)
 	case "id":
-		if pi.ID == pj.ID {
-			return 0
-		}
-		if f.Asc {
-			if pi.ID < pj.ID {
-				return -1
-			}
-			return 1
-		}
-		if pi.ID > pj.ID {
-			return -1
-		}
-		return 1
+		return cmpDir(pi.ID, pj.ID, f.Asc)
 	}
 	return 0
 }
@@ -335,7 +286,6 @@ func FetchAndRender(client transport.IPCClient, highlight map[string]bool) {
 // Render prints the process list as a box-drawing table. Exported so other
 // commands (start/stop/restart) can reuse the same rendering after an action.
 func Render(processes []types.ProcessInfo, opts RenderOptions) {
-	// id | name | namespace | version | mode | pid | uptime | ↺ | status | cpu | mem | user | watch
 	headers := []string{
 		term.CyanString("%s", term.BoldString("id")),
 		term.CyanString("%s", term.BoldString("name")),
@@ -379,7 +329,6 @@ func Render(processes []types.ProcessInfo, opts RenderOptions) {
 	})
 
 	for _, p := range processes {
-		// Colors based on state
 		var statusStr string
 		switch p.State {
 		case types.StateRunning, types.StateOnline:
@@ -392,7 +341,6 @@ func Render(processes []types.ProcessInfo, opts RenderOptions) {
 			statusStr = string(p.State)
 		}
 
-		// Formatting helpers
 		pidStr := strconv.Itoa(p.PID)
 		if p.PID == 0 {
 			pidStr = term.DimString("-")

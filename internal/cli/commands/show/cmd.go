@@ -111,7 +111,7 @@ func renderProcess(info types.ProcessInfo, spec protocol.AppSpec) {
 		ns = spec.Namespace
 	}
 	table.KV("Process", []table.KVRow{
-		{"state", colorState(string(info.State))},
+		{"state", colorState(info.State)},
 		{"pid", pidStr(info.PID)},
 		{"namespace", ns},
 		{"version", info.Version},
@@ -270,20 +270,18 @@ func renderWatch(spec protocol.AppSpec) {
 	fmt.Println()
 }
 
-// --- helpers ---
-
-func colorState(s string) string {
-	switch s {
-	case "running", "online":
-		return term.GreenString("%s", s)
-	case "stopped", "failed":
-		return term.RedString("%s", s)
-	case "restarting":
-		return term.YellowString("%s", s)
+func colorState(state types.ProcessState) string {
+	switch state {
+	case types.StateRunning, types.StateOnline:
+		return term.GreenString("%s", state)
+	case types.StateStopped, types.StateFailed:
+		return term.RedString("%s", state)
+	case types.StateRestarting:
+		return term.YellowString("%s", state)
 	case "":
 		return term.DimString("-")
 	default:
-		return s
+		return string(state)
 	}
 }
 
