@@ -6,13 +6,13 @@
 package audit
 
 import (
-	"encoding/json"
-	"fmt"
 	"io"
 	"os"
 	"path/filepath"
 	"sync"
 	"time"
+
+	"github.com/Jaro-c/Lynx/internal/jsonx"
 )
 
 // Event is one line in the audit log.
@@ -78,11 +78,11 @@ func (l *Logger) Log(e Event) {
 		return
 	}
 	e.Time = time.Now().UTC().Format(time.RFC3339Nano)
-	b, err := json.Marshal(e)
+	b, err := jsonx.Marshal(e)
 	if err != nil {
 		return
 	}
 	l.mu.Lock()
 	defer l.mu.Unlock()
-	_, _ = fmt.Fprintf(l.w, "%s\n", b)
+	_, _ = l.w.Write(append(b, '\n'))
 }

@@ -53,7 +53,6 @@ func Run(w io.Writer, args []string) error {
 		w = io.Discard
 	}
 
-	// 1. Check if managed by system package manager
 	isManaged := updater.IsManagedByPackageSystem()
 	if isManaged && *apply && !*force {
 		return errors.New(
@@ -66,7 +65,6 @@ func Run(w io.Writer, args []string) error {
 
 	_, _ = fmt.Fprintf(w, "Checking for updates...\n")
 
-	// 2. Check for updates
 	release, err := updater.Check(context.Background())
 	if err != nil {
 		return fmt.Errorf("failed to check for updates: %w", err)
@@ -90,7 +88,6 @@ func Run(w io.Writer, args []string) error {
 	)
 	_, _ = fmt.Fprintf(w, "  Release notes: %s\n", release.HTMLURL)
 
-	// 3. Apply update if requested
 	if *apply {
 		_, _ = fmt.Fprintf(w, "Downloading and installing update...\n")
 		if err := updater.Apply(context.Background(), release, updater.ApplyOptions{

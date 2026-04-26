@@ -21,13 +21,33 @@ import (
 type Manager struct {
 	mu        sync.RWMutex
 	processes map[string]*Process
+
+	// maxProcesses caches the LYNX_MAX_PROCESSES env value parsed once at
+	// construction. maxProcessesErr captures a parse failure and is
+	// returned from StartWithSpec so callers see the same error every
+	// attempt instead of silently reverting to "no limit". Zero means
+	// unset (no limit).
+	maxProcesses    int
+	maxProcessesErr error
 }
 
 // NewManager creates a new process manager.
 func NewManager() *Manager {
-	return &Manager{
+	m := &Manager{
 		processes: make(map[string]*Process),
 	}
+	if limitStr := os.Getenv("LYNX_MAX_PROCESSES"); limitStr != "" {
+		limit, err := strconv.Atoi(limitStr)
+		switch {
+		case err != nil:
+			m.maxProcessesErr = fmt.Errorf("ERR_LIMITS: invalid LYNX_MAX_PROCESSES: %w", err)
+		case limit <= 0:
+			m.maxProcessesErr = errors.New("ERR_LIMITS: LYNX_MAX_PROCESSES must be > 0")
+		default:
+			m.maxProcesses = limit
+		}
+	}
+	return m
 }
 
 // Restore loads all specs; Disabled ones are registered in State=stopped
@@ -81,7 +101,7 @@ func (m *Manager) addStoppedSpec(s protocol.AppSpec) error {
 // a benign no-op by idempotent callers like Restore.
 func (m *Manager) registerLocked(s protocol.AppSpec) (*Process, error) {
 	if s.Namespace == "" {
-		s.Namespace = DefaultNamespace
+		s.Namespace = types.DefaultNamespace
 	}
 	if _, exists := m.processes[s.ID]; exists {
 		return nil, nil
@@ -97,35 +117,16 @@ func (m *Manager) registerLocked(s protocol.AppSpec) (*Process, error) {
 	return NewProcess(s.ID, s)
 }
 
-// Start creates and starts a new process.
-//
-// Deprecated: Use StartWithSpec instead.
-func (m *Manager) Start(_, _ string) (string, error) {
-	// This legacy method doesn't support IDs, so we'd have to gen one or error out.
-	// For now, let's just error or not support it fully as it's deprecated.
-	// Or mock a spec.
-	return "", errors.New("deprecated: use StartWithSpec")
-}
-
 // StartWithSpec creates and starts a new process based on the spec.
 func (m *Manager) StartWithSpec(spec protocol.AppSpec) (types.ProcessInfo, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
-	if limitStr := os.Getenv("LYNX_MAX_PROCESSES"); limitStr != "" {
-		limit, err := strconv.Atoi(limitStr)
-		if err != nil {
-			return types.ProcessInfo{}, fmt.Errorf(
-				"ERR_LIMITS: invalid LYNX_MAX_PROCESSES: %w",
-				err,
-			)
-		}
-		if limit <= 0 {
-			return types.ProcessInfo{}, errors.New("ERR_LIMITS: LYNX_MAX_PROCESSES must be > 0")
-		}
-		if len(m.processes) >= limit {
-			return types.ProcessInfo{}, errors.New("ERR_LIMITS: max processes reached")
-		}
+	if m.maxProcessesErr != nil {
+		return types.ProcessInfo{}, m.maxProcessesErr
+	}
+	if m.maxProcesses > 0 && len(m.processes) >= m.maxProcesses {
+		return types.ProcessInfo{}, errors.New("ERR_LIMITS: max processes reached")
 	}
 
 	// StartWithSpec rejects duplicate IDs outright (not "silently
@@ -263,7 +264,7 @@ func (m *Manager) Scale(namespace, base string, target int) (*protocol.ScaleResp
 		return nil, fmt.Errorf("ERR_LIMITS: target count must be <= 1024")
 	}
 	if namespace == "" {
-		namespace = DefaultNamespace
+		namespace = types.DefaultNamespace
 	}
 
 	// Snapshot atomically: names, IDs, and a cloned template spec. This
@@ -410,7 +411,7 @@ func (m *Manager) Reload(id string) error {
 	}
 
 	if s.Namespace == "" {
-		s.Namespace = DefaultNamespace
+		s.Namespace = types.DefaultNamespace
 	}
 
 	s.Disabled = false

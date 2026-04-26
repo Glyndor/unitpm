@@ -8,7 +8,6 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"runtime"
 	"strconv"
 	"strings"
 	"sync"
@@ -52,9 +51,6 @@ type Process struct {
 	watcher       *fileWatcher
 }
 
-// DefaultNamespace is the default namespace for processes.
-const DefaultNamespace = "default"
-
 // NewProcess creates a new process instance.
 // It does not start the process.
 func NewProcess(id string, spec protocol.AppSpec) (*Process, error) {
@@ -73,7 +69,7 @@ func NewProcess(id string, spec protocol.AppSpec) (*Process, error) {
 
 	ns := spec.Namespace
 	if ns == "" {
-		ns = DefaultNamespace
+		ns = types.DefaultNamespace
 	}
 
 	proc := &Process{
@@ -89,7 +85,6 @@ func NewProcess(id string, spec protocol.AppSpec) (*Process, error) {
 		},
 	}
 
-	// Initialize Scheduler if cron is present
 	if spec.Cron != "" {
 		if strings.HasPrefix(spec.Cron, "@every ") {
 			durStr := strings.TrimSpace(strings.TrimPrefix(spec.Cron, "@every "))
@@ -177,7 +172,6 @@ func (p *Process) Start() error {
 	p.exitError = nil
 	p.stoppedByUser = false
 
-	// Init metrics
 	if col, err := metrics.NewCollector(p.info.PID); err == nil {
 		p.metrics = col
 	}
@@ -192,7 +186,6 @@ func (p *Process) Start() error {
 		}
 	}
 
-	// Start scheduler if not running
 	if p.scheduler != nil {
 		p.scheduler.Start()
 	}
@@ -233,25 +226,7 @@ func (p *Process) Start() error {
 // Increments the Restarts counter regardless of the trigger (manual via
 // `lynx restart`, cron schedule, or failure-driven via handleRestart).
 func (p *Process) Restart() error {
-	p.mu.Lock()
-	if p.noAutoRestart {
-		p.mu.Unlock()
-		return nil
-	}
-	p.info.Restarts++
-	p.inRestart = true
-	p.emitBanner("RESTARTED", "")
-	p.mu.Unlock()
-
-	defer func() {
-		p.mu.Lock()
-		p.inRestart = false
-		p.mu.Unlock()
-	}()
-
-	_ = p.Stop(false) //nolint:errcheck
-	time.Sleep(100 * time.Millisecond)
-	return p.Start()
+	return p.restartLocked(true)
 }
 
 // autoRestart is the failure-path equivalent of Restart(): same Stop→Start
@@ -259,13 +234,33 @@ func (p *Process) Restart() error {
 // AUTO-RESTART instead) and lets Start emit STARTED so the new log files
 // get a fresh boundary marker.
 func (p *Process) autoRestart() error {
+	return p.restartLocked(false)
+}
+
+// restartLocked is the shared body of Restart and autoRestart. emitBanner
+// controls whether a RESTARTED banner is emitted and whether Start's own
+// STARTED banner is suppressed (manual restart wants the RESTARTED marker
+// alone; auto-restart leaves Start to write STARTED into the new file).
+func (p *Process) restartLocked(emitBanner bool) error {
 	p.mu.Lock()
 	if p.noAutoRestart {
 		p.mu.Unlock()
 		return nil
 	}
 	p.info.Restarts++
+	if emitBanner {
+		p.inRestart = true
+		p.emitBanner("RESTARTED", "")
+	}
 	p.mu.Unlock()
+
+	if emitBanner {
+		defer func() {
+			p.mu.Lock()
+			p.inRestart = false
+			p.mu.Unlock()
+		}()
+	}
 
 	_ = p.Stop(false) //nolint:errcheck
 	time.Sleep(100 * time.Millisecond)
@@ -276,13 +271,11 @@ func (p *Process) autoRestart() error {
 func (p *Process) prepareCmd() (*exec.Cmd, error) {
 	ctx := context.Background()
 
-	// 1. Prepare base command (binary + args)
 	finalBin, finalArgs, err := p.resolveCommand()
 	if err != nil {
 		return nil, err
 	}
 
-	// 2. Handle Shell Execution
 	var cmd *exec.Cmd
 	if p.spec.Exec.Shell {
 		shellBin := "/bin/sh"
@@ -296,7 +289,6 @@ func (p *Process) prepareCmd() (*exec.Cmd, error) {
 		cmd = exec.CommandContext(ctx, finalBin, finalArgs...)
 	}
 
-	// 3. Set Cwd
 	if p.spec.Cwd != "" {
 		info, err := os.Stat(p.spec.Cwd)
 		if err != nil || !info.IsDir() {
@@ -305,19 +297,16 @@ func (p *Process) prepareCmd() (*exec.Cmd, error) {
 		cmd.Dir = p.spec.Cwd
 	}
 
-	// 4. Prepare Environment
 	env, err := p.prepareEnv()
 	if err != nil {
 		return nil, err
 	}
 	cmd.Env = env
 
-	// 5. Stdio handling
 	if err := p.setupLogs(cmd); err != nil {
 		return nil, err
 	}
 
-	// 6. Configure isolation (wraps command if needed)
 	cmd, err = p.prepareIsolation(ctx, cmd)
 	if err != nil {
 		// Close logs if isolation fails to prevent FD leak
@@ -375,13 +364,8 @@ func (p *Process) resolveCommand() (string, []string, error) {
 
 func (p *Process) prepareEnv() ([]string, error) {
 	var envs []string
-	isRoot := false
-	if runtime.GOOS != "windows" {
-		isRoot = os.Geteuid() == 0
-	}
 
-	// 1. Base Environment
-	if isRoot {
+	if paths.IsRoot() {
 		// System Mode: Whitelist to prevent leaking secrets (e.g. AWS_KEYS)
 		allowed := map[string]struct{}{
 			"PATH": {}, "LANG": {}, "TERM": {}, "TZ": {}, "TMPDIR": {},
@@ -390,8 +374,7 @@ func (p *Process) prepareEnv() ([]string, error) {
 			"XDG_CACHE_HOME": {}, "XDG_RUNTIME_DIR": {},
 		}
 
-		sysEnv := os.Environ()
-		for _, e := range sysEnv {
+		for _, e := range os.Environ() {
 			key := strings.SplitN(e, "=", 2)[0]
 			_, allow := allowed[key]
 			if !allow && strings.HasPrefix(key, "LC_") {
@@ -406,39 +389,31 @@ func (p *Process) prepareEnv() ([]string, error) {
 			}
 		}
 	} else {
-		// User Mode: Inherit full environment
 		envs = os.Environ()
 	}
 
-	// 2. Handle HOME
-	// In dynamic isolation, systemd manages HOME. Do not inject daemon's HOME.
+	// In dynamic isolation, systemd manages HOME — strip any inherited
+	// HOME. Otherwise ensure HOME is present (system-mode whitelist drops
+	// it, user mode usually inherits one). Single pass: filter inherited
+	// HOME for the dynamic case while remembering whether one was seen,
+	// then conditionally append the daemon's HOME for non-dynamic.
 	isDynamic := p.spec.RunAs != nil && p.spec.RunAs.Mode == "dynamic"
-
-	if isDynamic {
-		// Filter out HOME if it exists (e.g. from user mode inheritance)
-		filtered := envs[:0]
-		for _, e := range envs {
-			if !strings.HasPrefix(e, "HOME=") {
-				filtered = append(filtered, e)
+	filtered := envs[:0]
+	hasHome := false
+	for _, e := range envs {
+		if strings.HasPrefix(e, "HOME=") {
+			hasHome = true
+			if isDynamic {
+				continue
 			}
 		}
-		envs = filtered
-	} else {
-		// If not dynamic, ensure HOME is present (especially for system mode where we didn't whitelist it)
-		// Check if HOME is already there
-		hasHome := false
-		for _, e := range envs {
-			if strings.HasPrefix(e, "HOME=") {
-				hasHome = true
-				break
-			}
-		}
-		if !hasHome {
-			envs = append(envs, "HOME="+os.Getenv("HOME"))
-		}
+		filtered = append(filtered, e)
+	}
+	envs = filtered
+	if !isDynamic && !hasHome {
+		envs = append(envs, "HOME="+os.Getenv("HOME"))
 	}
 
-	// 3. Env File
 	if p.spec.EnvFile != "" {
 		parsedEnv, err := env.ParseFile(p.spec.EnvFile)
 		if err != nil {
@@ -490,7 +465,7 @@ func (p *Process) prepareIsolation(ctx context.Context, cmd *exec.Cmd) (*exec.Cm
 
 	if runAs.Mode == "dynamic" {
 		// Secure Environment via Credentials
-		credsDir := filepath.Join(paths.DataDir, "creds", p.info.ID)
+		credsDir := filepath.Join(paths.CredsDir, p.info.ID)
 		if err := os.MkdirAll(credsDir, 0700); err != nil {
 			return nil, fmt.Errorf("failed to create creds dir: %w", err)
 		}

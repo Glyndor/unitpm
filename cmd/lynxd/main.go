@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/signal"
 	"os/user"
+	"path/filepath"
 	"syscall"
 	"time"
 
@@ -15,6 +16,7 @@ import (
 	"github.com/Jaro-c/Lynx/internal/daemon/audit"
 	"github.com/Jaro-c/Lynx/internal/daemon/manager"
 	"github.com/Jaro-c/Lynx/internal/ipc/transport"
+	"github.com/Jaro-c/Lynx/internal/paths"
 )
 
 // auditPath returns the destination for the JSON-lines audit log. Empty
@@ -24,7 +26,7 @@ func auditPath(systemDaemon bool) string {
 	if !systemDaemon {
 		return ""
 	}
-	return "/var/log/lynx-pm/audit.log"
+	return filepath.Join(paths.LogRoot, "audit.log")
 }
 
 // isSystemDaemon reports whether lynxd is the system-mode daemon, with
@@ -32,7 +34,7 @@ func auditPath(systemDaemon bool) string {
 // running as root and running as the `lynx` system user (the default
 // deployment from the Debian package).
 func isSystemDaemon() bool {
-	if os.Geteuid() == 0 {
+	if paths.IsRoot() {
 		return true
 	}
 	if u, err := user.Current(); err == nil && u.Username == "lynx" {

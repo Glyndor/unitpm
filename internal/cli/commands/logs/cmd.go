@@ -19,6 +19,7 @@ import (
 	"github.com/Jaro-c/Lynx/internal/paths"
 	"github.com/Jaro-c/Lynx/internal/spec"
 	"github.com/Jaro-c/Lynx/internal/term"
+	"github.com/Jaro-c/Lynx/internal/types"
 )
 
 // Sleeper is a function type for pausing execution, usually for polling.
@@ -39,7 +40,6 @@ func runWithContext(ctx context.Context, args []string) error {
 		explicit   = false
 	)
 
-	// Simple flag parsing
 	for i := 0; i < len(args); i++ {
 		arg := args[i]
 		switch {
@@ -90,7 +90,7 @@ func runWithContext(ctx context.Context, args []string) error {
 	for _, s := range specs {
 		ns := s.Namespace
 		if ns == "" {
-			ns = "default"
+			ns = types.DefaultNamespace
 		}
 		if namespace != "" && ns != namespace {
 			continue
@@ -181,7 +181,6 @@ func tailFile(ctx context.Context, path, label string, n int, follow bool, sleep
 	}
 	defer func() { _ = f.Close() }()
 
-	// Initial Read: Last N lines
 	printLastNLines(f, label, n)
 
 	if !follow {
@@ -212,7 +211,6 @@ func tailFile(ctx context.Context, path, label string, n int, follow bool, sleep
 }
 
 func printLastNLines(f *os.File, label string, n int) {
-	// Simple implementation: Read full file if small, else seek
 	stat, err := f.Stat()
 	if err != nil {
 		return

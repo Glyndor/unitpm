@@ -25,6 +25,11 @@ const (
 
 var currentEuid = getEuid
 
+// IsRoot reports whether the current process is running as root (euid 0).
+func IsRoot() bool {
+	return currentEuid() == 0
+}
+
 // GetLogDir resolves the root log directory.
 func GetLogDir(configuredDir string) (string, error) {
 	euid := currentEuid()
@@ -74,7 +79,7 @@ func resolveRootLogDir(candidate string) (string, error) {
 	}
 
 	for _, root := range resolvedRoots {
-		if !withinRoot(root, candidate) {
+		if !WithinRoot(root, candidate) {
 			continue
 		}
 
@@ -88,13 +93,13 @@ func resolveRootLogDir(candidate string) (string, error) {
 
 func matchResolvedRoot(root, candidate string) bool {
 	if candidateResolved, err := filepath.EvalSymlinks(candidate); err == nil {
-		return withinRoot(root, candidateResolved)
+		return WithinRoot(root, candidateResolved)
 	} else if !os.IsNotExist(err) {
 		// Some error other than IsNotExist
 		return false
 	}
 
-	return withinRoot(root, candidate) && !pathContainsUnsafeSymlink(root, candidate)
+	return WithinRoot(root, candidate) && !pathContainsUnsafeSymlink(root, candidate)
 }
 
 func resolveDefaultDir(euid int) (string, error) {
@@ -112,7 +117,8 @@ func resolveDefaultDir(euid int) (string, error) {
 	return filepath.Join(home, ".local/state/lynx/logs"), nil
 }
 
-func withinRoot(root, path string) bool {
+// WithinRoot reports whether path resolves inside root (no .. escape).
+func WithinRoot(root, path string) bool {
 	rel, err := filepath.Rel(root, path)
 	if err != nil {
 		return false
@@ -145,7 +151,7 @@ func pathContainsUnsafeSymlink(root, path string) bool {
 			if err != nil {
 				return true
 			}
-			if !withinRoot(root, resolved) {
+			if !WithinRoot(root, resolved) {
 				return true
 			}
 		}
