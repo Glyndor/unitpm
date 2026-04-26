@@ -19,14 +19,20 @@ trap cleanup EXIT
 
 # PM2's daemon is launched lazily by the first command. Cold start = launch
 # -> daemon ready (`pm2 ping` returns "pong"). Use `pm2 ping` itself as the
-# trigger for a clean measurement.
-start_ns=$(date +%s%N)
-pm2 ping >/dev/null 2>&1
-end_ns=$(date +%s%N)
-cold_ns=$((end_ns - start_ns))
+# trigger. COLD_RUNS samples, take median; `pm2 kill` between runs ensures a
+# fresh God Daemon each time.
+cold_samples=""
+for i in $(seq 1 "$COLD_RUNS"); do
+	pm2 kill >/dev/null 2>&1 || true
+	start_ns=$(date +%s%N)
+	pm2 ping >/dev/null 2>&1
+	end_ns=$(date +%s%N)
+	cold_samples="${cold_samples}$((end_ns - start_ns))"$'\n'
+done
+cold_ns=$(printf '%s' "$cold_samples" | median)
 
 # Find the daemon PID. PM2's daemon process is renamed at runtime to a string
-# like "PM2 v5.4.3: God Daemon (/home/.../.pm2)". Match it loosely.
+# like "PM2 v6.0.14: God Daemon (/home/.../.pm2)". Match it loosely.
 DAEMON_PID=$(pgrep -f 'PM2.*God Daemon' | head -1 || true)
 if [[ -z "$DAEMON_PID" ]]; then
 	echo "could not locate PM2 God Daemon pid" >&2

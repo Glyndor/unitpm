@@ -9,7 +9,7 @@ apps it runs.
 
 | Metric | Definition |
 | :--- | :--- |
-| **Cold start** | Wall time from launching the daemon to the control socket / RPC being responsive. |
+| **Cold start** | Wall time from launching the daemon to the control socket / RPC being responsive. Median of 3 fresh-launch samples per supervisor. |
 | **Idle RSS** | Resident memory of the daemon process with **zero** programs managed. Median of 3 samples taken 200 ms apart. |
 | **RSS w/ N procs** | Same daemon RSS, after starting **N=10** noop programs and waiting 2 s for steady state. |
 

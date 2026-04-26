@@ -89,3 +89,7 @@ EOF
 NOOP_CMD='/bin/sh -c '\''trap "exit 0" TERM INT HUP; while true; do sleep 30; done'\'''
 NOOP_N=10
 COLD_TIMEOUT_MS=15000
+# Cold-start is sampled COLD_RUNS times per scenario and the median reported,
+# to dampen launch jitter (V8 JIT, page-cache warmth, scheduler noise). The
+# RSS measurements still come from a single steady-state daemon.
+COLD_RUNS=3

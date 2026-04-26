@@ -19,17 +19,33 @@ chmod 755 "$WORK/sock"
 export XDG_CONFIG_HOME="$WORK/state"
 export LYNX_SOCKET="$WORK/sock/lynx.sock"
 
-# Cold start: launch -> socket ready.
-start_ns=$(date +%s%N)
+# Cold start: COLD_RUNS launches, take median. Each run uses a fresh socket
+# path so a stale file can never short-circuit the readiness probe.
+cold_samples=""
+for i in $(seq 1 "$COLD_RUNS"); do
+	export LYNX_SOCKET="$WORK/sock/lynx-$i.sock"
+	"$LYNX_DAEMON" >"$WORK/lynxd-$i.log" 2>&1 &
+	pid=$!
+	if ! sample_ns=$(time_until "$COLD_TIMEOUT_MS" test -S "$LYNX_SOCKET"); then
+		echo "lynxd did not become ready (run $i)" >&2
+		kill_wait "$pid"
+		exit 1
+	fi
+	cold_samples="${cold_samples}${sample_ns}"$'\n'
+	kill_wait "$pid"
+done
+cold_ns=$(printf '%s' "$cold_samples" | median)
+
+# Final daemon for RSS measurements.
+export LYNX_SOCKET="$WORK/sock/lynx.sock"
 "$LYNX_DAEMON" >"$WORK/lynxd.log" 2>&1 &
 DAEMON_PID=$!
 trap '
 	kill_wait "$DAEMON_PID"
 	rm -rf "$WORK"
 ' EXIT
-
-cold_ns=$(time_until "$COLD_TIMEOUT_MS" test -S "$LYNX_SOCKET") || {
-	echo "lynxd did not become ready" >&2
+time_until "$COLD_TIMEOUT_MS" test -S "$LYNX_SOCKET" >/dev/null || {
+	echo "lynxd did not become ready (final run)" >&2
 	exit 1
 }
 
