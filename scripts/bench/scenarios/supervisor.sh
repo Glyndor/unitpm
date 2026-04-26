@@ -62,17 +62,29 @@ EOF
 	done
 } >"$CONF"
 
-# Cold start: launch supervisord (nodaemon=true so it stays in fg and we own
-# its PID) -> the control socket becomes responsive.
-start_ns=$(date +%s%N)
+# Cold start: COLD_RUNS launches, take median. Probe with `pid` — it returns
+# 0 as soon as the RPC server is bound, while `status` exits 3 when no
+# programs are running, which would never satisfy time_until.
+cold_samples=""
+for i in $(seq 1 "$COLD_RUNS"); do
+	supervisord -c "$CONF" >"$WORK/supervisord-$i.stderr" 2>&1 &
+	pid=$!
+	if ! sample_ns=$(time_until "$COLD_TIMEOUT_MS" supervisorctl -c "$CONF" pid); then
+		echo "supervisord did not become ready (run $i, stderr below):" >&2
+		cat "$WORK/supervisord-$i.stderr" >&2 || true
+		kill_wait "$pid"
+		exit 1
+	fi
+	cold_samples="${cold_samples}${sample_ns}"$'\n'
+	kill_wait "$pid"
+done
+cold_ns=$(printf '%s' "$cold_samples" | median)
+
+# Final daemon for RSS measurements (nodaemon=true so it stays in fg).
 supervisord -c "$CONF" >"$WORK/supervisord.stderr" 2>&1 &
 DAEMON_PID=$!
-
-# Probe with `pid` — it returns 0 as soon as the RPC server is bound, while
-# `status` exits 3 when no programs are running, which would never satisfy
-# time_until.
-cold_ns=$(time_until "$COLD_TIMEOUT_MS" supervisorctl -c "$CONF" pid) || {
-	echo "supervisord did not become ready (stderr below):" >&2
+time_until "$COLD_TIMEOUT_MS" supervisorctl -c "$CONF" pid >/dev/null || {
+	echo "supervisord did not become ready (final run, stderr below):" >&2
 	cat "$WORK/supervisord.stderr" >&2 || true
 	exit 1
 }
