@@ -1,3 +1,38 @@
+lynxpm (0.10.0-1) unstable; urgency=medium
+
+  * fix(daemon): manager.getLynxBinary looked up `lynx` in PATH and
+    next to the daemon, but the CLI was renamed to `lynxpm` in 0.7.x.
+    Every spec with runAs.Mode "sandbox" or "dynamic" failed to start
+    with "lynx binary not found" — fixed by switching the lookup
+    target to `lynxpm`.
+  * fix(cli): residual user-visible strings still said `lynx` (root
+    help footer, _exec-env / _exec-sandbox usage, sandbox/credential
+    warnings, systemctl hint pointing at the wrong unit name). The
+    rename is now complete across compiled output, doc comments,
+    Markdown reference, and the published Astro site.
+  * fix(bench): scripts/bench/Dockerfile is fully pinned by hash —
+    base image by sha256 digest, Node by SHA-256 from nodejs.org,
+    pm2 via npm ci against a committed package-lock.json, supervisor
+    via pip --require-hashes. Resolves OpenSSF Scorecard
+    Pinned-Dependencies alerts.
+  * ci: scripts/check-binary-naming.sh + matching workflow guard
+    against `lynx` (the old binary name) reappearing where it should
+    be `lynxpm`. Falls back to an explicit allowlist for the system
+    user, socket file, polkit unit prefix, and other intentional
+    refs.
+  * ci: restore the OpenSSF Scorecard workflow that was removed in
+    0.9.x; without it, scan-driven alerts (e.g. the pinning fixes
+    above) cannot auto-close on rescan.
+  * chore(logs): default `--lines` for `lynxpm logs` reduced from
+    200 to 40, matching the order of magnitude of `tail` and
+    `pm2 logs`. Pass `--lines N` for the previous behaviour.
+  * docs: vulnerability reports now flow through GitHub Private
+    Vulnerability Reporting (https://github.com/Jaro-c/Lynx/security
+    /advisories/new) instead of email. SECURITY.md and the site
+    copy reflect the new channel.
+
+ -- Jaro-c <75870284+Jaro-c@users.noreply.github.com>  Sun, 26 Apr 2026 09:30:00 -0500
+
 lynxpm (0.9.8-1) unstable; urgency=low
 
   * refactor(cli): unify the three byte-identical printPostActionList
