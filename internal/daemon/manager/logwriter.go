@@ -26,6 +26,11 @@ type timestampWriter struct {
 	path            string
 	bytesSinceCheck int64
 	lastRotateAt    time.Time
+	// rotateCfg is captured once at construction so each Write/tick does
+	// not re-read four env vars and rebuild the struct. Live env-var
+	// changes won't take effect until the writer is recreated (e.g. on
+	// process restart) — acceptable for daemon-lifetime config.
+	rotateCfg rotateConfig
 }
 
 // writeRotateBytesEvery bounds how often the writer pays for a stat() to
@@ -44,7 +49,12 @@ func newTimestampWriter(w interface{ Write([]byte) (int, error) }) *timestampWri
 // age trigger only fires after maxAge elapsed since the writer opened
 // (i.e. since the daemon started writing this stream).
 func newRotatingTimestampWriter(w interface{ Write([]byte) (int, error) }, path string) *timestampWriter {
-	return &timestampWriter{w: w, path: path, lastRotateAt: time.Now()}
+	return &timestampWriter{
+		w:            w,
+		path:         path,
+		lastRotateAt: time.Now(),
+		rotateCfg:    currentRotateConfig(),
+	}
 }
 
 const maxLogBuf = 1 << 20 // 1 MB
@@ -118,7 +128,7 @@ func (tw *timestampWriter) maybeRotate() {
 		return
 	}
 	defer tw.rotateMu.Unlock()
-	if rotateNowCfg(tw.path, currentRotateConfig(), tw.lastRotateAt) {
+	if rotateNowCfg(tw.path, tw.rotateCfg, tw.lastRotateAt) {
 		tw.lastRotateAt = time.Now()
 	}
 }

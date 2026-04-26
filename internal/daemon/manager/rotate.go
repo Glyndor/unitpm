@@ -80,36 +80,11 @@ func rotateNowCfg(path string, cfg rotateConfig, lastRotateAt time.Time) bool {
 	return true
 }
 
-// rotateImmediateCfg is the original immediate-compress scheme: current
-// log → .1.gz, .1.gz → .2.gz, etc. Kept for unit tests and as the
-// fallback path when delayCompress is off. copytruncate-safe.
+// rotateImmediateCfg is the immediate-compress scheme: current log →
+// .1.gz, .1.gz → .2.gz, etc. Kept for unit tests and as the fallback
+// path when delayCompress is off. copytruncate-safe.
 func rotateImmediateCfg(path string, cfg rotateConfig) {
-	keep := cfg.keep
-	if keep < 1 {
-		keep = 1
-	}
-
-	oldest := fmt.Sprintf("%s.%d.gz", path, keep)
-	if err := os.Remove(oldest); err != nil && !os.IsNotExist(err) {
-		log.Printf("log-rotate: remove %s: %v", oldest, err)
-	}
-
-	for i := keep - 1; i >= 1; i-- {
-		src := fmt.Sprintf("%s.%d.gz", path, i)
-		dst := fmt.Sprintf("%s.%d.gz", path, i+1)
-		if err := os.Rename(src, dst); err != nil && !os.IsNotExist(err) {
-			log.Printf("log-rotate: rename %s → %s: %v", src, dst, err)
-		}
-	}
-
-	if err := compressFile(path, path+".1.gz"); err != nil {
-		log.Printf("log-rotate: compress %s: %v", path, err)
-		return
-	}
-
-	if err := os.Truncate(path, 0); err != nil {
-		log.Printf("log-rotate: truncate %s: %v", path, err)
-	}
+	rotateChain(path, cfg, false)
 }
 
 // rotateWithDelayCompressCfg matches logrotate's `delaycompress`: the
@@ -117,6 +92,16 @@ func rotateImmediateCfg(path string, cfg rotateConfig) {
 // rotation is it compressed into the .gz chain. Useful when readers
 // want a plain-text view of the last cycle without zcat.
 func rotateWithDelayCompressCfg(path string, cfg rotateConfig) {
+	rotateChain(path, cfg, true)
+}
+
+// rotateChain implements both rotation schemes. With delayCompress=false
+// the .gz chain starts at index 1 and the live log is compressed on
+// every rotation; with delayCompress=true the chain starts at index 2
+// and a plain .1 holds the most recent rotated copy until the next
+// cycle. Both branches end with a copytruncate of the live file so the
+// daemon's open fd keeps writing to the same inode.
+func rotateChain(path string, cfg rotateConfig, delayCompress bool) {
 	keep := cfg.keep
 	if keep < 1 {
 		keep = 1
@@ -128,9 +113,13 @@ func rotateWithDelayCompressCfg(path string, cfg rotateConfig) {
 		log.Printf("log-rotate: remove %s: %v", oldest, err)
 	}
 
-	// Shift the compressed chain up by one: .{keep-1}.gz → .{keep}.gz,
-	// down to .2.gz → .3.gz. We stop at .2.gz because .1 is plain.
-	for i := keep - 1; i >= 2; i-- {
+	// Shift the compressed chain up by one. Immediate mode shifts down to
+	// .1.gz; delayCompress stops at .2.gz because .1 is plain.
+	startIdx := 1
+	if delayCompress {
+		startIdx = 2
+	}
+	for i := keep - 1; i >= startIdx; i-- {
 		src := fmt.Sprintf("%s.%d.gz", path, i)
 		dst := fmt.Sprintf("%s.%d.gz", path, i+1)
 		if err := os.Rename(src, dst); err != nil && !os.IsNotExist(err) {
@@ -138,27 +127,34 @@ func rotateWithDelayCompressCfg(path string, cfg rotateConfig) {
 		}
 	}
 
-	// The previous-cycle plain .1 becomes the new .2.gz. compressFile
-	// reads the source then writes a fresh .gz; remove the plain copy
-	// only after compression succeeds so a failure leaves .1 intact.
-	plain1 := path + ".1"
-	if _, err := os.Stat(plain1); err == nil {
-		if err := compressFile(plain1, path+".2.gz"); err != nil {
-			log.Printf("log-rotate: compress %s: %v", plain1, err)
+	if delayCompress {
+		// The previous-cycle plain .1 becomes the new .2.gz. compressFile
+		// reads the source then writes a fresh .gz; remove the plain copy
+		// only after compression succeeds so a failure leaves .1 intact.
+		plain1 := path + ".1"
+		if _, err := os.Stat(plain1); err == nil {
+			if err := compressFile(plain1, path+".2.gz"); err != nil {
+				log.Printf("log-rotate: compress %s: %v", plain1, err)
+				return
+			}
+			if err := os.Remove(plain1); err != nil && !os.IsNotExist(err) {
+				log.Printf("log-rotate: remove %s: %v", plain1, err)
+			}
+		}
+
+		// Copy current → .1 (plain), then truncate current.
+		if err := copyFile(path, plain1); err != nil {
+			log.Printf("log-rotate: copy %s → %s: %v", path, plain1, err)
 			return
 		}
-		if err := os.Remove(plain1); err != nil && !os.IsNotExist(err) {
-			log.Printf("log-rotate: remove %s: %v", plain1, err)
+	} else {
+		// Immediate compress: current → .1.gz.
+		if err := compressFile(path, path+".1.gz"); err != nil {
+			log.Printf("log-rotate: compress %s: %v", path, err)
+			return
 		}
 	}
 
-	// Copy current → .1 (plain), then truncate current. The daemon's open
-	// fd keeps writing to the same inode (now empty), preserving the
-	// copytruncate invariant logrotate relies on.
-	if err := copyFile(path, plain1); err != nil {
-		log.Printf("log-rotate: copy %s → %s: %v", path, plain1, err)
-		return
-	}
 	if err := os.Truncate(path, 0); err != nil {
 		log.Printf("log-rotate: truncate %s: %v", path, err)
 	}
