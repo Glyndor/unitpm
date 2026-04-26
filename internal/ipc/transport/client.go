@@ -10,10 +10,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/google/uuid"
-
 	"github.com/Jaro-c/Lynx/internal/ipc/protocol"
 	"github.com/Jaro-c/Lynx/internal/jsonx"
+	"github.com/Jaro-c/Lynx/internal/spec"
 )
 
 // Client handles communication with the daemon.
@@ -53,7 +52,10 @@ func (c *Client) Close() error {
 
 // Call sends a request and waits for a response.
 func (c *Client) Call(command string, params any, result any) error {
-	reqID := generateID()
+	reqID, err := spec.GenerateID()
+	if err != nil {
+		return fmt.Errorf("generate request id: %w", err)
+	}
 
 	if err := c.sendRequest(reqID, command, params); err != nil {
 		return err
@@ -155,10 +157,6 @@ func (c *Client) checkStatus(resp *protocol.Response) error {
 		Message: resp.Error.Message,
 		Data:    errData,
 	}
-}
-
-func generateID() string {
-	return uuid.Must(uuid.NewV7()).String()
 }
 
 // daemonUnreachable replaces the raw Unix-socket error with a message that
