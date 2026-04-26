@@ -17,7 +17,7 @@ Please **do not** open a public GitHub issue for security reports.
 Send a private report to: `` with the subject
 `[Lynx Security]`. Include:
 
-- Affected version (`lynx version --json`)
+- Affected version (`lynxpm version --json`)
 - Reproduction steps
 - Impact assessment
 - Any proposed mitigation
@@ -110,7 +110,7 @@ All specs are validated in the daemon *after* IPC, never trusting the CLI:
 
 - Binaries are built with `-trimpath` to strip build-machine paths.
 - Version, commit, and build date are injected via `-ldflags` — verifiable
-  with `lynx version --json`.
+  with `lynxpm version --json`.
 - Releases are built via `scripts/build_deb.sh` from a clean checkout.
 
 ## Mitigations Shipped
