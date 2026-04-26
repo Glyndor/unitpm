@@ -38,8 +38,6 @@ WantedBy=default.target
 `
 
 func runPlatformStartup(runner Runner) error {
-	// 1. Detect systemd availability
-	// if /run/systemd/system does not exist OR systemctl is not available
 	_, errStat := stat("/run/systemd/system")
 	_, errLook := lookPath("systemctl")
 
@@ -47,32 +45,27 @@ func runPlatformStartup(runner Runner) error {
 		return errors.New("ERR_UNSUPPORTED: Lynx requires Linux with systemd")
 	}
 
-	// 2. Check if running as root (System Mode)
 	if getEuid() == 0 {
 		return runSystemStartup(runner)
 	}
 
-	// 3. Running as non-root (User Mode)
 	return runUserStartup(runner)
 }
 
 func runSystemStartup(runner Runner) error {
 	fmt.Println("Detected root user. Installing system-wide daemon...")
 
-	// 1) systemctl daemon-reload
 	if _, stderr, _, err := runner.Run("systemctl", "daemon-reload"); err != nil {
 		return fmt.Errorf("failed to reload daemon: %w\n%s", err, stderr)
 	}
 
-	// 2) systemctl enable --now lynxd.service
 	if _, stderr, _, err := runner.Run("systemctl", "enable", "--now", "lynxd.service"); err != nil {
 		return fmt.Errorf("failed to enable lynxd: %w\n%s", err, stderr)
 	}
 
-	// 3) systemctl is-active lynxd.service
 	stdout, stderr, _, err := runner.Run("systemctl", "is-active", "lynxd.service")
 	if err != nil {
-		// is-active returns exit code 3 if inactive, check output
+		// is-active returns exit code 3 if inactive; surface the stderr to the user.
 		return fmt.Errorf("lynxd service check failed: %w\n%s", err, stderr)
 	}
 
@@ -92,16 +85,14 @@ func runUserStartup(runner Runner) error {
 
 	fmt.Printf("Detected user mode (%s). Installing user daemon...\n", currentUser.Username)
 
-	// 1. Create ~/.config/systemd/user directory
 	configDir := filepath.Join(currentUser.HomeDir, ".config", "systemd", "user")
 	if err := os.MkdirAll(configDir, 0755); err != nil {
 		return fmt.Errorf("failed to create config dir: %w", err)
 	}
 
-	// 2. Locate lynxd binary
 	lynxdPath, err := exec.LookPath("lynxd")
 	if err != nil {
-		// Fallback to common locations if not in PATH
+		// Fall back to common install locations when PATH lookup fails.
 		if _, err := os.Stat("/usr/sbin/lynxd"); err == nil {
 			lynxdPath = "/usr/sbin/lynxd"
 		} else if _, err := os.Stat("/usr/local/bin/lynxd"); err == nil {
@@ -111,14 +102,8 @@ func runUserStartup(runner Runner) error {
 		}
 	}
 
-	// Resolve absolute path
 	lynxdPath, _ = filepath.Abs(lynxdPath)
 
-	// 3. Generate Unit File
-	// Default user socket path logic mirrors socket_unix.go
-	// We don't strictly need to set LYNX_SOCKET env if we use defaults,
-	// but it's safer to be explicit if needed. For now, let's rely on default behavior.
-	// But we DO need to know where the binary is.
 	unitContent := fmt.Sprintf(systemdUserUnit, lynxdPath, "")
 
 	unitPath := filepath.Join(configDir, "lynxd.service")
@@ -127,9 +112,6 @@ func runUserStartup(runner Runner) error {
 	}
 	fmt.Printf("Created unit file at %s\n", unitPath)
 
-	// 4. Enable Lingering (Persist after logout)
-	// We need to use loginctl. This might require PolicyKit or being in the right group,
-	// but usually users can enable lingering for themselves.
 	fmt.Println("Enabling lingering to keep process running after logout...")
 	if _, stderr, _, err := runner.Run("loginctl", "enable-linger", currentUser.Username); err != nil {
 		fmt.Print(term.YellowString("Warning: Failed to enable lingering: %v\n%s\n", err, stderr))
@@ -138,13 +120,10 @@ func runUserStartup(runner Runner) error {
 		fmt.Println("Lingering enabled.")
 	}
 
-	// 5. Systemd User Commands
-	// systemctl --user daemon-reload
 	if _, stderr, _, err := runner.Run("systemctl", "--user", "daemon-reload"); err != nil {
 		return fmt.Errorf("failed to reload user daemon: %w\n%s", err, stderr)
 	}
 
-	// systemctl --user enable --now lynxd
 	if _, stderr, _, err := runner.Run("systemctl", "--user", "enable", "--now", "lynxd"); err != nil {
 		return fmt.Errorf("failed to enable user lynxd: %w\n%s", err, stderr)
 	}

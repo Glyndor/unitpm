@@ -13,6 +13,7 @@ import (
 	"github.com/Jaro-c/Lynx/internal/cli/help"
 	"github.com/Jaro-c/Lynx/internal/lynxfile"
 	"github.com/Jaro-c/Lynx/internal/spec"
+	"github.com/Jaro-c/Lynx/internal/types"
 )
 
 // Run executes the export command to generate a Lynxfile from currently running applications.
@@ -56,7 +57,7 @@ func Run(args []string) error {
 	for _, s := range specs {
 		ns := s.Namespace
 		if ns == "" {
-			ns = "default"
+			ns = types.DefaultNamespace
 		}
 		if ns != namespace {
 			continue

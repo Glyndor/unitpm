@@ -21,16 +21,11 @@ func Run(args []string) error {
 		return fmt.Errorf("usage: lynx _exec-env <cmd> [args...]")
 	}
 
-	// Load credentials
 	credsDir := os.Getenv("CREDENTIALS_DIRECTORY")
 	if credsDir != "" {
 		envPath := credsDir + "/env"
 		if err := loadEnv(envPath); err != nil {
-			// If we are running under systemd with LoadCredential, this should work.
-			// If it fails, log to stderr (which goes to journal) and continue?
-			// Or fail fast?
-			// User requirement: "Export KEY=VAL lines safely"
-			// If we can't read the env, the app might fail.
+			// Best-effort: warn to journal and let the child process decide whether to fail.
 			fmt.Fprintf(os.Stderr, "lynx: warning: failed to load env from credentials: %v\n", err)
 		}
 	}
@@ -43,13 +38,11 @@ func Run(args []string) error {
 		return fmt.Errorf("command not found: %s", cmdName)
 	}
 
-	// Exec
 	env := os.Environ()
 	if err := syscall.Exec(cmdPath, cmdArgs, env); err != nil {
 		return fmt.Errorf("exec failed: %w", err)
 	}
 
-	// Should not be reached
 	return nil
 }
 

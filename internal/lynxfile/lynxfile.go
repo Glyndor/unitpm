@@ -9,7 +9,9 @@ import (
 
 	"gopkg.in/yaml.v3"
 
+	"github.com/Jaro-c/Lynx/internal/cli/commands/start"
 	"github.com/Jaro-c/Lynx/internal/ipc/protocol"
+	"github.com/Jaro-c/Lynx/internal/types"
 )
 
 // File represents the top-level structure of a Lynx configuration file (e.g., Lynxfile.yml).
@@ -108,9 +110,15 @@ func (f *File) ToAppSpecs() ([]protocol.AppSpec, error) {
 	return specs, nil
 }
 
-func tokenizeCommand(cmd string) []string {
-	fields := strings.Fields(cmd)
-	return fields
+func tokenizeCommand(cmd string) ([]string, error) {
+	parts, err := start.Tokenize(cmd)
+	if err != nil {
+		return nil, err
+	}
+	if len(parts) == 0 {
+		return strings.Fields(cmd), nil
+	}
+	return parts, nil
 }
 
 // ToAppSpec converts a single application configuration to a protocol.AppSpec.
@@ -120,7 +128,7 @@ func (app AppConfig) ToAppSpec(defaultNamespace string) (protocol.AppSpec, error
 		ns = defaultNamespace
 	}
 	if ns == "" {
-		ns = "default"
+		ns = types.DefaultNamespace
 	}
 
 	base := protocol.AppSpec{
@@ -134,7 +142,10 @@ func (app AppConfig) ToAppSpec(defaultNamespace string) (protocol.AppSpec, error
 	}
 
 	if app.Command != "" {
-		cmdParts := tokenizeCommand(app.Command)
+		cmdParts, err := tokenizeCommand(app.Command)
+		if err != nil {
+			return protocol.AppSpec{}, fmt.Errorf("invalid command for app %s: %w", app.Name, err)
+		}
 		if len(cmdParts) == 0 {
 			return protocol.AppSpec{}, fmt.Errorf("invalid command for app %s", app.Name)
 		}
