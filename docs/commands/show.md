@@ -106,9 +106,9 @@ Logs
 │ field     │ value                            │
 ├───────────┼──────────────────────────────────┤
 │ mode      │ file                             │
-│ dir       │ /var/log/lynx/App-Web            │
-│ stdout    │ /var/log/lynx/App-Web/stdout.log │
-│ stderr    │ /var/log/lynx/App-Web/stderr.log │
+│ dir       │ /var/log/lynx-pm/App-Web            │
+│ stdout    │ /var/log/lynx-pm/App-Web/stdout.log │
+│ stderr    │ /var/log/lynx-pm/App-Web/stderr.log │
 │ format    │ plain                            │
 │ timestamp │ rfc3339                          │
 └───────────┴──────────────────────────────────┘

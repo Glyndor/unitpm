@@ -11,7 +11,7 @@ Direct answers, no detours. Grouped by topic.
 | Spaces in `--name` | ✅ | `--name "my api"` |
 | Colon `:` in `--name` | ✅ | `--name "TEST: Release 1"` — address with `ns:name` |
 | Symbols `# @ ! , ( ) + = &` in `--name` | ✅ | `--name "api (v2) #blue"` |
-| Accents / emoji in `--name` | ❌ | ASCII only. Use `lynx-espanol` not `lynx-español` |
+| Accents / emoji in `--name` | ❌ | ASCII only. Use `app-espanol` not `app-español` |
 | `;` `"` `$` backtick `|` `<>` in `--name` | ❌ | shell-dangerous, rejected with `ERR_BAD_REQUEST` |
 | Name > 128 chars | ❌ | 128 limit |
 | Spaces in `--namespace` | ❌ | strict `[a-zA-Z0-9._-]`, 64 chars |

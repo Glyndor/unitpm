@@ -91,7 +91,7 @@ jobs:
           go-version-file: go.mod
           cache: true
 
-      - name: Build lynx
+      - name: Build lynxpm
         env:
           GOOS: linux
           GOARCH: ${{ matrix.goarch }}

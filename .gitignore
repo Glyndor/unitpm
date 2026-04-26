@@ -67,9 +67,9 @@ obj-*/
 # =====================
 # Lynx Binaries & Reports
 # =====================
-/lynx
+/lynxpm
 /lynxd
-lynx_*
+lynxpm_*
 gosec*
 *.debhelper
 
