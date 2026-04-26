@@ -62,7 +62,7 @@ func GetSpec() help.CommandSpec {
 	return help.CommandSpec{
 		Name:        "_exec-env",
 		Description: "Internal wrapper for DynamicUser environment bridging",
-		Usage:       "lynx _exec-env <cmd> [args...]",
+		Usage:       "lynxpm _exec-env <cmd> [args...]",
 		Hidden:      true,
 	}
 }

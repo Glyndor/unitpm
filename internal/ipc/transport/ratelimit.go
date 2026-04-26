@@ -8,7 +8,7 @@ import (
 )
 
 // Rate-limit defaults: tight enough to stop a flood, generous enough that
-// interactive CLI use (rapid-fire 'lynx start' in scripts) still works.
+// interactive CLI use (rapid-fire 'lynxpm start' in scripts) still works.
 // Overridable via env vars on daemon startup.
 const (
 	defaultRateCapacity = 200 // burst

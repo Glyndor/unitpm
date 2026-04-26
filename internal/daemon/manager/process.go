@@ -217,7 +217,7 @@ func (p *Process) Start() error {
 
 // Restart stops the process (if running) and starts it again.
 // Increments the Restarts counter regardless of the trigger (manual via
-// `lynx restart`, cron schedule, or failure-driven via handleRestart).
+// `lynxpm restart`, cron schedule, or failure-driven via handleRestart).
 func (p *Process) Restart() error {
 	return p.restartLocked(true)
 }

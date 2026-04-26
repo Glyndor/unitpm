@@ -23,10 +23,10 @@ type CommandSpec struct {
 	Usage       string
 	Description string
 	Options     []Option
-	// Examples are shown at the bottom of `lynx <cmd> --help`. Each string
+	// Examples are shown at the bottom of `lynxpm <cmd> --help`. Each string
 	// is printed verbatim, indented.
 	Examples []string
-	// Hidden excludes the command from `lynx` / `lynxpm help` output while
+	// Hidden excludes the command from `lynxpm help` output while
 	// keeping it invokable. Use for internal wrappers.
 	Hidden bool
 }
@@ -122,7 +122,7 @@ func flagLabel(opt Option) string {
 func RenderRootHelp(w io.Writer, specs []CommandSpec, showCommands bool) {
 	_, _ = fmt.Fprintln(w)
 	_, _ = fmt.Fprintf(w, "%s\n", term.CyanString("Usage:"))
-	_, _ = fmt.Fprintf(w, "  lynx <command> [flags]\n")
+	_, _ = fmt.Fprintf(w, "  lynxpm <command> [flags]\n")
 
 	if showCommands {
 		_, _ = fmt.Fprintln(w)

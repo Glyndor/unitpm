@@ -22,7 +22,7 @@ import (
 // (:, #, @, !, ,, (, ), +, =, &). 128 chars max. The colon is permitted
 // because ResolveID splits on the FIRST colon only — addressing a name
 // that contains colons still works via the explicit `namespace:name`
-// form (e.g. `lynx show prod:TEST: Release 1`).
+// form (e.g. `lynxpm show prod:TEST: Release 1`).
 // namespaceRegex stays strict — no colon/space/# so `ns:name` parsing
 // is unambiguous.
 var nameRegex = regexp.MustCompile(`^[a-zA-Z0-9][a-zA-Z0-9 ._:#@!,()+=&-]{0,127}$`)

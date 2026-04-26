@@ -145,7 +145,7 @@ func GetSpec() help.CommandSpec {
 	return help.CommandSpec{
 		Name:        "_exec-sandbox",
 		Description: "Internal child wrapper for --isolation sandbox (no direct use)",
-		Usage:       "lynx _exec-sandbox",
+		Usage:       "lynxpm _exec-sandbox",
 		Hidden:      true,
 	}
 }

@@ -98,7 +98,7 @@ func Apply(ctx context.Context, release *Release, opts ApplyOptions) error {
 		return fmt.Errorf("failed to determine executable path: %w", err)
 	}
 
-	// Resolve symlinks so dpkg diversions (/usr/bin/lynx -> /opt/lynx/lynx) are followed.
+	// Resolve symlinks so dpkg diversions (/usr/bin/lynxpm -> /opt/lynxpm/lynxpm) are followed.
 	exePath, err = filepath.EvalSymlinks(exePath)
 	if err != nil {
 		return fmt.Errorf("failed to resolve symlinks: %w", err)
@@ -187,7 +187,7 @@ func downloadSignature(ctx context.Context, sigURL string) ([]byte, error) {
 }
 
 func downloadAndReplace(ctx context.Context, assetURL, sigURL, exePath string, pubKey ed25519.PublicKey) error {
-	tmpFile, err := os.CreateTemp(filepath.Dir(exePath), "lynx-update-*")
+	tmpFile, err := os.CreateTemp(filepath.Dir(exePath), "lynxpm-update-*")
 	if err != nil {
 		return fmt.Errorf("failed to create temp file (check permissions): %w", err)
 	}
@@ -285,8 +285,8 @@ func verifyFileSignature(ctx context.Context, filePath, sigURL string, pubKey ed
 
 // IsManagedByPackageSystem returns true when dpkg/rpm/pacman claim ownership
 // of the running binary. Queries each tool directly with both the original
-// and symlink-resolved paths so dpkg diversions (e.g. /usr/bin/lynx →
-// /opt/lynx/lynx) aren't missed.
+// and symlink-resolved paths so dpkg diversions (e.g. /usr/bin/lynxpm →
+// /opt/lynxpm/lynxpm) aren't missed.
 func IsManagedByPackageSystem() bool {
 	exePath, err := os.Executable()
 	if err != nil {
