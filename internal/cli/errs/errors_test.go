@@ -23,3 +23,20 @@ func TestUsageError_Error(t *testing.T) {
 		t.Errorf("Expected 'test', got '%s'", err.Error())
 	}
 }
+
+func TestNewUsageError(t *testing.T) {
+	err := NewUsageError("bad flag")
+	if err == nil {
+		t.Fatal("nil error")
+	}
+	if err.Error() != "bad flag" {
+		t.Errorf("got %q", err.Error())
+	}
+	var u *UsageError
+	if !errors.As(err, &u) {
+		t.Error("expected UsageError")
+	}
+	if u.Message != "bad flag" {
+		t.Errorf("Message=%q", u.Message)
+	}
+}
