@@ -28,7 +28,7 @@ type SandboxOptions struct {
 // WrapSandbox rewrites cmd to run under the unprivileged sandbox wrapper:
 //
 //  1. A new user+pid+mount namespace is entered; UID/GID map to 0 inside.
-//  2. The wrapper binary (`lynx _exec-sandbox`) sets rlimits, applies
+//  2. The wrapper binary (`lynxpm _exec-sandbox`) sets rlimits, applies
 //     Landlock, and execve's the real target.
 //
 // No sudo is required.
