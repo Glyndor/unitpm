@@ -41,8 +41,7 @@ type Process struct {
 	stderrPath    string
 	stdoutWriter  *timestampWriter // nil in inherit mode; held so the rotation ticker can drive it
 	stderrWriter  *timestampWriter
-	rotateCancel  context.CancelFunc // stops the rotation ticker started in Start()
-	inRestart     bool               // suppresses STARTED/STOPPED banners during Restart()
+	inRestart     bool // suppresses STARTED/STOPPED banners during Restart()
 	metrics       metrics.Collector
 	scheduler     *cron.Cron
 	restartCount  int
@@ -205,12 +204,6 @@ func (p *Process) Start() error {
 
 	if !p.inRestart {
 		p.emitBanner("STARTED", "")
-	}
-
-	if p.stdoutWriter != nil {
-		ctx, cancel := context.WithCancel(context.Background())
-		p.rotateCancel = cancel
-		go p.rotateLoop(ctx, p.stdoutWriter, p.stderrWriter)
 	}
 
 	go p.monitor()
@@ -588,6 +581,14 @@ func (p *Process) setupLogs(cmd *exec.Cmd) error {
 		rotateIfLarge(stderrPath)
 	}
 
+	// rawFD is the perf-oriented opt-out: when timestamps are disabled, point
+	// cmd.Stdout/Stderr at the *os.File directly. Go's exec then dup2()s the
+	// fd into the child — no pipe, no io.Copy goroutine, no bufio buffer per
+	// stream. We keep the timestampWriter alive only as a rotation handle
+	// for the daemon-wide rotator; its data path stays unused. At N=100 this
+	// saves roughly 200 goroutines and ~6 MB of pipe-copy buffers.
+	rawFD := p.spec.Logs != nil && p.spec.Logs.Timestamp == "none"
+
 	// Open Stdout — O_NOFOLLOW blocks a pre-placed symlink from redirecting
 	// log writes to an arbitrary file owned by (or writable by) the daemon UID.
 	logFlags := os.O_APPEND | os.O_CREATE | os.O_WRONLY | syscall.O_NOFOLLOW
@@ -597,12 +598,20 @@ func (p *Process) setupLogs(cmd *exec.Cmd) error {
 	}
 	p.logFiles = append(p.logFiles, fOut)
 	p.stdoutWriter = newRotatingTimestampWriter(fOut, stdoutPath)
-	cmd.Stdout = p.stdoutWriter
+	if rawFD {
+		cmd.Stdout = fOut
+	} else {
+		cmd.Stdout = p.stdoutWriter
+	}
 
 	// Open Stderr
 	if stderrPath == stdoutPath {
 		p.stderrWriter = p.stdoutWriter
-		cmd.Stderr = p.stdoutWriter
+		if rawFD {
+			cmd.Stderr = fOut
+		} else {
+			cmd.Stderr = p.stdoutWriter
+		}
 	} else {
 		fErr, err := os.OpenFile(stderrPath, logFlags, 0600)
 		if err != nil {
@@ -610,35 +619,14 @@ func (p *Process) setupLogs(cmd *exec.Cmd) error {
 		}
 		p.logFiles = append(p.logFiles, fErr)
 		p.stderrWriter = newRotatingTimestampWriter(fErr, stderrPath)
-		cmd.Stderr = p.stderrWriter
+		if rawFD {
+			cmd.Stderr = fErr
+		} else {
+			cmd.Stderr = p.stderrWriter
+		}
 	}
 
 	return nil
-}
-
-// rotateLoop ticks every LYNX_LOG_ROTATE_INTERVAL_MS milliseconds and asks
-// each writer to rotate if it has crossed the size threshold. Without this
-// loop, internal rotation only fires at Start() — a long-running app in
-// user mode (where logrotate is not configured) would grow logs without
-// bound between restarts.
-func (p *Process) rotateLoop(ctx context.Context, stdout, stderr *timestampWriter) {
-	intervalMs := env.Int64("LYNX_LOG_ROTATE_INTERVAL_MS", 60_000)
-	if intervalMs <= 0 {
-		return
-	}
-	ticker := time.NewTicker(time.Duration(intervalMs) * time.Millisecond)
-	defer ticker.Stop()
-	for {
-		select {
-		case <-ticker.C:
-			stdout.maybeRotate()
-			if stderr != stdout {
-				stderr.maybeRotate()
-			}
-		case <-ctx.Done():
-			return
-		}
-	}
 }
 
 // monitor waits for process exit and updates state.
@@ -656,14 +644,11 @@ func (p *Process) monitor() {
 	}
 
 	p.mu.Lock()
-	// Stop the rotation ticker before closing files so it cannot stat a
-	// closed-and-soon-reopened path during a restart race.
-	if p.rotateCancel != nil {
-		p.rotateCancel()
-		p.rotateCancel = nil
-	}
 	// Emit EXITED banner before closing files. Skipped for user-initiated
-	// stop (STOPPED already written) and Restart() (RESTARTED suffices).
+	// stop (STOPPED already written) and Restart() (RESTARTED suffices). The
+	// daemon-wide rotation loop (Manager.rotateLoop) reads p.stdoutWriter
+	// under p.mu and will see the nil-out below before its next tick, so no
+	// per-process cancel is needed here.
 	if !p.stoppedByUser && !p.inRestart {
 		p.emitBanner("EXITED", fmt.Sprintf("code=%d", exitCode))
 	}
