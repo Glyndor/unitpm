@@ -2,10 +2,13 @@ package update_test
 
 import (
 	"bytes"
+	"runtime"
 	"strings"
 	"testing"
 
 	"github.com/Jaro-c/Lynx/internal/cli/commands/update"
+	"github.com/Jaro-c/Lynx/internal/term"
+	"github.com/Jaro-c/Lynx/internal/updater"
 )
 
 func TestRun_Validation(t *testing.T) {
@@ -55,4 +58,30 @@ func TestRun_UnexpectedArgs(t *testing.T) {
 	if !strings.Contains(err.Error(), "Unexpected arguments") {
 		t.Errorf("unexpected error: %v", err)
 	}
+}
+
+func TestRun_ManagedApplyWithoutForce(t *testing.T) {
+	if !updater.IsManagedByPackageSystem() {
+		t.Skip("test binary is not package-managed")
+	}
+	var buf bytes.Buffer
+	err := update.Run(&buf, []string{"--apply"})
+	if err == nil || !strings.Contains(err.Error(), "system package manager") {
+		t.Errorf("expected managed-package guard, got %v", err)
+	}
+}
+
+func TestRun_QuietSilences(t *testing.T) {
+	prev := term.IsQuiet()
+	term.SetQuiet(true)
+	t.Cleanup(func() { term.SetQuiet(prev) })
+
+	var buf bytes.Buffer
+	// Network call to updater.Check may fail without internet; that's fine — we only
+	// care that no progress text was written to buf when quiet mode is active.
+	_ = update.Run(&buf, nil)
+	if buf.Len() != 0 {
+		t.Errorf("quiet mode should silence stdout, got: %q", buf.String())
+	}
+	_ = runtime.GOARCH // keep import live for other tests
 }
