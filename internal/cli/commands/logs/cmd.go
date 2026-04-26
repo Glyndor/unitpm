@@ -32,7 +32,7 @@ func Run(args []string) error {
 
 func runWithContext(ctx context.Context, args []string) error {
 	var (
-		lines      = 200
+		lines      = 40
 		follow     = false
 		showStdout = false
 		showStderr = false
