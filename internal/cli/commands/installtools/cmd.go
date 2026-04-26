@@ -12,6 +12,7 @@ import (
 	"strings"
 
 	"github.com/Jaro-c/Lynx/internal/cli/help"
+	"github.com/Jaro-c/Lynx/internal/paths"
 	"github.com/Jaro-c/Lynx/internal/term"
 )
 
@@ -43,8 +44,7 @@ func Run(args []string) error {
 
 	var destDir string
 	if systemMode {
-		// System-wide install requires root
-		if os.Geteuid() != 0 {
+		if !paths.IsRoot() {
 			return fmt.Errorf("--system requires root privileges (run with sudo)")
 		}
 		destDir = "/usr/local/bin"

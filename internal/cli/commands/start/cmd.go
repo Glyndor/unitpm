@@ -20,6 +20,7 @@ import (
 	"github.com/Jaro-c/Lynx/internal/jsonx"
 	"github.com/Jaro-c/Lynx/internal/spec"
 	"github.com/Jaro-c/Lynx/internal/term"
+	"github.com/Jaro-c/Lynx/internal/types"
 )
 
 // startedInstance summarizes one spawned instance for both the --json
@@ -83,7 +84,6 @@ func Run(client transport.IPCClient, args []string) error {
 		client = c
 	}
 
-	// Derive base name if empty
 	autoNamed := false
 	baseName := appSpec.Name
 	if baseName == "" {
@@ -100,7 +100,6 @@ func Run(client transport.IPCClient, args []string) error {
 	for i := 0; i < scale; i++ {
 		thisSpec := appSpec
 
-		// Generate ID first
 		id, err := spec.GenerateID()
 		if err != nil {
 			return fmt.Errorf("failed to generate ID: %w", err)
@@ -108,7 +107,6 @@ func Run(client transport.IPCClient, args []string) error {
 		thisSpec.ID = id
 		thisSpec.CreatedAt = time.Now().Format(time.RFC3339)
 
-		// Set Name
 		if autoNamed {
 			shortID := id
 			if len(id) > 8 {
@@ -127,23 +125,21 @@ func Run(client transport.IPCClient, args []string) error {
 			}
 		}
 
-		// Inject Instance Index
 		if thisSpec.Env == nil {
 			thisSpec.Env = make(map[string]string)
 		}
 		thisSpec.Env["LYNX_INSTANCE"] = strconv.Itoa(i)
 
-		// Save the spec to disk before calling daemon (daemon may restart mid-flight).
+		// Persist spec before calling daemon so it survives a daemon restart mid-flight.
 		_, err = spec.SaveSpec(thisSpec.ID, thisSpec)
 		if err != nil {
 			return fmt.Errorf("failed to save spec: %w", err)
 		}
 
-		// Send Request
 		req := protocol.StartRequest{
 			ProtocolVersion: 1,
 			Type:            "start",
-			RequestID:       id, // Use same ID for request correlation
+			RequestID:       id,
 			Spec:            thisSpec,
 		}
 
@@ -441,7 +437,7 @@ func (p *specParser) finalize() (protocol.AppSpec, error) {
 
 	ns := p.namespace
 	if ns == "" {
-		ns = "default"
+		ns = types.DefaultNamespace
 	}
 
 	spec := protocol.AppSpec{

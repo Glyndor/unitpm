@@ -17,6 +17,7 @@ import (
 	"github.com/Jaro-c/Lynx/internal/lynxfile"
 	"github.com/Jaro-c/Lynx/internal/spec"
 	"github.com/Jaro-c/Lynx/internal/term"
+	"github.com/Jaro-c/Lynx/internal/types"
 )
 
 // Run executes the apply command to load a Lynxfile and start the defined applications.
@@ -82,7 +83,7 @@ func Run(client transport.IPCClient, args []string) error {
 
 		s.ID = id
 		if s.Namespace == "" {
-			s.Namespace = "default"
+			s.Namespace = types.DefaultNamespace
 		}
 		s.CreatedAt = time.Now().Format(time.RFC3339)
 

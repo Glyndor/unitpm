@@ -52,7 +52,6 @@ func Run(client transport.IPCClient, w io.Writer, args []string) error {
 
 	local := version.Get()
 
-	// 2. Attempt to connect to daemon
 	var err error
 	if client == nil {
 		client, err = transport.NewClient()
@@ -110,7 +109,6 @@ func Run(client transport.IPCClient, w io.Writer, args []string) error {
 		return enc.Encode(out)
 	}
 
-	// 1. Print local CLI version
 	_, _ = fmt.Fprintf(w, "%s\n", term.CyanString("%s", term.BoldString("Lynx CLI")))
 	printVersionInfo(w, local)
 
@@ -145,12 +143,10 @@ func Run(client transport.IPCClient, w io.Writer, args []string) error {
 		return nil
 	}
 
-	// 4. Print daemon version
 	_, _ = fmt.Fprintln(w)
 	_, _ = fmt.Fprintf(w, "%s\n", term.CyanString("%s", term.BoldString("Lynx Daemon")))
 	printVersionInfo(w, *daemonInfo)
 
-	// 5. Print Protocol
 	_, _ = fmt.Fprintln(w)
 	_, _ = fmt.Fprintf(w, "%s\n", term.CyanString("Protocol"))
 	_, _ = fmt.Fprintf(
