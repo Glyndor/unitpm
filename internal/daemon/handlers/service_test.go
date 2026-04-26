@@ -40,10 +40,26 @@ func TestValidateSpec_ExecBranches(t *testing.T) {
 		want string
 	}{
 		{"invalid exec type", func(s *protocol.AppSpec) { s.Exec.Type = "weird" }, "invalid exec type"},
-		{"entry missing", func(s *protocol.AppSpec) { s.Exec = protocol.AppExec{Type: "entry"} }, "entry file is required"},
-		{"arg too long", func(s *protocol.AppSpec) { s.Exec.Args = []string{strings.Repeat("a", 4097)} }, "argument too long"},
-		{"env value too long", func(s *protocol.AppSpec) { s.Env = map[string]string{"k": strings.Repeat("v", 8193)} }, "env value too long"},
-		{"env key too long", func(s *protocol.AppSpec) { s.Env = map[string]string{strings.Repeat("k", 257): "v"} }, "env key too long"},
+		{
+			"entry missing",
+			func(s *protocol.AppSpec) { s.Exec = protocol.AppExec{Type: "entry"} },
+			"entry file is required",
+		},
+		{
+			"arg too long",
+			func(s *protocol.AppSpec) { s.Exec.Args = []string{strings.Repeat("a", 4097)} },
+			"argument too long",
+		},
+		{
+			"env value too long",
+			func(s *protocol.AppSpec) { s.Env = map[string]string{"k": strings.Repeat("v", 8193)} },
+			"env value too long",
+		},
+		{
+			"env key too long",
+			func(s *protocol.AppSpec) { s.Env = map[string]string{strings.Repeat("k", 257): "v"} },
+			"env key too long",
+		},
 		{"namespace bad", func(s *protocol.AppSpec) { s.Namespace = "bad ns" }, "invalid namespace format"},
 		{"cron too long", func(s *protocol.AppSpec) { s.Cron = strings.Repeat("a", 257) }, "cron spec too long"},
 		{"cron newline", func(s *protocol.AppSpec) { s.Cron = "* * *\n* *" }, "invalid cron spec"},
