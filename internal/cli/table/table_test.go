@@ -109,7 +109,8 @@ func TestTableLongWordSplit(t *testing.T) {
 func TestTableShrinksWidestColumn(t *testing.T) {
 	got := captureStdout(t, func() {
 		tbl := table.New([]string{"a", "wide-column-header"})
-		tbl.AddRow([]string{"x", "this is some content that should force shrink due to terminal width constraints applied"})
+		long := "this is some content that should force shrink due to terminal width constraints applied"
+		tbl.AddRow([]string{"x", long})
 		tbl.Render()
 	})
 	plain := format.StripAnsi(got)

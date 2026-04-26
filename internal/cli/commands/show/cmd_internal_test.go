@@ -143,8 +143,9 @@ func TestStrDefaultNonEmpty(t *testing.T) {
 }
 
 func TestMaskSecret(t *testing.T) {
-	if maskSecret("API_TOKEN", "abc") != strings.Repeat("*", 8) && !strings.Contains(maskSecret("API_TOKEN", "abc"), "*") {
-		t.Errorf("token not masked: %q", maskSecret("API_TOKEN", "abc"))
+	got := maskSecret("API_TOKEN", "abc")
+	if got != strings.Repeat("*", 8) && !strings.Contains(got, "*") {
+		t.Errorf("token not masked: %q", got)
 	}
 	if maskSecret("PORT", "") != "" {
 		t.Error("empty value should stay empty")
