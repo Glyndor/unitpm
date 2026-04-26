@@ -365,7 +365,7 @@ func (p *Process) resolveCommand() (string, []string, error) {
 func (p *Process) prepareEnv() ([]string, error) {
 	var envs []string
 
-	if paths.IsRoot() {
+	if paths.IsSystemMode() {
 		// System Mode: Whitelist to prevent leaking secrets (e.g. AWS_KEYS)
 		allowed := map[string]struct{}{
 			"PATH": {}, "LANG": {}, "TERM": {}, "TZ": {}, "TMPDIR": {},
