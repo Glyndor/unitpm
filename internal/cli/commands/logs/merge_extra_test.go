@@ -432,8 +432,10 @@ func TestFollowMerge_OrdersAcrossStreams(t *testing.T) {
 		}, filter{}, time.Sleep)
 	}()
 
-	// Give the goroutines time to seek to end.
-	time.Sleep(150 * time.Millisecond)
+	// Wait for both tailFollow goroutines to reach their EOF poll
+	// before writing — otherwise the file content is consumed by the
+	// initial seek-to-end and never surfaces to the heap.
+	waitForEOFPoll(t, stdoutPath, stderrPath)
 
 	// Append in NON-chronological insertion order; flush window must
 	// re-sort before emit.
@@ -442,9 +444,18 @@ func TestFollowMerge_OrdersAcrossStreams(t *testing.T) {
 	appendLine(t, stdoutPath, now.Add(-4*time.Second).Format(tsLayout)+" a\n")
 	appendLine(t, stderrPath, now.Add(-3*time.Second).Format(tsLayout)+" b\n")
 
-	// Wait long enough for the flush window (200ms) plus poll cadence
-	// to drain everything.
-	time.Sleep(800 * time.Millisecond)
+	// Poll the buffer for the expected entries instead of waiting a
+	// fixed duration. Under -race + CI load the read+flush pipeline
+	// can take well over a second; a fixed sleep is racy. The 5s
+	// deadline is only reached on a real bug.
+	deadline := time.Now().Add(5 * time.Second)
+	for time.Now().Before(deadline) {
+		out := clean(buf.String())
+		if strings.Contains(out, " a") && strings.Contains(out, " b") && strings.Contains(out, " c") {
+			break
+		}
+		time.Sleep(20 * time.Millisecond)
+	}
 	cancel()
 	if err := <-done; err != nil && !errors.Is(err, context.Canceled) {
 		t.Fatalf("followMerge: %v", err)
@@ -455,10 +466,38 @@ func TestFollowMerge_OrdersAcrossStreams(t *testing.T) {
 	idxB := strings.Index(out, " b")
 	idxC := strings.Index(out, " c")
 	if idxA < 0 || idxB < 0 || idxC < 0 {
-		t.Fatalf("missing entries:\n%s", out)
+		t.Fatalf("missing entries (timed out after 5s):\n%s", out)
 	}
 	if idxA >= idxB || idxB >= idxC {
 		t.Errorf("entries out of chronological order:\n%s", out)
+	}
+}
+
+// waitForEOFPoll blocks until tailFollow has seeked past the current
+// file size on every path. Without this, the test races against the
+// open+seek path: writes that land before the goroutine reaches EOF
+// vanish from the merged output (the initial seek-to-end skips them).
+func waitForEOFPoll(t *testing.T, paths ...string) {
+	t.Helper()
+	deadline := time.Now().Add(2 * time.Second)
+	for time.Now().Before(deadline) {
+		ready := true
+		for _, p := range paths {
+			st, err := os.Stat(p)
+			if err != nil || st.Size() != 0 {
+				// stat error or non-empty file means we cannot prove
+				// the goroutine has caught up; keep waiting.
+				ready = false
+				break
+			}
+		}
+		if ready {
+			// Empty files + 100ms grace ≈ goroutines have finished
+			// their initial seek and entered the EOF poll loop.
+			time.Sleep(100 * time.Millisecond)
+			return
+		}
+		time.Sleep(20 * time.Millisecond)
 	}
 }
 
