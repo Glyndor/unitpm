@@ -55,7 +55,7 @@ Two binaries, one long-lived daemon:
 
 ```
 ┌──────────┐   Unix socket (JSON-RPC)   ┌──────────┐
-│  lynx    │ ──────────────────────────▶│  lynxd   │
+│  lynxpm  │ ──────────────────────────▶│  lynxd   │
 │  (CLI)   │ ◀──────────────────────────│  (daemon)│
 └──────────┘                            └────┬─────┘
                                              │ fork+exec / systemd-run

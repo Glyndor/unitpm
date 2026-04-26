@@ -83,7 +83,7 @@ func Run(args []string) error {
 	_ = unix.Unmount("/proc", unix.MNT_DETACH)
 	procFlags := uintptr(unix.MS_NOSUID | unix.MS_NODEV | unix.MS_NOEXEC)
 	if err := unix.Mount("proc", "/proc", "proc", procFlags, ""); err != nil {
-		fmt.Fprintf(os.Stderr, "lynx: warning: could not remount /proc in sandbox: %v\n", err)
+		fmt.Fprintf(os.Stderr, "lynxpm: warning: could not remount /proc in sandbox: %v\n", err)
 	}
 
 	// Per-sandbox private /tmp. Without this, two sandboxes of the same host

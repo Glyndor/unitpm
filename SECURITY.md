@@ -14,8 +14,11 @@ considered end-of-life.
 
 Please **do not** open a public GitHub issue for security reports.
 
-Send a private report to: `` with the subject
-`[Lynx Security]`. Include:
+Send a private report via GitHub's Private Vulnerability Reporting:
+
+  https://github.com/Jaro-c/Lynx/security/advisories/new
+
+Include:
 
 - Affected version (`lynxpm version --json`)
 - Reproduction steps
@@ -138,5 +141,5 @@ Contributions welcome.
 
 ## Security Contacts
 
-- Email: ``
-- Subject prefix: `[Lynx Security]`
+- GitHub Private Vulnerability Reporting:
+  <https://github.com/Jaro-c/Lynx/security/advisories/new>
