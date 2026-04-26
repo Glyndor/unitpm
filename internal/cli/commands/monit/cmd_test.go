@@ -33,6 +33,18 @@ func TestGetSpec(t *testing.T) {
 	}
 }
 
+func TestPrintHelp(t *testing.T) {
+	// Ensure no panic. Output goes to os.Stdout — captured loosely via os.Pipe
+	// would be overkill; the contract is just "doesn't crash".
+	monit.PrintHelp()
+}
+
+func TestRun_NilClientWithoutDaemon(t *testing.T) {
+	// With no daemon socket reachable, Run should bail out via NewClient.
+	// We expect *some* error from connecting; we just confirm no panic.
+	_ = monit.Run(nil, []string{})
+}
+
 func TestRun_IPCError(t *testing.T) {
 	// monit loops forever on success; only returns on IPC error
 	mc := &mockClient{err: errors.New("connection refused")}
