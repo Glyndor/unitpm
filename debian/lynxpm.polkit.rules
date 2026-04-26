@@ -1,4 +1,4 @@
-// Polkit rules for the lynx system-mode daemon.
+// Polkit rules for the Lynx system-mode daemon (lynxd).
 //
 // The `lynx` user needs to call systemd-run with DynamicUser=yes to implement
 // `--isolation dynamic`. Without this rule systemd would require interactive

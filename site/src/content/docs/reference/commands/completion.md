@@ -33,7 +33,7 @@ the completion table.
 ### Bash
 
 ```bash
-lynxpm completion bash > ~/.local/share/bash-completion/completions/lynx
+lynxpm completion bash > ~/.local/share/bash-completion/completions/lynxpm
 ```
 
 Re-open your shell or `source` the file.
@@ -41,7 +41,7 @@ Re-open your shell or `source` the file.
 ### Zsh
 
 ```bash
-lynxpm completion zsh > "${fpath[1]}/_lynx"
+lynxpm completion zsh > "${fpath[1]}/_lynxpm"
 ```
 
 Make sure `compinit` is called from your `.zshrc`.
@@ -49,7 +49,7 @@ Make sure `compinit` is called from your `.zshrc`.
 ### Fish
 
 ```bash
-lynxpm completion fish > ~/.config/fish/completions/lynx.fish
+lynxpm completion fish > ~/.config/fish/completions/lynxpm.fish
 ```
 
 Fish picks it up on the next shell start.

@@ -1,6 +1,6 @@
 //go:build linux
 
-// Package main is the entry point for the lynx daemon.
+// Package main is the entry point for the Lynx daemon.
 package main
 
 import (

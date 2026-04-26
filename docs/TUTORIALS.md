@@ -498,4 +498,4 @@ lynxpm flush api
 10. **Export + apply for backups.** `lynxpm export --namespace prod > backup.yml`
     saves your running config. Restore with `lynxpm apply backup.yml`.
 11. **Shell completion saves keystrokes.**
-    `lynxpm completion bash > ~/.local/share/bash-completion/completions/lynx`
+    `lynxpm completion bash > ~/.local/share/bash-completion/completions/lynxpm`

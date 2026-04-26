@@ -99,7 +99,7 @@ All specs are validated in the daemon *after* IPC, never trusting the CLI:
 
 ### Daemon Hardening
 
-`lynxd.service` applies (see `debian/lynx.lynxd.service`):
+`lynxd.service` applies (see `debian/lynxpm.lynxd.service`):
 
 - `NoNewPrivileges=yes`
 - `ProtectSystem=strict`
