@@ -7,7 +7,6 @@ import (
 	"log"
 	"os"
 	"os/signal"
-	"os/user"
 	"path/filepath"
 	"syscall"
 	"time"
@@ -34,13 +33,7 @@ func auditPath(systemDaemon bool) string {
 // running as root and running as the `lynx` system user (the default
 // deployment from the Debian package).
 func isSystemDaemon() bool {
-	if paths.IsRoot() {
-		return true
-	}
-	if u, err := user.Current(); err == nil && u.Username == "lynx" {
-		return true
-	}
-	return false
+	return paths.IsSystemMode()
 }
 
 func main() {
