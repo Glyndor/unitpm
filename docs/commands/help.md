@@ -34,20 +34,17 @@ lynxpm help start
 ## 📋 Example Output
 
 ```
-Lynx - Process Manager for Linux
-
 Usage:
-  lynx [command]
+  lynxpm <command> [flags]
 
-Available Commands:
+Commands:
   start       Start a new process
-  list        List all processes
+  list, ls    List all processes
   startup     Setup system startup script
   version     Show version info
   help        Help about any command
 
-Flags:
-  -h, --help   help for lynx
-
-Use "lynx [command] --help" for more information about a command.
+Get Help:
+  lynxpm --help
+  lynxpm <command> --help
 ```

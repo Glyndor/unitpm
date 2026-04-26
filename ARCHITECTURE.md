@@ -6,7 +6,7 @@ High-level guide to how Lynx is put together. Intended for contributors.
 
 ```
 cmd/
-  lynx/           CLI entry point (client)
+  lynxpm/         CLI entry point (client)
   lynxd/          Daemon entry point (server)
 internal/
   cli/            All CLI command implementations (18 user-facing + 2 internal wrappers)
