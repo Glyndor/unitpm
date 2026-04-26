@@ -73,6 +73,7 @@ jobs:
         with:
           files: coverage.out
           fail_ci_if_error: false
+          disable_file_fixes: true
           token: ${{ secrets.CODECOV_TOKEN }}
 
   build:
