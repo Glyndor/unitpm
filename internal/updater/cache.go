@@ -2,11 +2,11 @@ package updater
 
 import (
 	"context"
-	"encoding/json"
 	"os"
 	"path/filepath"
 	"time"
 
+	"github.com/Jaro-c/Lynx/internal/jsonx"
 	"github.com/Jaro-c/Lynx/internal/version"
 )
 
@@ -46,7 +46,7 @@ func readCache() (*CacheEntry, error) {
 		return nil, err
 	}
 	var e CacheEntry
-	if err := json.Unmarshal(data, &e); err != nil {
+	if err := jsonx.Unmarshal(data, &e); err != nil {
 		return nil, err
 	}
 	return &e, nil
@@ -60,7 +60,7 @@ func writeCache(e CacheEntry) error {
 	if err := os.MkdirAll(filepath.Dir(p), 0o700); err != nil {
 		return err
 	}
-	data, err := json.Marshal(e)
+	data, err := jsonx.Marshal(e)
 	if err != nil {
 		return err
 	}

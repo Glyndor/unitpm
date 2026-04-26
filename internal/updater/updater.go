@@ -5,7 +5,6 @@ import (
 	"context"
 	"crypto/ed25519"
 	"encoding/base64"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -18,6 +17,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/Jaro-c/Lynx/internal/jsonx"
 	"github.com/Jaro-c/Lynx/internal/version"
 )
 
@@ -67,38 +67,23 @@ type Asset struct {
 // Check checks for updates on GitHub.
 // Returns the release info if a new version is available, or nil if up to date.
 func Check(ctx context.Context) (*Release, error) {
-	client := &http.Client{Timeout: 10 * time.Second}
-
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, releasesURL, nil)
+	body, err := httpGet(ctx, releasesURL, 10*time.Second, 0)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create request: %w", err)
-	}
-
-	// #nosec G704 // URL is hardcoded with constants repoOwner and repoName
-	resp, err := client.Do(req)
-	if err != nil {
-		return nil, fmt.Errorf("failed to check for updates: %w", err)
-	}
-	defer func() { _ = resp.Body.Close() }()
-
-	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("github api returned status: %s", resp.Status)
+		return nil, fmt.Errorf("github api returned status: %w", err)
 	}
 
 	var release Release
-	if err := json.NewDecoder(resp.Body).Decode(&release); err != nil {
+	if err := jsonx.Unmarshal(body, &release); err != nil {
 		return nil, fmt.Errorf("failed to decode release info: %w", err)
 	}
 
-	// Semantic version comparison (assumes vX.Y.Z format).
 	current := strings.TrimPrefix(version.Version, "v")
 	latest := strings.TrimPrefix(release.TagName, "v")
 
 	if current == latest {
-		return nil, nil // Up to date
+		return nil, nil
 	}
 
-	// Only report update if latest is actually newer, to prevent downgrades.
 	if !isNewer(latest, current) {
 		return nil, nil
 	}
@@ -113,7 +98,7 @@ func Apply(ctx context.Context, release *Release, opts ApplyOptions) error {
 		return fmt.Errorf("failed to determine executable path: %w", err)
 	}
 
-	// Resolve symlinks (e.g., if running from /usr/bin/lynx -> /opt/lynx/lynx)
+	// Resolve symlinks so dpkg diversions (/usr/bin/lynx -> /opt/lynx/lynx) are followed.
 	exePath, err = filepath.EvalSymlinks(exePath)
 	if err != nil {
 		return fmt.Errorf("failed to resolve symlinks: %w", err)
@@ -181,30 +166,15 @@ func loadReleasePublicKey() (ed25519.PublicKey, error) {
 }
 
 func downloadSignature(ctx context.Context, sigURL string) ([]byte, error) {
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, sigURL, nil)
-	if err != nil {
-		return nil, fmt.Errorf("signature request: %w", err)
-	}
-	client := &http.Client{Timeout: 30 * time.Second}
 	// #nosec G107 // sigURL is from the GitHub API response
-	resp, err := client.Do(req)
+	raw, err := httpGet(ctx, sigURL, 30*time.Second, 4096)
 	if err != nil {
 		return nil, fmt.Errorf("signature download: %w", err)
-	}
-	defer func() { _ = resp.Body.Close() }()
-	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("signature download status: %s", resp.Status)
-	}
-	// 4KB is way more than enough for a raw ed25519 sig or a base64-wrapped one.
-	raw, err := io.ReadAll(io.LimitReader(resp.Body, 4096))
-	if err != nil {
-		return nil, fmt.Errorf("signature read: %w", err)
 	}
 	raw = []byte(strings.TrimSpace(string(raw)))
 	if len(raw) == ed25519.SignatureSize {
 		return raw, nil
 	}
-	// Try base64 (std or url-safe, with or without padding).
 	for _, enc := range []*base64.Encoding{
 		base64.StdEncoding, base64.RawStdEncoding,
 		base64.URLEncoding, base64.RawURLEncoding,
@@ -227,37 +197,33 @@ func downloadAndReplace(ctx context.Context, assetURL, sigURL, exePath string, p
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, assetURL, nil)
 	if err != nil {
 		_ = tmpFile.Close()
-		return fmt.Errorf("failed to create download request: %w", err)
+		return err
 	}
-
-	downloadClient := &http.Client{Timeout: 10 * time.Minute}
+	client := &http.Client{Timeout: 10 * time.Minute}
 	// #nosec G107 // assetURL comes from the GitHub API response
-	resp, err := downloadClient.Do(req)
+	resp, err := client.Do(req)
 	if err != nil {
 		_ = tmpFile.Close()
-		return fmt.Errorf("failed to download update: %w", err)
+		return err
 	}
 	defer func() { _ = resp.Body.Close() }()
-
 	if resp.StatusCode != http.StatusOK {
 		_ = tmpFile.Close()
 		return fmt.Errorf("download failed with status: %s", resp.Status)
 	}
-
-	n, err := io.Copy(tmpFile, io.LimitReader(resp.Body, maxDownloadSize))
-	closeErr := tmpFile.Close()
+	written, err := io.Copy(tmpFile, io.LimitReader(resp.Body, maxDownloadSize))
 	if err != nil {
+		_ = tmpFile.Close()
 		return fmt.Errorf("failed to write update file: %w", err)
 	}
-	if n >= maxDownloadSize {
+	if written >= maxDownloadSize {
+		_ = tmpFile.Close()
 		return fmt.Errorf("update file exceeded max download size of %d bytes", maxDownloadSize)
 	}
-	if closeErr != nil {
-		return fmt.Errorf("failed to close update file: %w", closeErr)
+	if err := tmpFile.Close(); err != nil {
+		return fmt.Errorf("failed to close update file: %w", err)
 	}
 
-	// Verify signature BEFORE chmod/rename. If pubKey is nil we're in the
-	// explicit-opt-in unsigned path (Apply already gated on AllowUnsigned).
 	if len(pubKey) != 0 && sigURL != "" {
 		if err := verifyFileSignature(ctx, tmpPath, sigURL, pubKey); err != nil {
 			return fmt.Errorf("signature verification failed: %w", err)
@@ -275,6 +241,30 @@ func downloadAndReplace(ctx context.Context, assetURL, sigURL, exePath string, p
 		return fmt.Errorf("failed to replace binary: %w", err)
 	}
 	return nil
+}
+
+// httpGet builds an HTTP GET with the given timeout, executes it, and reads
+// up to maxBytes (no limit when maxBytes <= 0). Non-200 responses become an
+// error carrying the HTTP status line.
+func httpGet(ctx context.Context, url string, timeout time.Duration, maxBytes int64) ([]byte, error) {
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+	if err != nil {
+		return nil, err
+	}
+	client := &http.Client{Timeout: timeout}
+	resp, err := client.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer func() { _ = resp.Body.Close() }()
+	if resp.StatusCode != http.StatusOK {
+		return nil, errors.New(resp.Status)
+	}
+	var r io.Reader = resp.Body
+	if maxBytes > 0 {
+		r = io.LimitReader(resp.Body, maxBytes)
+	}
+	return io.ReadAll(r)
 }
 
 func verifyFileSignature(ctx context.Context, filePath, sigURL string, pubKey ed25519.PublicKey) error {
