@@ -17,11 +17,12 @@ cleanup() {
 	rm -rf "$WORK"
 }
 
-# Generate a config with N noop programs preconfigured. supervisord doesn't
-# support adding programs at runtime via supervisorctl in the same way pm2/lynx
-# do — so we configure all N upfront. That gives supervisord a slight edge on
-# the supervise-N RSS metric, which we accept; it reflects how it's actually
-# used.
+# Generate a config with MAX_TIER noop programs preconfigured. supervisord
+# doesn't support adding programs at runtime via supervisorctl in the same
+# way pm2/lynx do — so we configure all of them upfront and start the tiers
+# cumulatively via `supervisorctl start`. That bakes the config-parse cost
+# of the largest tier into supervisord's cold-start metric, which is how it
+# is actually deployed in practice.
 NOOP="$WORK/noop.sh"
 cat >"$NOOP" <<'EOF'
 #!/bin/sh
@@ -50,7 +51,7 @@ serverurl=unix://$WORK/supervisor.sock
 supervisor.rpcinterface_factory = supervisor.rpcinterface:make_main_rpcinterface
 
 EOF
-	for i in $(seq 1 "$NOOP_N"); do
+	for i in $(seq 1 "$MAX_TIER"); do
 		cat <<EOF
 [program:noop-$i]
 command=$NOOP
@@ -92,18 +93,24 @@ time_until "$COLD_TIMEOUT_MS" supervisorctl -c "$CONF" pid >/dev/null || {
 idle_samples=$(for _ in 1 2 3; do sleep 0.2; rss_kb "$DAEMON_PID"; done)
 idle_kb=$(echo "$idle_samples" | median)
 
-# Start the N programs. supervisorctl takes a space-separated list, not a
-# glob, when used non-interactively.
-names=""
-for i in $(seq 1 "$NOOP_N"); do
-	names="$names noop-$i"
+# Cumulative tier RSS measurements via `supervisorctl start` on a growing
+# space-separated list. (supervisorctl doesn't accept a glob non-interactively.)
+tier_args=()
+prev=0
+for n in "${TIERS[@]}"; do
+	names=""
+	for i in $(seq $((prev+1)) "$n"); do
+		names="$names noop-$i"
+	done
+	prev=$n
+	# shellcheck disable=SC2086
+	supervisorctl -c "$CONF" start $names >/dev/null 2>&1 || true
+	sleep 2
+	samples=$(for _ in 1 2 3; do sleep 0.2; rss_kb "$DAEMON_PID"; done)
+	kb=$(echo "$samples" | median)
+	tier_args+=("$n" "$kb")
 done
-# shellcheck disable=SC2086
-supervisorctl -c "$CONF" start $names >/dev/null 2>&1 || true
-sleep 2
-
-with_n_samples=$(for _ in 1 2 3; do sleep 0.2; rss_kb "$DAEMON_PID"; done)
-with_n_kb=$(echo "$with_n_samples" | median)
+rss_json=$(tiers_json "${tier_args[@]}")
 
 version=$(supervisord --version 2>&1 | head -1)
-emit_result "supervisor" "${version:-unknown}" "$cold_ns" "$idle_kb" "$NOOP_N" "$with_n_kb"
+emit_result "supervisor" "${version:-unknown}" "$cold_ns" "$idle_kb" "$rss_json"

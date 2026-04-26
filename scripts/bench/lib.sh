@@ -68,17 +68,17 @@ ns_to_ms() {
 	LC_ALL=C awk -v ns="$1" 'BEGIN { printf "%.2f", ns / 1000000 }'
 }
 
-# Emit one JSON object for a scenario result.
+# Emit one JSON object for a scenario result. rss_json is the JSON object
+# produced by tiers_json — RSS samples keyed by tier size.
 emit_result() {
-	local name=$1 version=$2 cold_ns=$3 idle_kb=$4 n=$5 with_n_kb=$6
+	local name=$1 version=$2 cold_ns=$3 idle_kb=$4 rss_json=$5
 	cat <<EOF
 {
   "supervisor": "${name}",
   "version": "${version}",
   "cold_start_ms": $(ns_to_ms "$cold_ns"),
   "idle_rss_kb": ${idle_kb},
-  "supervised_n": ${n},
-  "rss_with_n_kb": ${with_n_kb}
+  "rss_by_n": ${rss_json}
 }
 EOF
 }
@@ -87,9 +87,30 @@ EOF
 # copies of the same script so RSS deltas come from the supervisor, not the
 # managed workload.
 NOOP_CMD='/bin/sh -c '\''trap "exit 0" TERM INT HUP; while true; do sleep 30; done'\'''
-NOOP_N=10
 COLD_TIMEOUT_MS=15000
 # Cold-start is sampled COLD_RUNS times per scenario and the median reported,
 # to dampen launch jitter (V8 JIT, page-cache warmth, scheduler noise). The
 # RSS measurements still come from a single steady-state daemon.
 COLD_RUNS=3
+
+# Procs supervised per tier. Each tier is measured cumulatively against the
+# same daemon (so the scenario only starts the *delta* between tiers — e.g.
+# 10, then +40, then +50). Override TIERS to widen the matrix manually.
+TIERS=(${TIERS:-10 50 100})
+
+# Largest tier value, used by supervisord which has to preconfigure programs
+# before the daemon launches.
+MAX_TIER=0
+for n in "${TIERS[@]}"; do (( n > MAX_TIER )) && MAX_TIER=$n; done
+
+# Build a JSON object like {"10":kb1,"50":kb2,...} from alternating N kb args.
+tiers_json() {
+	local out="{" first=1 n kb
+	while [[ $# -ge 2 ]]; do
+		n=$1; kb=$2; shift 2
+		if [[ $first -eq 1 ]]; then first=0; else out+=","; fi
+		out+="\"$n\":$kb"
+	done
+	out+="}"
+	echo "$out"
+}

@@ -43,8 +43,8 @@ fi
 idle_samples=$(for _ in 1 2 3; do sleep 0.2; rss_kb "$DAEMON_PID"; done)
 idle_kb=$(echo "$idle_samples" | median)
 
-# Supervise N noop apps. PM2 needs a script path, not an inline shell, so
-# write a noop.sh once and start N copies with --name noop-i.
+# PM2 needs a script path, not an inline shell, so write a noop.sh once and
+# start cumulative tiers via `pm2 start ... --name noop-i`.
 NOOP="$WORK/noop.sh"
 cat >"$NOOP" <<'EOF'
 #!/bin/sh
@@ -53,14 +53,19 @@ while true; do sleep 30; done
 EOF
 chmod +x "$NOOP"
 
-for i in $(seq 1 "$NOOP_N"); do
-	pm2 start "$NOOP" --name "noop-$i" >/dev/null 2>&1
+tier_args=()
+prev=0
+for n in "${TIERS[@]}"; do
+	for i in $(seq $((prev+1)) "$n"); do
+		pm2 start "$NOOP" --name "noop-$i" >/dev/null 2>&1
+	done
+	prev=$n
+	sleep 2
+	samples=$(for _ in 1 2 3; do sleep 0.2; rss_kb "$DAEMON_PID"; done)
+	kb=$(echo "$samples" | median)
+	tier_args+=("$n" "$kb")
 done
-
-sleep 2
-
-with_n_samples=$(for _ in 1 2 3; do sleep 0.2; rss_kb "$DAEMON_PID"; done)
-with_n_kb=$(echo "$with_n_samples" | median)
+rss_json=$(tiers_json "${tier_args[@]}")
 
 version=$(pm2 --version 2>/dev/null | head -1)
-emit_result "pm2" "${version:-unknown}" "$cold_ns" "$idle_kb" "$NOOP_N" "$with_n_kb"
+emit_result "pm2" "${version:-unknown}" "$cold_ns" "$idle_kb" "$rss_json"

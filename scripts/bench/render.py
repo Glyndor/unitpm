@@ -27,28 +27,40 @@ def render(doc: dict) -> str:
     rows = doc.get("results", [])
     rows.sort(key=lambda r: r.get("idle_rss_kb", 0))
 
-    n = rows[0]["supervised_n"] if rows else 0
-
     lines = []
-    lines.append(f"# Supervisor benchmark")
+    lines.append("# Supervisor benchmark")
     lines.append("")
     lines.append(f"- **Run**: {doc.get('timestamp', '?')}")
     lines.append(f"- **Kernel**: `{doc.get('kernel', '?')}`")
     lines.append(f"- **Methodology**: see [`scripts/bench/README.md`](../README.md)")
     lines.append("")
 
-    lines.append(f"| Supervisor | Version | Cold start | Idle RSS | RSS w/ {n} procs |")
-    lines.append("| :--- | :--- | ---: | ---: | ---: |")
+    if not rows:
+        lines.append("_No results._")
+        lines.append("")
+        return "\n".join(lines)
+
+    tiers = sorted(int(k) for k in rows[0].get("rss_by_n", {}).keys())
+
+    header_cells = ["Supervisor", "Version", "Cold start", "Idle RSS"]
+    align_cells = [":---", ":---", "---:", "---:"]
+    for n in tiers:
+        header_cells.append(f"RSS @ {n}")
+        align_cells.append("---:")
+    lines.append("| " + " | ".join(header_cells) + " |")
+    lines.append("| " + " | ".join(align_cells) + " |")
+
     for r in rows:
-        lines.append(
-            "| {sup} | `{ver}` | {cold} | {idle} | {with_n} |".format(
-                sup=r.get("supervisor", "?"),
-                ver=r.get("version", "?"),
-                cold=fmt_ms(r.get("cold_start_ms")),
-                idle=fmt_kb(r.get("idle_rss_kb")),
-                with_n=fmt_kb(r.get("rss_with_n_kb")),
-            )
-        )
+        cells = [
+            r.get("supervisor", "?"),
+            f"`{r.get('version', '?')}`",
+            fmt_ms(r.get("cold_start_ms")),
+            fmt_kb(r.get("idle_rss_kb")),
+        ]
+        rss_by_n = r.get("rss_by_n", {})
+        for n in tiers:
+            cells.append(fmt_kb(rss_by_n.get(str(n))))
+        lines.append("| " + " | ".join(cells) + " |")
 
     lines.append("")
     lines.append("Raw JSON: [`results.json`](./results.json).")
