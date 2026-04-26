@@ -434,7 +434,7 @@ func (p *Process) prepareIsolation(ctx context.Context, cmd *exec.Cmd) (*exec.Cm
 	if runAs.Mode == "sandbox" {
 		lynxBin, err := p.getLynxBinary()
 		if err != nil {
-			return nil, fmt.Errorf("sandbox: locate lynx binary: %w", err)
+			return nil, fmt.Errorf("sandbox: locate lynxpm binary: %w", err)
 		}
 		opts := daemonRuntime.SandboxOptions{
 			LynxBin: lynxBin,
@@ -509,7 +509,7 @@ func (p *Process) prepareIsolation(ctx context.Context, cmd *exec.Cmd) (*exec.Cm
 		// Use _exec-env wrapper
 		lynxBin, err := p.getLynxBinary()
 		if err != nil {
-			return nil, fmt.Errorf("failed to locate lynx binary for env wrapper: %w", err)
+			return nil, fmt.Errorf("failed to locate lynxpm binary for env wrapper: %w", err)
 		}
 		sdArgs = append(sdArgs, lynxBin, "_exec-env")
 
@@ -1070,7 +1070,7 @@ func (p *Process) resetMetrics() {
 
 func (p *Process) getLynxBinary() (string, error) {
 	// 1. Prefer standard PATH lookup (safe for Debian /usr/bin installs)
-	path, err := exec.LookPath("lynx")
+	path, err := exec.LookPath("lynxpm")
 	if err == nil {
 		return path, nil
 	}
@@ -1079,11 +1079,11 @@ func (p *Process) getLynxBinary() (string, error) {
 	exe, err := os.Executable()
 	if err == nil {
 		dir := filepath.Dir(exe)
-		lynxPath := filepath.Join(dir, "lynx")
+		lynxPath := filepath.Join(dir, "lynxpm")
 		if _, err := os.Stat(lynxPath); err == nil {
 			return lynxPath, nil
 		}
 	}
 
-	return "", errors.New("lynx binary not found in PATH or adjacent to daemon")
+	return "", errors.New("lynxpm binary not found in PATH or adjacent to daemon")
 }
