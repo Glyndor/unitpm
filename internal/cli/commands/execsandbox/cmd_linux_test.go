@@ -99,3 +99,31 @@ func TestGetSpec(t *testing.T) {
 		t.Error("expected Hidden=true")
 	}
 }
+
+func TestRun_RelativeCwd(t *testing.T) {
+	b, _ := json.Marshal(Config{Cwd: "relative/path", Command: "echo"})
+	t.Setenv(envConfig, string(b))
+	err := Run(nil)
+	if err == nil || !strings.Contains(err.Error(), "must be absolute") {
+		t.Errorf("got %v", err)
+	}
+}
+
+func TestRun_PrctlOrMountFailsUnprivileged(t *testing.T) {
+	// As an unprivileged caller, Run should fail at the prctl/mount stage
+	// (unable to manipulate namespaces) — but never panic. Accept any error
+	// after the JSON parse/Cwd checks pass.
+	b, _ := json.Marshal(Config{Cwd: "/tmp", Command: "/bin/true"})
+	t.Setenv(envConfig, string(b))
+	err := Run(nil)
+	if err == nil {
+		// On the off chance we *are* in a sandbox, syscall.Exec replaced us
+		// before we got here. That can't happen because the test process is
+		// still running, so flag the unexpected nil.
+		t.Fatal("expected error from sandbox setup outside a real namespace")
+	}
+}
+
+func TestPrintHelpDoesNotPanic(t *testing.T) {
+	PrintHelp()
+}

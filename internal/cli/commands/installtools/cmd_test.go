@@ -74,3 +74,103 @@ func TestRun_UserMode_LongYes(t *testing.T) {
 		t.Errorf("expected no error, got %v", err)
 	}
 }
+
+// stageFakeTools puts a real binary on PATH under each name commonly known to the
+// installer, so the planner ends up with non-empty actions to perform.
+func stageFakeTools(t *testing.T) string {
+	t.Helper()
+	tmp := t.TempDir()
+	src := "/bin/true"
+	if _, err := os.Stat(src); err != nil {
+		src = "/usr/bin/true"
+	}
+	for _, name := range []string{"bun", "node", "python3"} {
+		dst := tmp + "/" + name
+		if err := os.Symlink(src, dst); err != nil {
+			t.Skipf("symlink: %v", err)
+		}
+	}
+	t.Setenv("PATH", tmp+":"+os.Getenv("PATH"))
+	return tmp
+}
+
+func TestRun_UserMode_LinksTools(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	stageFakeTools(t)
+
+	if err := installtools.Run([]string{"-y"}); err != nil {
+		t.Fatalf("Run: %v", err)
+	}
+	for _, name := range []string{"bun", "node", "python3"} {
+		link := home + "/.local/bin/" + name
+		fi, err := os.Lstat(link)
+		if err != nil {
+			t.Errorf("missing symlink for %s: %v", name, err)
+			continue
+		}
+		if fi.Mode()&os.ModeSymlink == 0 {
+			t.Errorf("%s is not a symlink", name)
+		}
+	}
+}
+
+func TestRun_UserMode_PromptDeny(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	stageFakeTools(t)
+	withStdin(t, "n\n")
+	if err := installtools.Run(nil); err != nil {
+		t.Errorf("Run: %v", err)
+	}
+	// Nothing should have been linked.
+	if entries, _ := os.ReadDir(home + "/.local/bin"); len(entries) != 0 {
+		t.Errorf("expected no links after deny, got %d", len(entries))
+	}
+}
+
+func TestRun_UserMode_PromptChooseAllNo(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	stageFakeTools(t)
+	// "choose" then say "n" enough times to reject every staged tool.
+	withStdin(t, "choose\n"+strings.Repeat("n\n", 32))
+	if err := installtools.Run(nil); err != nil {
+		t.Errorf("Run: %v", err)
+	}
+	if entries, _ := os.ReadDir(home + "/.local/bin"); len(entries) != 0 {
+		t.Errorf("expected no links after rejecting all, got %d", len(entries))
+	}
+}
+
+func TestRun_UserMode_PromptDefaultYes(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	stageFakeTools(t)
+	// Empty input → default Yes; followed by enough newlines to drain readers.
+	withStdin(t, "\n")
+	if err := installtools.Run(nil); err != nil {
+		t.Fatalf("Run: %v", err)
+	}
+	if entries, _ := os.ReadDir(home + "/.local/bin"); len(entries) == 0 {
+		t.Error("expected default-yes prompt to create symlinks")
+	}
+}
+
+func withStdin(t *testing.T, input string) {
+	t.Helper()
+	r, w, err := os.Pipe()
+	if err != nil {
+		t.Fatalf("pipe: %v", err)
+	}
+	if _, err := w.WriteString(input); err != nil {
+		t.Fatalf("write: %v", err)
+	}
+	_ = w.Close()
+	orig := os.Stdin
+	os.Stdin = r
+	t.Cleanup(func() {
+		os.Stdin = orig
+		_ = r.Close()
+	})
+}
