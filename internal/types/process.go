@@ -1,6 +1,9 @@
 // Package types contains shared type definitions.
 package types
 
+// DefaultNamespace is the namespace assigned to specs that do not set one.
+const DefaultNamespace = "default"
+
 // ProcessState represents the current state of a process.
 type ProcessState string
 
