@@ -11,7 +11,7 @@ apps it runs.
 | :--- | :--- |
 | **Cold start** | Wall time from launching the daemon to the control socket / RPC being responsive. Median of 3 fresh-launch samples per supervisor. |
 | **Idle RSS** | Resident memory of the daemon process with **zero** programs managed. Median of 3 samples taken 200 ms apart. |
-| **RSS w/ N procs** | Same daemon RSS, after starting **N=10** noop programs and waiting 2 s for steady state. |
+| **RSS @ N** | Same daemon RSS after `N` noop programs are running. Sampled at three tiers — `N=10` (light), `N=50` (medium), `N=100` (heavy) — against the same daemon, cumulatively (start the delta, settle 2 s, sample). Override `TIERS` to widen the matrix manually. |
 
 What this **does not** measure: throughput, log rotation, hot-reload, restart
 latency on crash. The last one is intentional: Lynx delegates restart-on-crash
@@ -66,9 +66,11 @@ hand-typed estimates.
 
 ## Caveats
 
-- **N=10 is small.** It is intentional: the goal is to compare supervisor
-  overhead, not stress-test under load. RSS doesn't scale linearly because
-  much of the daemon footprint is one-time runtime cost.
+- **Tiers are still modest.** `N=10/50/100` covers the range most users hit
+  in practice; it is not a stress test. RSS rarely scales linearly because
+  much of the daemon footprint is one-time runtime cost. Set `TIERS="10 100
+  500"` (or similar) to push harder — `pm2 start` is ~1 s per call, so the
+  heavy tail is gated by PM2, not by Lynx.
 - **PM2's God Daemon is shared per user.** Stopping PM2 between scenarios
   (`pm2 kill`) ensures we measure a fresh daemon, but the JIT warm-up of V8
   may still affect cold start vs a steady-state daemon.

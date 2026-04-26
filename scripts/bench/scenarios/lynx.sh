@@ -53,16 +53,21 @@ time_until "$COLD_TIMEOUT_MS" test -S "$LYNX_SOCKET" >/dev/null || {
 idle_samples=$(for _ in 1 2 3; do sleep 0.2; rss_kb "$DAEMON_PID"; done)
 idle_kb=$(echo "$idle_samples" | median)
 
-# Supervise N noop apps via repeated `lynxpm start`.
-for i in $(seq 1 "$NOOP_N"); do
-	"$LYNX_CLI" start "$NOOP_CMD" --name "noop-$i" --restart always >/dev/null 2>&1
+# Cumulative tier RSS measurements: start the delta between tiers, settle,
+# sample. The same daemon supervises the growing fleet across tiers.
+tier_args=()
+prev=0
+for n in "${TIERS[@]}"; do
+	for i in $(seq $((prev+1)) "$n"); do
+		"$LYNX_CLI" start "$NOOP_CMD" --name "noop-$i" --restart always >/dev/null 2>&1
+	done
+	prev=$n
+	sleep 2
+	samples=$(for _ in 1 2 3; do sleep 0.2; rss_kb "$DAEMON_PID"; done)
+	kb=$(echo "$samples" | median)
+	tier_args+=("$n" "$kb")
 done
-
-# Settle.
-sleep 2
-
-with_n_samples=$(for _ in 1 2 3; do sleep 0.2; rss_kb "$DAEMON_PID"; done)
-with_n_kb=$(echo "$with_n_samples" | median)
+rss_json=$(tiers_json "${tier_args[@]}")
 
 version=$("$LYNX_CLI" version 2>&1 | awk '/^  Version/ {print $3; exit}')
-emit_result "lynx" "${version:-unknown}" "$cold_ns" "$idle_kb" "$NOOP_N" "$with_n_kb"
+emit_result "lynx" "${version:-unknown}" "$cold_ns" "$idle_kb" "$rss_json"
