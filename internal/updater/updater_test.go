@@ -36,6 +36,34 @@ func newServer(t *testing.T, release Release, status int) *httptest.Server {
 	return srv
 }
 
+func TestHTTPGet(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/ok":
+			_, _ = w.Write([]byte("hello"))
+		case "/big":
+			_, _ = w.Write([]byte("0123456789abcdef"))
+		default:
+			w.WriteHeader(http.StatusNotFound)
+		}
+	}))
+	t.Cleanup(srv.Close)
+
+	body, err := httpGet(context.Background(), srv.URL+"/ok", 5e9, 0)
+	if err != nil || string(body) != "hello" {
+		t.Errorf("ok: body=%q err=%v", body, err)
+	}
+
+	body, err = httpGet(context.Background(), srv.URL+"/big", 5e9, 8)
+	if err != nil || len(body) != 8 {
+		t.Errorf("limited: len=%d err=%v", len(body), err)
+	}
+
+	if _, err := httpGet(context.Background(), srv.URL+"/missing", 5e9, 0); err == nil {
+		t.Error("expected error on 404, got nil")
+	}
+}
+
 func TestCheck_UpToDate(t *testing.T) {
 	newServer(t, Release{TagName: version.Version}, 0)
 	r, err := Check(context.Background())

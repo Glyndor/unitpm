@@ -257,6 +257,29 @@ func TestToAppSpecs_SingleApp(t *testing.T) {
 	}
 }
 
+func TestToAppSpecs_QuotedCommand(t *testing.T) {
+	yaml := `
+version: "1"
+apps:
+  - name: app
+    command: node --eval "console.log('hi')"
+`
+	f := parse(t, yaml)
+	specs, err := f.ToAppSpecs()
+	if err != nil {
+		t.Fatalf("ToAppSpecs error: %v", err)
+	}
+	if specs[0].Exec.Command != "node" {
+		t.Errorf("command = %q, want node", specs[0].Exec.Command)
+	}
+	if len(specs[0].Exec.Args) != 2 || specs[0].Exec.Args[0] != "--eval" {
+		t.Errorf("args = %v, want [--eval, console.log('hi')]", specs[0].Exec.Args)
+	}
+	if specs[0].Exec.Args[1] != "console.log('hi')" {
+		t.Errorf("quoted arg = %q, want console.log('hi')", specs[0].Exec.Args[1])
+	}
+}
+
 func TestToAppSpecs_MultipleInstances(t *testing.T) {
 	yaml := `
 version: "1"
