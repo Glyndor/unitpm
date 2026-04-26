@@ -21,9 +21,9 @@ import (
 // Strategy: pick a threshold (1500 bytes) larger than the STARTED banner
 // (~250 bytes) so initial state does NOT trigger rotation. Then append
 // data via an O_APPEND fd to push the file past the threshold. The
-// rotation ticker should pick it up and produce a .1.gz + truncate the
-// current file. Both the "no early rotation" and "rotation after growth"
-// invariants are checked.
+// daemon-wide rotation ticker (Manager.rotateLoop) should pick it up and
+// produce a .1.gz + truncate the current file. Both the "no early
+// rotation" and "rotation after growth" invariants are checked.
 func TestRotateLoop_FiresWhileProcessRunning(t *testing.T) {
 	t.Setenv("LYNX_LOG_MAX_BYTES", "1500")
 	t.Setenv("LYNX_LOG_KEEP", "3")
@@ -47,15 +47,11 @@ func TestRotateLoop_FiresWhileProcessRunning(t *testing.T) {
 			Stderr: stderrPath,
 		},
 	}
-	p, err := NewProcess(id, spec)
-	if err != nil {
-		t.Fatalf("NewProcess: %v", err)
+	mgr := NewManager()
+	t.Cleanup(mgr.Shutdown)
+	if _, err := mgr.StartWithSpec(spec); err != nil {
+		t.Fatalf("StartWithSpec: %v", err)
 	}
-
-	if err := p.Start(); err != nil {
-		t.Fatalf("Start: %v", err)
-	}
-	defer func() { _ = p.Stop(true) }()
 
 	// Sanity: STARTED banner alone is below threshold, so no early rotation.
 	time.Sleep(300 * time.Millisecond) // ~3 ticks
@@ -92,10 +88,11 @@ func TestRotateLoop_FiresWhileProcessRunning(t *testing.T) {
 	t.Fatalf("ticker did not rotate within 3s after threshold cross")
 }
 
-// TestRotateLoop_StopsAfterMonitorExits guards against the ticker
-// outliving the process: when monitor closes the log files the rotateCancel
-// must fire so no goroutine is left stat()-ing a stale path.
-func TestRotateLoop_StopsAfterMonitorExits(t *testing.T) {
+// TestRotateLoop_NilWritersAfterMonitorExits guards the daemon-wide
+// rotator against stat()-ing a stale path: when monitor exits it nils
+// out p.stdoutWriter under p.mu, and rotateAllWriters reads the writer
+// under that same lock — so the next tick simply skips the dead process.
+func TestRotateLoop_NilWritersAfterMonitorExits(t *testing.T) {
 	t.Setenv("LYNX_LOG_ROTATE_INTERVAL_MS", "50")
 
 	restore := setupTestEnv(t)
@@ -117,32 +114,34 @@ func TestRotateLoop_StopsAfterMonitorExits(t *testing.T) {
 		},
 		Restart: &protocol.AppRestart{Policy: "never"},
 	}
-	p, err := NewProcess(id, spec)
-	if err != nil {
-		t.Fatalf("NewProcess: %v", err)
+	mgr := NewManager()
+	t.Cleanup(mgr.Shutdown)
+	if _, err := mgr.StartWithSpec(spec); err != nil {
+		t.Fatalf("StartWithSpec: %v", err)
 	}
 
-	if err := p.Start(); err != nil {
-		t.Fatalf("Start: %v", err)
+	p, ok := mgr.Get(id)
+	if !ok {
+		t.Fatalf("process %s not registered", id)
 	}
 
 	// Wait for monitor to clean up the writers.
 	deadline := time.Now().Add(2 * time.Second)
 	for time.Now().Before(deadline) {
 		p.mu.Lock()
-		cleared := p.stdoutWriter == nil && p.rotateCancel == nil
+		cleared := p.stdoutWriter == nil && p.stderrWriter == nil
 		p.mu.Unlock()
 		if cleared {
 			return
 		}
 		time.Sleep(20 * time.Millisecond)
 	}
-	t.Fatalf("rotateCancel/stdoutWriter not cleared after process exit")
+	t.Fatalf("stdoutWriter/stderrWriter not cleared after process exit")
 }
 
 // TestRotateLoop_NotStartedInInheritMode pins the inherit-mode no-op:
-// without a path-backed writer there is nothing to rotate, so the ticker
-// goroutine should not even be launched.
+// without a path-backed writer there is nothing to rotate, so the
+// daemon-wide rotator simply skips this process.
 func TestRotateLoop_NotStartedInInheritMode(t *testing.T) {
 	restore := setupTestEnv(t)
 	defer restore()
@@ -153,23 +152,21 @@ func TestRotateLoop_NotStartedInInheritMode(t *testing.T) {
 		Exec: protocol.AppExec{Type: "command", Command: "sleep", Args: []string{"30"}},
 		Logs: &protocol.AppLogs{Mode: "inherit"},
 	}
-	p, err := NewProcess(id, spec)
-	if err != nil {
-		t.Fatalf("NewProcess: %v", err)
+	mgr := NewManager()
+	t.Cleanup(mgr.Shutdown)
+	if _, err := mgr.StartWithSpec(spec); err != nil {
+		t.Fatalf("StartWithSpec: %v", err)
 	}
-	if err := p.Start(); err != nil {
-		t.Fatalf("Start: %v", err)
+	p, ok := mgr.Get(id)
+	if !ok {
+		t.Fatalf("process %s not registered", id)
 	}
 	defer func() { _ = p.Stop(true) }()
 
 	p.mu.Lock()
-	cancel := p.rotateCancel
 	stdoutW := p.stdoutWriter
 	p.mu.Unlock()
 
-	if cancel != nil {
-		t.Errorf("inherit mode should not start rotation ticker")
-	}
 	if stdoutW != nil {
 		t.Errorf("inherit mode should leave stdoutWriter nil, got %T", stdoutW)
 	}
@@ -201,14 +198,11 @@ func TestRotateLoop_BannerOnSeparatorIntact(t *testing.T) {
 			Stderr: stdoutPath,
 		},
 	}
-	p, err := NewProcess(id, spec)
-	if err != nil {
-		t.Fatalf("NewProcess: %v", err)
+	mgr := NewManager()
+	t.Cleanup(mgr.Shutdown)
+	if _, err := mgr.StartWithSpec(spec); err != nil {
+		t.Fatalf("StartWithSpec: %v", err)
 	}
-	if err := p.Start(); err != nil {
-		t.Fatalf("Start: %v", err)
-	}
-	defer func() { _ = p.Stop(true) }()
 
 	// Force the file past threshold so the next tick rotates.
 	if err := os.WriteFile(stdoutPath, []byte(strings.Repeat("y", 600)), 0o600); err != nil {

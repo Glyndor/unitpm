@@ -59,7 +59,7 @@ tier_args=()
 prev=0
 for n in "${TIERS[@]}"; do
 	for i in $(seq $((prev+1)) "$n"); do
-		"$LYNX_CLI" start "$NOOP_CMD" --name "noop-$i" --restart always >/dev/null 2>&1
+		"$LYNX_CLI" start "$NOOP_CMD" --name "noop-$i" --restart always --log-timestamp none >/dev/null 2>&1
 	done
 	prev=$n
 	sleep 2

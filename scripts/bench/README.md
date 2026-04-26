@@ -71,6 +71,13 @@ hand-typed estimates.
   much of the daemon footprint is one-time runtime cost. Set `TIERS="10 100
   500"` (or similar) to push harder — `pm2 start` is ~1 s per call, so the
   heavy tail is gated by PM2, not by Lynx.
+- **Lynx scenario passes `--log-timestamp none`** to match the default
+  behavior of PM2 and supervisord, neither of which prefixes log lines with
+  timestamps out of the box. Without this flag Lynx would be paying for a
+  user-space pipe + `io.Copy` goroutine + bufio buffer per stream that the
+  other supervisors do not, which is a UX choice rather than a fair
+  apples-to-apples cost. Real Lynx users who want timestamps simply omit
+  the flag and pay the (modest) overhead.
 - **PM2's God Daemon is shared per user.** Stopping PM2 between scenarios
   (`pm2 kill`) ensures we measure a fresh daemon, but the JIT warm-up of V8
   may still affect cold start vs a steady-state daemon.

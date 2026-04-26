@@ -6,12 +6,14 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"runtime/debug"
 	"sort"
 	"strconv"
 	"strings"
 	"sync"
 	"time"
 
+	"github.com/Jaro-c/Lynx/internal/env"
 	"github.com/Jaro-c/Lynx/internal/ipc/protocol"
 	spec2 "github.com/Jaro-c/Lynx/internal/spec"
 	"github.com/Jaro-c/Lynx/internal/types"
@@ -29,13 +31,22 @@ type Manager struct {
 	// unset (no limit).
 	maxProcesses    int
 	maxProcessesErr error
+
+	// rotateStop terminates the daemon-wide log-rotation goroutine. The
+	// goroutine ticks once per LYNX_LOG_ROTATE_INTERVAL_MS and asks each
+	// managed process's writers to rotate if needed. It replaces a
+	// per-process ticker that cost ~8 KB of goroutine stack per supervised
+	// process at scale.
+	rotateStop chan struct{}
 }
 
 // NewManager creates a new process manager.
 func NewManager() *Manager {
 	m := &Manager{
-		processes: make(map[string]*Process),
+		processes:  make(map[string]*Process),
+		rotateStop: make(chan struct{}),
 	}
+	go m.rotateLoop()
 	if limitStr := os.Getenv("LYNX_MAX_PROCESSES"); limitStr != "" {
 		limit, err := strconv.Atoi(limitStr)
 		switch {
@@ -510,6 +521,8 @@ func (m *Manager) List() []types.ProcessInfo {
 // Shutdown gracefully stops all processes without marking them as disabled,
 // so they are restored on daemon restart (reboot, re-exec, crash recovery).
 func (m *Manager) Shutdown() {
+	close(m.rotateStop)
+
 	m.mu.RLock()
 	procs := make([]*Process, 0, len(m.processes))
 	for _, p := range m.processes {
@@ -519,5 +532,59 @@ func (m *Manager) Shutdown() {
 
 	for _, p := range procs {
 		_ = p.Stop(false)
+	}
+}
+
+// rotateLoop is the daemon-wide log-rotation ticker. It runs as a single
+// goroutine for the lifetime of the manager, instead of one per supervised
+// process. At LYNX_LOG_ROTATE_INTERVAL_MS=0 the loop exits immediately,
+// matching the per-process ticker's pre-existing escape hatch.
+func (m *Manager) rotateLoop() {
+	intervalMs := env.Int64("LYNX_LOG_ROTATE_INTERVAL_MS", 60_000)
+	if intervalMs <= 0 {
+		return
+	}
+	ticker := time.NewTicker(time.Duration(intervalMs) * time.Millisecond)
+	defer ticker.Stop()
+	// LYNX_TRIM_HEAP=0 disables the post-rotation heap trim. The trim runs a
+	// runtime.GC + madvise(DONTNEED) so the kernel reclaims pages left over
+	// from start-time fragmentation (env copy, fork prep, parse). Cheap at
+	// idle, materially reduces RSS at scale (~5–15 MB at N=100).
+	trimHeap := env.Int64("LYNX_TRIM_HEAP", 1) != 0
+	for {
+		select {
+		case <-ticker.C:
+			m.rotateAllWriters()
+			if trimHeap {
+				debug.FreeOSMemory()
+			}
+		case <-m.rotateStop:
+			return
+		}
+	}
+}
+
+// rotateAllWriters snapshots the current writers under each process's lock
+// and asks them to rotate. The snapshot is intentionally cheap (pointer
+// copies) so we drop p.mu before calling maybeRotate, which can block on a
+// 50 MiB compress.
+func (m *Manager) rotateAllWriters() {
+	m.mu.RLock()
+	procs := make([]*Process, 0, len(m.processes))
+	for _, p := range m.processes {
+		procs = append(procs, p)
+	}
+	m.mu.RUnlock()
+
+	for _, p := range procs {
+		p.mu.Lock()
+		stdout, stderr := p.stdoutWriter, p.stderrWriter
+		p.mu.Unlock()
+		if stdout != nil {
+			stdout.maybeRotate()
+		}
+		if stderr != nil && stderr != stdout {
+			stderr.maybeRotate()
+		}
 	}
 }
