@@ -68,10 +68,6 @@ func StartProcess(
 		if err != nil {
 			return types.ProcessInfo{}, errors.New("ERR_BAD_REQUEST: invalid cwd")
 		}
-		info, err := os.Stat(resolved)
-		if err != nil || !info.IsDir() {
-			return types.ProcessInfo{}, errors.New("ERR_BAD_REQUEST: invalid cwd")
-		}
 		for _, restricted := range []string{"/etc", "/proc", "/sys", "/boot", "/dev", "/run"} {
 			if resolved == restricted || strings.HasPrefix(resolved, restricted+string(os.PathSeparator)) {
 				return types.ProcessInfo{}, errors.New(
@@ -83,14 +79,18 @@ func StartProcess(
 		// In system mode the daemon runs as `lynx`, so if the client is root
 		// inside /root the chdir() would later fail with a cryptic
 		// `fork/exec ... permission denied`. Surface a clean error now.
-		if f, err := os.Open(resolved); err != nil {
+		f, err := os.Open(resolved)
+		if err != nil {
 			return types.ProcessInfo{}, errors.New(
 				"ERR_BAD_REQUEST: cwd is not accessible to the daemon user; " +
 					"pass --cwd to a directory readable by the daemon " +
 					"(e.g. /var/lib/lynx-pm or /tmp)",
 			)
-		} else {
-			_ = f.Close()
+		}
+		info, err := f.Stat()
+		_ = f.Close()
+		if err != nil || !info.IsDir() {
+			return types.ProcessInfo{}, errors.New("ERR_BAD_REQUEST: invalid cwd")
 		}
 		spec.Cwd = resolved
 	}

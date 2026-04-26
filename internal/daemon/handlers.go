@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"runtime"
 	"strings"
 
 	"github.com/Jaro-c/Lynx/internal/daemon/audit"
@@ -19,6 +18,7 @@ import (
 	"github.com/Jaro-c/Lynx/internal/jsonx"
 	"github.com/Jaro-c/Lynx/internal/paths"
 	"github.com/Jaro-c/Lynx/internal/spec"
+	"github.com/Jaro-c/Lynx/internal/types"
 	"github.com/Jaro-c/Lynx/internal/version"
 )
 
@@ -31,12 +31,10 @@ const DataDir = paths.DataDir
 //
 //nolint:funlen // dispatcher inlines 60+ handler registrations for locality
 func RegisterHandlers(server *transport.Server, mgr *manager.Manager, privileged bool, auditor *audit.Logger) {
-	// Register ping handler
 	server.Register("ping", func(_ context.Context, _ jsonx.RawMessage) (jsonx.RawMessage, error) {
 		return jsonx.Marshal(map[string]string{"response": "pong"})
 	})
 
-	// Register start handler (audited via wrapping)
 	startH := handlers.StartHandler(mgr, privileged)
 	server.Register("start", func(ctx context.Context, params jsonx.RawMessage) (jsonx.RawMessage, error) {
 		res, err := startH(ctx, params)
@@ -55,7 +53,6 @@ func RegisterHandlers(server *transport.Server, mgr *manager.Manager, privileged
 		return res, nil
 	})
 
-	// Register stop handler
 	server.Register("stop", func(
 		ctx context.Context,
 		params jsonx.RawMessage,
@@ -74,11 +71,12 @@ func RegisterHandlers(server *transport.Server, mgr *manager.Manager, privileged
 		}
 
 		name, ns := processMeta(mgr, id)
-		// Check state before stopping to determine if the process was running
 		wasRunning := false
 		if proc, ok := mgr.Get(id); ok {
 			info := proc.Info()
-			wasRunning = info.State == "running" || info.State == "restarting" || info.State == "online"
+			wasRunning = info.State == types.StateRunning ||
+				info.State == types.StateRestarting ||
+				info.State == types.StateOnline
 		}
 
 		if err := mgr.Stop(id); err != nil {
@@ -93,7 +91,6 @@ func RegisterHandlers(server *transport.Server, mgr *manager.Manager, privileged
 	// Simple id-in / {status,id}-out handlers.
 	registerIDHandler(server, mgr, auditor, "restart", "restarted", (*manager.Manager).Restart)
 
-	// Register delete handler
 	server.Register("delete", func(
 		ctx context.Context,
 		params jsonx.RawMessage,
@@ -115,29 +112,15 @@ func RegisterHandlers(server *transport.Server, mgr *manager.Manager, privileged
 		// Snapshot name+ns BEFORE deletion so audit line has useful metadata.
 		delName, delNS := processMeta(mgr, id)
 
-		// Prepare for purge (resolve log dir)
 		var appLogDir string
 		if args.Purge {
 			if proc, ok := mgr.Get(id); ok {
-				// Re-implement log dir logic briefly
 				s := proc.Spec()
 				configuredDir := ""
 				if s.Logs != nil {
 					configuredDir = s.Logs.Dir
 				}
-
-				var baseLogDir string
-				if configuredDir != "" {
-					baseLogDir = configuredDir
-				} else if runtime.GOOS != "windows" && os.Geteuid() == 0 {
-					baseLogDir = paths.LogRoot
-				} else if stateHome := os.Getenv("XDG_STATE_HOME"); stateHome != "" {
-					baseLogDir = filepath.Join(stateHome, "lynx/logs")
-				} else if home, err := os.UserHomeDir(); err == nil {
-					baseLogDir = filepath.Join(home, ".local/state/lynx/logs")
-				}
-
-				if baseLogDir != "" {
+				if baseLogDir, err := paths.GetLogDir(configuredDir); err == nil {
 					appLogDir = filepath.Join(baseLogDir, id)
 				}
 			}
@@ -148,11 +131,9 @@ func RegisterHandlers(server *transport.Server, mgr *manager.Manager, privileged
 			return nil, err
 		}
 
-		// Delete spec
 		_ = spec.DeleteSpec(id) //nolint:errcheck // Ignore error if spec missing
 		auditEvent(auditor, ctx, "delete", id, delName, delNS, true, nil)
 
-		// Delete logs if requested
 		if args.Purge && appLogDir != "" {
 			base := appLogDir
 			if idx := strings.LastIndex(appLogDir, string(os.PathSeparator)); idx != -1 {
@@ -161,21 +142,14 @@ func RegisterHandlers(server *transport.Server, mgr *manager.Manager, privileged
 			baseResolved, err := filepath.EvalSymlinks(base)
 			if err == nil {
 				targetResolved, err := filepath.EvalSymlinks(appLogDir)
-				if err == nil {
-					rel, relErr := filepath.Rel(baseResolved, targetResolved)
-					if relErr == nil && rel != ".." &&
-						!strings.HasPrefix(rel, ".."+string(os.PathSeparator)) {
-						//nolint:gosec // path is validated to be within allowed log root
-						_ = os.RemoveAll(
-							targetResolved,
-						)
-					}
+				if err == nil && paths.WithinRoot(baseResolved, targetResolved) {
+					//nolint:gosec // path is validated to be within allowed log root
+					_ = os.RemoveAll(targetResolved)
 				}
 			}
 		}
 
-		// Delete credentials if dynamic user
-		credsDir := filepath.Join(paths.DataDir, "creds", id)
+		credsDir := filepath.Join(paths.CredsDir, id)
 		_ = os.RemoveAll(credsDir)
 
 		return jsonx.Marshal(map[string]string{"status": "deleted", "id": id})
@@ -308,14 +282,10 @@ func RegisterHandlers(server *transport.Server, mgr *manager.Manager, privileged
 			if err != nil {
 				if os.IsNotExist(err) {
 					dirClean := filepath.Clean(targetDir)
-					relDir, relErr := filepath.Rel(baseResolved, dirClean)
-					if relErr != nil || relDir == ".." ||
-						strings.HasPrefix(relDir, ".."+string(os.PathSeparator)) {
+					if !paths.WithinRoot(baseResolved, dirClean) {
 						return nil, errors.New("refusing to truncate log outside log root")
 					}
-					relFile, relFileErr := filepath.Rel(baseResolved, targetPath)
-					if relFileErr != nil || relFile == ".." ||
-						strings.HasPrefix(relFile, ".."+string(os.PathSeparator)) {
+					if !paths.WithinRoot(baseResolved, targetPath) {
 						return nil, errors.New("refusing to truncate log outside log root")
 					}
 					continue
@@ -323,15 +293,11 @@ func RegisterHandlers(server *transport.Server, mgr *manager.Manager, privileged
 				return nil, fmt.Errorf("failed to resolve log directory symlinks: %w", err)
 			}
 
-			relDir, relErr := filepath.Rel(baseResolved, targetResolvedDir)
-			if relErr != nil || relDir == ".." ||
-				strings.HasPrefix(relDir, ".."+string(os.PathSeparator)) {
+			if !paths.WithinRoot(baseResolved, targetResolvedDir) {
 				return nil, errors.New("refusing to truncate log outside log root")
 			}
 
-			relFile, relFileErr := filepath.Rel(baseResolved, targetPath)
-			if relFileErr != nil || relFile == ".." ||
-				strings.HasPrefix(relFile, ".."+string(os.PathSeparator)) {
+			if !paths.WithinRoot(baseResolved, targetPath) {
 				return nil, errors.New("refusing to truncate log outside log root")
 			}
 
@@ -361,13 +327,10 @@ func RegisterHandlers(server *transport.Server, mgr *manager.Manager, privileged
 		return jsonx.Marshal(map[string]any{"status": "flushed", "id": id, "bytes_freed": bytesFreed})
 	})
 
-	// Register list handler (replacing status)
-	// Returns a list of processes with their detailed status
 	server.Register("list", func(_ context.Context, _ jsonx.RawMessage) (jsonx.RawMessage, error) {
 		return jsonx.Marshal(mgr.List())
 	})
 
-	// Register version handler
 	server.Register(
 		"version",
 		func(_ context.Context, _ jsonx.RawMessage) (jsonx.RawMessage, error) {
