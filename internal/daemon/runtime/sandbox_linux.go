@@ -40,7 +40,7 @@ func WrapSandbox(ctx context.Context, cmd *exec.Cmd, opts SandboxOptions) (*exec
 		// Best-effort: continue without landlock but keep other primitives.
 		// A future flag could force abort instead.
 		_, _ = fmt.Fprintln(os.Stderr,
-			"lynx: warning: kernel does not support Landlock; sandbox will be weaker")
+			"lynxpm: warning: kernel does not support Landlock; sandbox will be weaker")
 	}
 
 	cfg := execsandbox.Config{

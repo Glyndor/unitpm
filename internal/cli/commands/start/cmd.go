@@ -297,7 +297,7 @@ func (p *specParser) parse() (protocol.AppSpec, int, error) {
 				continue
 			}
 
-			// If no command yet, it's an invalid flag for lynx
+			// If no command yet, it's an invalid flag for lynxpm
 			return protocol.AppSpec{}, 0, err
 		}
 

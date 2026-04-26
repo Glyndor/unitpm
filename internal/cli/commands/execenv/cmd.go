@@ -18,7 +18,7 @@ import (
 // Run executes the _exec-env command.
 func Run(args []string) error {
 	if len(args) == 0 {
-		return fmt.Errorf("usage: lynx _exec-env <cmd> [args...]")
+		return fmt.Errorf("usage: lynxpm _exec-env <cmd> [args...]")
 	}
 
 	credsDir := os.Getenv("CREDENTIALS_DIRECTORY")
@@ -26,7 +26,7 @@ func Run(args []string) error {
 		envPath := credsDir + "/env"
 		if err := loadEnv(envPath); err != nil {
 			// Best-effort: warn to journal and let the child process decide whether to fail.
-			fmt.Fprintf(os.Stderr, "lynx: warning: failed to load env from credentials: %v\n", err)
+			fmt.Fprintf(os.Stderr, "lynxpm: warning: failed to load env from credentials: %v\n", err)
 		}
 	}
 

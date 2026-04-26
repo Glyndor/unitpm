@@ -18,10 +18,13 @@ considered end-of-life.
 
 Please **do not** open a public GitHub issue for security reports.
 
-Send a private report to: `` with the subject
-`[Lynx Security]`. Include:
+Send a private report via GitHub's Private Vulnerability Reporting:
 
-- Affected version (`lynx version --json`)
+  https://github.com/Jaro-c/Lynx/security/advisories/new
+
+Include:
+
+- Affected version (`lynxpm version --json`)
 - Reproduction steps
 - Impact assessment
 - Any proposed mitigation
@@ -114,7 +117,7 @@ All specs are validated in the daemon *after* IPC, never trusting the CLI:
 
 - Binaries are built with `-trimpath` to strip build-machine paths.
 - Version, commit, and build date are injected via `-ldflags` — verifiable
-  with `lynx version --json`.
+  with `lynxpm version --json`.
 - Releases are built via `scripts/build_deb.sh` from a clean checkout.
 
 ## Mitigations Shipped
@@ -142,5 +145,5 @@ Contributions welcome.
 
 ## Security Contacts
 
-- Email: ``
-- Subject prefix: `[Lynx Security]`
+- GitHub Private Vulnerability Reporting:
+  <https://github.com/Jaro-c/Lynx/security/advisories/new>
