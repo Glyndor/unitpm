@@ -21,11 +21,6 @@ import (
 	"github.com/Jaro-c/Lynx/internal/types"
 )
 
-// DefaultNamespace mirrors list.DefaultNamespace / manager.DefaultNamespace
-// so a stored ProcessInfo with an empty Namespace field is matched against
-// "default" rather than the empty string.
-const DefaultNamespace = "default"
-
 // Public flag/selector tokens shared by the lifecycle commands so a rename
 // only happens in one place.
 const (
@@ -164,7 +159,7 @@ func fetchList(client transport.IPCClient) ([]types.ProcessInfo, error) {
 
 func processNS(p types.ProcessInfo) string {
 	if p.Namespace == "" {
-		return DefaultNamespace
+		return types.DefaultNamespace
 	}
 	return p.Namespace
 }
