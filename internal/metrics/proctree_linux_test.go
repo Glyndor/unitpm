@@ -24,6 +24,42 @@ func BenchmarkProcTreeCollector(b *testing.B) {
 	}
 }
 
+func TestGetProcessTree_CurrentProcess(t *testing.T) {
+	pid := os.Getpid()
+	tree, err := metrics.GetProcessTree(pid)
+	if err != nil {
+		t.Fatalf("GetProcessTree(%d): %v", pid, err)
+	}
+	if len(tree) == 0 {
+		t.Fatal("expected at least one entry (the process itself)")
+	}
+	root := tree[0]
+	if root.PID != pid {
+		t.Errorf("root PID = %d, want %d", root.PID, pid)
+	}
+	if root.Depth != 0 {
+		t.Errorf("root depth = %d, want 0", root.Depth)
+	}
+	if root.Comm == "" {
+		t.Error("root Comm is empty")
+	}
+	if root.MemoryBytes <= 0 {
+		t.Errorf("root MemoryBytes = %d, want > 0", root.MemoryBytes)
+	}
+}
+
+func TestGetProcessTree_DepthsNonNegative(t *testing.T) {
+	tree, err := metrics.GetProcessTree(os.Getpid())
+	if err != nil {
+		t.Fatalf("GetProcessTree: %v", err)
+	}
+	for _, e := range tree {
+		if e.Depth < 0 {
+			t.Errorf("entry PID %d has negative depth %d", e.PID, e.Depth)
+		}
+	}
+}
+
 func TestProcTreeCollectorSafe(t *testing.T) {
 	collector, err := metrics.NewProcTreeCollector(os.Getpid())
 	if err != nil {

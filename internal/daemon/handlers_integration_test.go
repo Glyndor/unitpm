@@ -15,6 +15,7 @@ import (
 	"github.com/Jaro-c/Lynx/internal/daemon/manager"
 	"github.com/Jaro-c/Lynx/internal/ipc/protocol"
 	"github.com/Jaro-c/Lynx/internal/ipc/transport"
+	"github.com/Jaro-c/Lynx/internal/metrics"
 	"github.com/Jaro-c/Lynx/internal/version"
 )
 
@@ -356,5 +357,99 @@ func TestE2E_ResolveByName(t *testing.T) {
 	}
 	if resp["id"] != id {
 		t.Errorf("handler did not resolve name to id: got %v want %s", resp["id"], id)
+	}
+}
+
+func TestE2E_ProcTree_Running(t *testing.T) {
+	client, mgr := setupE2E(t)
+
+	id := uuid.Must(uuid.NewV7()).String()
+	// bash spawns a child sleep so the tree has at least 2 entries.
+	s := protocol.AppSpec{
+		Version: 1, ID: id, Name: "e2e-tree", Namespace: "default",
+		Exec: protocol.AppExec{
+			Type:    "command",
+			Command: "bash",
+			Args:    []string{"-c", "sleep 30 & sleep 30 & wait"},
+		},
+	}
+	if _, err := mgr.StartWithSpec(s); err != nil {
+		t.Fatalf("StartWithSpec: %v", err)
+	}
+	defer func() { _ = mgr.Stop(id) }()
+
+	// Poll until children appear (bash forks asynchronously).
+	var tree []metrics.ChildStat
+	deadline := time.Now().Add(3 * time.Second)
+	for time.Now().Before(deadline) {
+		tree = nil
+		if err := client.Call("proctree", map[string]string{"id": id}, &tree); err != nil {
+			t.Fatalf("proctree: %v", err)
+		}
+		hasChild := false
+		for _, e := range tree {
+			if e.Depth > 0 {
+				hasChild = true
+				break
+			}
+		}
+		if hasChild {
+			break
+		}
+		time.Sleep(50 * time.Millisecond)
+	}
+
+	if len(tree) == 0 {
+		t.Fatal("proctree returned empty slice for a running process")
+	}
+	if tree[0].Depth != 0 {
+		t.Errorf("root depth = %d, want 0", tree[0].Depth)
+	}
+	if tree[0].MemoryBytes <= 0 {
+		t.Errorf("root MemoryBytes = %d, want > 0", tree[0].MemoryBytes)
+	}
+	hasChild := false
+	for _, e := range tree {
+		if e.Depth > 0 {
+			hasChild = true
+			break
+		}
+	}
+	if !hasChild {
+		t.Errorf("expected at least one child entry after 3s, tree = %v", tree)
+	}
+}
+
+func TestE2E_ProcTree_Stopped(t *testing.T) {
+	client, mgr := setupE2E(t)
+
+	id := uuid.Must(uuid.NewV7()).String()
+	s := protocol.AppSpec{
+		Version: 1, ID: id, Name: "e2e-tree-stopped", Namespace: "default",
+		Exec: protocol.AppExec{Type: "command", Command: "sleep", Args: []string{"30"}},
+	}
+	if _, err := mgr.StartWithSpec(s); err != nil {
+		t.Fatalf("StartWithSpec: %v", err)
+	}
+	_ = mgr.Stop(id)
+	time.Sleep(100 * time.Millisecond)
+
+	var tree []metrics.ChildStat
+	if err := client.Call("proctree", map[string]string{"id": id}, &tree); err != nil {
+		t.Fatalf("proctree on stopped process: %v", err)
+	}
+	// Stopped process returns nil/empty tree (not an error).
+	if len(tree) != 0 {
+		t.Errorf("expected empty tree for stopped process, got %d entries", len(tree))
+	}
+}
+
+func TestE2E_ProcTree_NotFound(t *testing.T) {
+	client, _ := setupE2E(t)
+
+	var tree []metrics.ChildStat
+	err := client.Call("proctree", map[string]string{"id": "nonexistent"}, &tree)
+	if err == nil {
+		t.Error("expected error for unknown process, got nil")
 	}
 }
