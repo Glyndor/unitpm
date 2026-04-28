@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"os"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 )
@@ -175,6 +176,62 @@ func (c *ProcTreeCollector) findDescendants(root int) ([]int, error) {
 	}
 
 	return descendants, nil
+}
+
+// GetProcessTree returns a depth-first ordered slice of ChildStat entries
+// representing the root process and all its descendants. Processes that
+// disappear mid-scan are silently skipped.
+func GetProcessTree(rootPID int) ([]ChildStat, error) {
+	tree, err := getGlobalTreeSnapshot()
+	if err != nil {
+		return nil, err
+	}
+
+	type item struct {
+		pid   int
+		depth int
+	}
+
+	var result []ChildStat
+	queue := []item{{pid: rootPID, depth: 0}}
+
+	for len(queue) > 0 {
+		cur := queue[0]
+		queue = queue[1:]
+
+		_, rss, err := readStatRSS(cur.pid)
+		if err != nil {
+			continue // process vanished
+		}
+
+		result = append(result, ChildStat{
+			PID:         cur.pid,
+			Comm:        readComm(cur.pid),
+			Depth:       cur.depth,
+			MemoryBytes: rss * pageSize,
+		})
+
+		for _, child := range tree[cur.pid] {
+			queue = append(queue, item{pid: child, depth: cur.depth + 1})
+		}
+	}
+
+	return result, nil
+}
+
+// readComm reads the process name from /proc/<pid>/comm.
+func readComm(pid int) string {
+	data, err := os.ReadFile(fmt.Sprintf("/proc/%d/comm", pid))
+	if err != nil {
+		return ""
+	}
+	return strings.TrimSpace(string(data))
+}
+
+// readStatRSS reads only the rss field from /proc/<pid>/stat (field 24, index 21
+// after the closing paren). Returns (utime+stime, rss_pages, error).
+func readStatRSS(pid int) (int64, int64, error) {
+	return (&ProcTreeCollector{rootPid: pid}).readProcStat(pid)
 }
 
 // readProcStat reads utime, stime, and rss without excessive string allocations.

@@ -327,6 +327,24 @@ func RegisterHandlers(server *transport.Server, mgr *manager.Manager, privileged
 		return jsonx.Marshal(map[string]any{"status": "flushed", "id": id, "bytes_freed": bytesFreed})
 	})
 
+	server.Register("proctree", func(_ context.Context, params jsonx.RawMessage) (jsonx.RawMessage, error) {
+		var args struct {
+			ID string `json:"id"`
+		}
+		if err := jsonx.Unmarshal(params, &args); err != nil {
+			return nil, err
+		}
+		id, err := mgr.ResolveID(args.ID)
+		if err != nil {
+			return nil, err
+		}
+		proc, ok := mgr.Get(id)
+		if !ok {
+			return nil, fmt.Errorf("process %q not found", args.ID)
+		}
+		return jsonx.Marshal(proc.Tree())
+	})
+
 	server.Register("list", func(_ context.Context, _ jsonx.RawMessage) (jsonx.RawMessage, error) {
 		return jsonx.Marshal(mgr.List())
 	})

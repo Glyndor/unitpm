@@ -1000,6 +1000,21 @@ func (p *Process) Info() types.ProcessInfo {
 	return p.info
 }
 
+// Tree returns per-PID stats for the root process and all its descendants.
+// Returns nil if the process is not running or the platform is unsupported.
+func (p *Process) Tree() []metrics.ChildStat {
+	p.mu.Lock()
+	pid := p.info.PID
+	state := p.info.State
+	p.mu.Unlock()
+
+	if state != types.StateRunning && state != types.StateOnline {
+		return nil
+	}
+	tree, _ := metrics.GetProcessTree(pid)
+	return tree
+}
+
 // Spec returns a deep copy of the process spec, safe for external mutation.
 func (p *Process) Spec() protocol.AppSpec {
 	s := p.spec

@@ -206,4 +206,17 @@ lynxpm scale scalens:scaleapp 2
 wait_count 2 scalens
 lynxpm delete 'scalens:*' --purge >/dev/null
 
+# Scenario 12: process tree. Starts a bash wrapper that spawns sleep children
+# and verifies that lynxpm monit --json reports the root entry and at least
+# one child with depth > 0.
+echo "=== scenario: process tree (monit --json) ==="
+lynxpm start "bash -c 'sleep 60 & sleep 60 & wait'" --name tree-smoke --restart never
+sleep 1
+TREE_JSON=$(lynxpm monit tree-smoke --json 2>/dev/null)
+echo "$TREE_JSON" | grep -q '"pid"' || die "monit --json missing pid field"
+echo "$TREE_JSON" | grep -q '"depth":0' || die "monit --json missing root entry (depth 0)"
+echo "$TREE_JSON" | grep -q '"depth":1' || die "monit --json missing child entry (depth 1)"
+lynxpm stop   tree-smoke
+lynxpm delete tree-smoke --purge
+
 echo "=== all smoke scenarios passed ==="

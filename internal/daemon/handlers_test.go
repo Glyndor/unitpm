@@ -17,7 +17,7 @@ func TestRegisterHandlers_WiresEveryVerb(t *testing.T) {
 
 	wantVerbs := []string{
 		"ping", "start", "stop", "restart", "reload", "reset", "flush",
-		"delete", "list", "show", "version", "scale",
+		"delete", "list", "show", "version", "scale", "proctree",
 	}
 	for _, v := range wantVerbs {
 		if !server.HasHandler(v) {
