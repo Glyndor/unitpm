@@ -12,13 +12,14 @@ import (
 	"syscall"
 	"time"
 
+	xterm "golang.org/x/term"
+
 	"github.com/Jaro-c/Lynx/internal/cli/help"
 	"github.com/Jaro-c/Lynx/internal/ipc/protocol"
 	"github.com/Jaro-c/Lynx/internal/ipc/transport"
 	"github.com/Jaro-c/Lynx/internal/metrics"
 	"github.com/Jaro-c/Lynx/internal/term"
 	"github.com/Jaro-c/Lynx/internal/types"
-	xterm "golang.org/x/term"
 )
 
 const (
