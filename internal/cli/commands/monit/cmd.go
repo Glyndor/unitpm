@@ -3,9 +3,7 @@ package monit
 
 import (
 	"encoding/json"
-	"flag"
 	"fmt"
-	"io"
 	"os"
 	"os/signal"
 	"strings"
@@ -51,15 +49,19 @@ func Run(client transport.IPCClient, args []string) error {
 		return nil
 	}
 
-	fs := flag.NewFlagSet("monit", flag.ContinueOnError)
-	fs.SetOutput(io.Discard)
+	// Pre-scan for --json/-json regardless of position so that both
+	// `monit --json App-Web` and `monit App-Web --json` work correctly.
+	// flag.FlagSet stops at the first non-flag argument, which would
+	// silently drop flags that appear after a positional argument.
 	var jsonOutput bool
-	fs.BoolVar(&jsonOutput, "json", false, "Print one JSON snapshot and exit (non-interactive)")
-
-	if err := fs.Parse(args); err != nil {
-		return err
+	var positional []string
+	for _, a := range args {
+		if a == "--json" || a == "-json" {
+			jsonOutput = true
+		} else {
+			positional = append(positional, a)
+		}
 	}
-	rest := fs.Args()
 
 	if client == nil {
 		c, err := transport.NewClient()
@@ -70,8 +72,8 @@ func Run(client transport.IPCClient, args []string) error {
 		client = c
 	}
 
-	if len(rest) > 0 {
-		return runSingle(client, rest[0], jsonOutput)
+	if len(positional) > 0 && !strings.HasPrefix(positional[0], "-") {
+		return runSingle(client, positional[0], jsonOutput)
 	}
 	return runAll(client)
 }
