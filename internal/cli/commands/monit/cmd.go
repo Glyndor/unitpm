@@ -166,9 +166,7 @@ func printJSON(s *monitState) error {
 		"info": s.info,
 		"tree": s.tree,
 	}
-	enc := json.NewEncoder(os.Stdout)
-	enc.SetIndent("", "  ")
-	return enc.Encode(out)
+	return json.NewEncoder(os.Stdout).Encode(out)
 }
 
 func readKeys(ch chan<- byte) {

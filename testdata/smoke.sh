@@ -211,8 +211,12 @@ lynxpm delete 'scalens:*' --purge >/dev/null
 # one child with depth > 0.
 echo "=== scenario: process tree (monit --json) ==="
 lynxpm start "bash -c 'sleep 60 & sleep 60 & wait'" --name tree-smoke --restart never
-sleep 1
-TREE_JSON=$(lynxpm monit tree-smoke --json 2>/dev/null)
+TREE_JSON=""
+for i in $(seq 1 20); do
+    TREE_JSON=$(lynxpm monit tree-smoke --json 2>/dev/null)
+    echo "$TREE_JSON" | grep -q '"depth":1' && break
+    sleep 0.5
+done
 echo "$TREE_JSON" | grep -q '"pid"' || die "monit --json missing pid field"
 echo "$TREE_JSON" | grep -q '"depth":0' || die "monit --json missing root entry (depth 0)"
 echo "$TREE_JSON" | grep -q '"depth":1' || die "monit --json missing child entry (depth 1)"
