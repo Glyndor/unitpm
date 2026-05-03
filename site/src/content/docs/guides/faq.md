@@ -1,6 +1,12 @@
 ---
 title: FAQ
-description: Common questions and troubleshooting for Lynx — 'Can I…?' and 'Why does X fail?'
+description: Lynx process manager FAQ — naming rules, lifecycle operations, restart policies, environment variables, resource limits, isolation modes, and error codes.
+head:
+  - tag: script
+    attrs:
+      type: application/ld+json
+    content: |-
+      {"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"How do I start a process with Lynx process manager?","acceptedAnswer":{"@type":"Answer","text":"Run lynxpm start with your command, a name, and a restart policy. Example: lynxpm start 'node server.js' --name api --restart always. The process is supervised by systemd and survives CLI restarts."}},{"@type":"Question","name":"How do I auto-start Lynx processes on boot?","acceptedAnswer":{"@type":"Answer","text":"Run: sudo lynxpm startup. This installs a systemd service unit that starts the Lynx daemon on boot and automatically restores all managed processes."}},{"@type":"Question","name":"What is the difference between Lynx and PM2?","acceptedAnswer":{"@type":"Answer","text":"Lynx is systemd-native: apps outlive the CLI and daemon restarts. PM2 uses a custom Node.js daemon so apps die if PM2 crashes. Lynx starts 47x faster (7.8 ms vs 366 ms) and uses 4.5x less memory (14.7 MB vs 66.7 MB idle)."}},{"@type":"Question","name":"How do I view logs for a Lynx-managed process?","acceptedAnswer":{"@type":"Answer","text":"Run lynxpm logs api --follow for live output. Use --lines 50 for the last 50 lines, --stdout or --stderr to filter by stream, and --json for structured output."}},{"@type":"Question","name":"Does Lynx work on macOS or Windows?","acceptedAnswer":{"@type":"Answer","text":"No. Lynx is Linux-only by design. It requires systemd, Linux cgroups, and the landlock LSM — kernel features that do not exist on macOS or Windows."}},{"@type":"Question","name":"How do I stop all processes in a namespace?","acceptedAnswer":{"@type":"Answer","text":"Run: lynxpm stop --namespace prod. You can also use glob syntax: lynxpm stop 'prod:*' (quote the glob to prevent shell expansion)."}}]}
 ---
 
 

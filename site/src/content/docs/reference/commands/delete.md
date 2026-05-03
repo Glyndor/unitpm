@@ -1,6 +1,6 @@
 ---
 title: "lynxpm delete"
-description: "Delete one or more processes and their configurations"
+description: Delete one or more Lynx-managed processes and remove their stored specs. Use --purge to also remove log files. Supports namespace selectors and globs.
 sidebar:
   label: delete
 ---

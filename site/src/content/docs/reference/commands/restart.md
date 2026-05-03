@@ -1,6 +1,6 @@
 ---
 title: "lynxpm restart"
-description: "Restart one or more processes"
+description: Restart one or more Lynx-managed processes. Supports individual names, bulk restart by namespace (--namespace prod), and glob selectors such as 'prod:*'.
 sidebar:
   label: restart
 ---

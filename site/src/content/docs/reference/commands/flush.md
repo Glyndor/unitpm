@@ -1,6 +1,6 @@
 ---
 title: "lynxpm flush"
-description: "Truncate the stdout/stderr log files for a process"
+description: Truncate stdout and stderr log files for a Lynx-managed process. Frees disk space without stopping the process or affecting future log capture.
 sidebar:
   label: flush
 ---

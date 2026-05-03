@@ -1,6 +1,6 @@
 ---
 title: "lynxpm list"
-description: "List all processes managed by Lynx"
+description: List all processes managed by Lynx with status, PID, namespace, restart count, and uptime. Supports --json for scripting and --namespace for filtering.
 sidebar:
   label: list
 ---

@@ -1,6 +1,6 @@
 ---
 title: "lynxpm show"
-description: "Show detailed runtime and spec information for a single process"
+description: Show detailed runtime and spec for a single Lynx process — PID, uptime, restart history, resource limits, environment variables, and isolation mode.
 sidebar:
   label: show
 ---

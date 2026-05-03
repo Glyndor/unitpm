@@ -1,8 +1,12 @@
 ---
 title: Security
-description: Threat model, reporting vulnerabilities, release signing, and sandboxing guarantees.
+description: Lynx security model — DynamicUser + landlock isolation, systemd credentials for secrets, release signing, SLSA provenance, and vulnerability disclosure.
 ---
 
+
+Lynx is designed around the principle that a **process manager should not add attack surface**. Every managed process runs with the minimum privilege required. Secrets never appear in environment variable lists. The daemon itself runs as an unprivileged system user.
+
+The security model rests on three Linux kernel primitives: **systemd DynamicUser** for per-process user isolation, **landlock LSM** for filesystem access restrictions, and **systemd credentials** for secret injection without exposing values to `ps` or `/proc/<pid>/environ`.
 
 ## Supported Versions
 

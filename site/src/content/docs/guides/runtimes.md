@@ -1,13 +1,16 @@
 ---
 title: Runtimes
-description: Per-runtime recipes for Node, Bun, Deno, Python, Go, Rust, Ruby, JVM, PHP, shell scripts and more.
+description: Per-runtime recipes for Lynx — Node.js, Bun, Deno, Python, Go, Rust, Ruby, JVM, PHP, and shell scripts. Includes PATH configuration and daemon detection tips.
 ---
 
 
-Lynx is language-agnostic. It executes whatever command you give it as a child
-process and supervises the PID. The `--runtime` flag and file-extension
-auto-detection are convenience shortcuts — they never restrict what you can
-actually run.
+Lynx is a language-agnostic **process manager for Linux**. It works with any runtime — Node.js, Bun, Deno, Python, Go, Rust, Ruby, JVM, PHP, Lua, Erlang, and plain shell scripts. It executes whatever command you give it as a child process and supervises the PID. The `--runtime` flag and file-extension auto-detection are convenience shortcuts — they never restrict what you can actually run.
+
+Running Node.js as a Linux service, deploying a Python worker, or keeping a Go binary supervised with auto-restart — Lynx handles all of these with the same CLI. No runtime-specific agent, no language SDK required.
+
+> **Verification status.** The following runtimes are exercised end-to-end
+> through `lynxpm start` in a clean systemd-nspawn container with the Debian
+> package installed:
 
 > **Verification status.** The following runtimes are exercised end-to-end
 > through `lynxpm start` in a clean systemd-nspawn container with the Debian

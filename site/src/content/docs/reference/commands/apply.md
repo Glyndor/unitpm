@@ -1,6 +1,6 @@
 ---
 title: "lynxpm apply"
-description: "Apply a declarative Lynxfile to create and start one or more applications"
+description: Declaratively create and start processes from a Lynxfile.yml under Lynx process manager. Reads YAML specs and starts each app with its stored config.
 sidebar:
   label: apply
 ---

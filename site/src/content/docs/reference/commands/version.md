@@ -1,6 +1,6 @@
 ---
 title: "lynxpm version"
-description: "Show Lynx version information for the CLI, Daemon, and IPC Protocol"
+description: Show version numbers for the Lynx CLI (lynxpm), daemon (lynxd), and IPC protocol. Pass --json for machine-readable output suitable for scripts and CI.
 sidebar:
   label: version
 ---

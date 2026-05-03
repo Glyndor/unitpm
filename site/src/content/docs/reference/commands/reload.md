@@ -1,6 +1,6 @@
 ---
 title: "lynxpm reload"
-description: "Reload a process configuration from its stored spec and restart it"
+description: Reload a Lynx process spec from stored configuration and restart it. Applies updated flags or environment variables without recreating the process record.
 sidebar:
   label: reload
 ---

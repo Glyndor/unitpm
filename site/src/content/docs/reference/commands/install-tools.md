@@ -1,6 +1,6 @@
 ---
 title: "lynxpm install-tools"
-description: "Automatically symlink common development tools to `/usr/local/bin`"
+description: Symlink Node.js, Bun, Go, Python and other runtimes to /usr/local/bin so the Lynx daemon can find them. Required when binaries are absent from the system PATH.
 sidebar:
   label: install-tools
 ---

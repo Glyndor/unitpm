@@ -1,6 +1,6 @@
 ---
 title: "lynxpm scale"
-description: "Grow or shrink an app to the target number of running instances"
+description: Grow or shrink a Lynx-managed app to a target number of parallel instances. Running instances are preserved; only the delta is started or stopped in-place.
 sidebar:
   label: scale
 ---

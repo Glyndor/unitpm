@@ -1,6 +1,6 @@
 ---
 title: Lynx process manager vs Supervisor (supervisord)
-description: Detailed comparison of Lynx process manager vs Supervisor (supervisord). Benchmarks, feature differences, and migration guide for Linux servers.
+description: Lynx process manager vs Supervisor (supervisord) — benchmark comparison (32x faster cold start), feature differences, and migration guide for Linux.
 ---
 
 Lynx is a systemd-native process manager for Linux written in Go. Supervisor (supervisord) is a Python-based process control system. This page compares them across performance, architecture, security, and configuration.
@@ -139,6 +139,6 @@ lynxpm list
 
 ## See also
 
-- [Lynx vs PM2](/Lynx/guides/vs-pm2/)
-- [Install Lynx](/Lynx/start/install/)
-- [Quickstart](/Lynx/start/quickstart/)
+- [Lynx vs PM2](./vs-pm2/)
+- [Install Lynx](../start/install/)
+- [Quickstart](../start/quickstart/)
