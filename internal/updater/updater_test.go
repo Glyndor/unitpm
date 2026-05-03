@@ -2,10 +2,14 @@ package updater
 
 import (
 	"context"
+	"crypto/ed25519"
+	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"net/http"
 	"net/http/httptest"
+	"os"
+	"path/filepath"
 	"runtime"
 	"strings"
 	"testing"
@@ -227,5 +231,120 @@ func TestApply_AllowUnsignedBypassesSigCheck(t *testing.T) {
 	}
 	if errors.Is(err, ErrSignatureRequired) {
 		t.Errorf("ErrSignatureRequired surfaced despite AllowUnsigned=true: %v", err)
+	}
+}
+
+func TestDownloadSignature_RawBytes(t *testing.T) {
+	// 64 raw bytes is a valid ed25519 signature size
+	sig := make([]byte, 64)
+	for i := range sig {
+		sig[i] = byte(i)
+	}
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		_, _ = w.Write(sig)
+	}))
+	t.Cleanup(srv.Close)
+
+	got, err := downloadSignature(context.Background(), srv.URL)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(got) != 64 {
+		t.Errorf("signature len = %d, want 64", len(got))
+	}
+}
+
+func TestDownloadSignature_Base64Encoded(t *testing.T) {
+	sig := make([]byte, 64)
+	for i := range sig {
+		sig[i] = byte(i * 3)
+	}
+	encoded := base64.StdEncoding.EncodeToString(sig)
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		_, _ = w.Write([]byte(encoded))
+	}))
+	t.Cleanup(srv.Close)
+
+	got, err := downloadSignature(context.Background(), srv.URL)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(got) != 64 {
+		t.Errorf("signature len = %d, want 64", len(got))
+	}
+}
+
+func TestDownloadSignature_Malformed(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		_, _ = w.Write([]byte("not-a-signature"))
+	}))
+	t.Cleanup(srv.Close)
+
+	_, err := downloadSignature(context.Background(), srv.URL)
+	if err == nil {
+		t.Fatal("expected error for malformed signature, got nil")
+	}
+	if !strings.Contains(err.Error(), "malformed") {
+		t.Errorf("unexpected error: %v", err)
+	}
+}
+
+func TestVerifyFileSignature_Valid(t *testing.T) {
+	pub, priv, err := ed25519.GenerateKey(nil)
+	if err != nil {
+		t.Fatalf("keygen: %v", err)
+	}
+
+	content := []byte("binary content for testing")
+	sig := ed25519.Sign(priv, content)
+
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		_, _ = w.Write(sig)
+	}))
+	t.Cleanup(srv.Close)
+
+	tmpFile := filepath.Join(t.TempDir(), "bin")
+	if err := os.WriteFile(tmpFile, content, 0600); err != nil {
+		t.Fatalf("write: %v", err)
+	}
+
+	if err := verifyFileSignature(context.Background(), tmpFile, srv.URL, pub); err != nil {
+		t.Errorf("expected valid signature, got: %v", err)
+	}
+}
+
+func TestVerifyFileSignature_Invalid(t *testing.T) {
+	pub, _, err := ed25519.GenerateKey(nil)
+	if err != nil {
+		t.Fatalf("keygen: %v", err)
+	}
+
+	// Sign with a DIFFERENT key
+	_, priv2, err := ed25519.GenerateKey(nil)
+	if err != nil {
+		t.Fatalf("keygen2: %v", err)
+	}
+
+	content := []byte("binary content for testing")
+	badSig := ed25519.Sign(priv2, content)
+	// Base64-encode so TrimSpace inside downloadSignature doesn't corrupt raw bytes.
+	badSigEncoded := base64.StdEncoding.EncodeToString(badSig)
+
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		_, _ = w.Write([]byte(badSigEncoded))
+	}))
+	t.Cleanup(srv.Close)
+
+	tmpFile := filepath.Join(t.TempDir(), "bin")
+	if err := os.WriteFile(tmpFile, content, 0600); err != nil {
+		t.Fatalf("write: %v", err)
+	}
+
+	err = verifyFileSignature(context.Background(), tmpFile, srv.URL, pub)
+	if err == nil {
+		t.Fatal("expected error for invalid signature, got nil")
+	}
+	if !strings.Contains(err.Error(), "ed25519") {
+		t.Errorf("unexpected error: %v", err)
 	}
 }

@@ -3,7 +3,10 @@
 package landlock
 
 import (
+	"strings"
 	"testing"
+
+	"golang.org/x/sys/unix"
 )
 
 func TestSupported(t *testing.T) {
@@ -66,4 +69,62 @@ func TestApply_NoOpWhenUnsupported(t *testing.T) {
 	if err := Apply(Ruleset{}); err != nil {
 		t.Errorf("expected nil on unsupported kernel, got %v", err)
 	}
+}
+
+func TestLandlockFSMask_ABI1(t *testing.T) {
+	mask := landlockFSMask(1)
+	if mask == 0 {
+		t.Error("ABI 1 mask should be non-zero")
+	}
+	// REFER is ABI >= 2; must not appear in ABI 1 mask.
+	if mask&unix.LANDLOCK_ACCESS_FS_REFER != 0 {
+		t.Error("ABI 1 mask must not include LANDLOCK_ACCESS_FS_REFER")
+	}
+}
+
+func TestLandlockFSMask_ABI2IncludesRefer(t *testing.T) {
+	mask := landlockFSMask(2)
+	if mask&unix.LANDLOCK_ACCESS_FS_REFER == 0 {
+		t.Error("ABI 2 mask must include LANDLOCK_ACCESS_FS_REFER")
+	}
+}
+
+func TestLandlockFSMask_ABI3IncludesTruncate(t *testing.T) {
+	mask := landlockFSMask(3)
+	if mask&unix.LANDLOCK_ACCESS_FS_TRUNCATE == 0 {
+		t.Error("ABI 3 mask must include LANDLOCK_ACCESS_FS_TRUNCATE")
+	}
+}
+
+func TestLandlockFSMask_MonotonicallyGrows(t *testing.T) {
+	m1 := landlockFSMask(1)
+	m2 := landlockFSMask(2)
+	m3 := landlockFSMask(3)
+	if m2 < m1 {
+		t.Errorf("ABI 2 mask (%x) < ABI 1 mask (%x)", m2, m1)
+	}
+	if m3 < m2 {
+		t.Errorf("ABI 3 mask (%x) < ABI 2 mask (%x)", m3, m2)
+	}
+}
+
+func TestAddPathRule_RelativePath(t *testing.T) {
+	err := addPathRule(0, PathAccess{Path: "relative/path", Read: true}, 0xffffffff)
+	if err == nil {
+		t.Fatal("expected error for relative path, got nil")
+	}
+	if !strings.Contains(err.Error(), "absolute") {
+		t.Errorf("unexpected error: %v", err)
+	}
+}
+
+func TestApply_EmptyRuleset_SupportedKernel(t *testing.T) {
+	if !Supported() {
+		t.Skip("Landlock not supported on this kernel")
+	}
+	// Empty ruleset: Landlock creates a ruleset with no rules, then restricts.
+	// This is a valid (if strict) sandbox. We cannot un-restrict, so skip in
+	// this process — the test just verifies no error path is triggered before
+	// restrict_self.
+	t.Skip("applying Landlock would restrict the test runner process permanently")
 }

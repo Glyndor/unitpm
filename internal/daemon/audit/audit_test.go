@@ -61,3 +61,26 @@ func TestOpen_FileMode(t *testing.T) {
 		t.Errorf("expected 0600 perms, got %o", fi.Mode().Perm())
 	}
 }
+
+func TestLogger_Close_WithFile(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "audit.log")
+	l := Open(path)
+	l.Log(Event{Action: "test", Success: true})
+	if err := l.Close(); err != nil {
+		t.Errorf("Close on open logger: %v", err)
+	}
+}
+
+func TestLogger_Close_Disabled(t *testing.T) {
+	l := Disabled()
+	if err := l.Close(); err != nil {
+		t.Errorf("Close on disabled logger: %v", err)
+	}
+}
+
+func TestLogger_Close_Nil(t *testing.T) {
+	var l *Logger
+	if err := l.Close(); err != nil {
+		t.Errorf("Close on nil logger: %v", err)
+	}
+}

@@ -5,6 +5,7 @@ package startup
 import (
 	"errors"
 	"os"
+	"os/user"
 	"strings"
 	"testing"
 )
@@ -137,6 +138,258 @@ func TestLinuxStartup(t *testing.T) {
 		}
 		if !strings.Contains(err.Error(), "failed to reload daemon") {
 			t.Errorf("Expected reload failure error, got %v", err)
+		}
+	})
+}
+
+func TestLinuxUserStartup(t *testing.T) {
+	originalGetEuid := getEuid
+	originalStat := stat
+	originalLookPath := lookPath
+	originalCurrentUser := currentUserFn
+	originalMkdirAll := osMkdirAll
+	originalWriteFile := osWriteFile
+
+	defer func() {
+		getEuid = originalGetEuid
+		stat = originalStat
+		lookPath = originalLookPath
+		currentUserFn = originalCurrentUser
+		osMkdirAll = originalMkdirAll
+		osWriteFile = originalWriteFile
+	}()
+
+	mockStatExists := func(_ string) (os.FileInfo, error) { return nil, nil }
+
+	fakeUser := &user.User{
+		Username: "testuser",
+		HomeDir:  t.TempDir(),
+		Uid:      "1000",
+	}
+
+	setupUserMode := func() {
+		getEuid = func() int { return 1000 }
+		stat = mockStatExists
+		lookPath = func(file string) (string, error) {
+			if file == "systemctl" {
+				return "/usr/bin/systemctl", nil
+			}
+			return "", errors.New("not found")
+		}
+		currentUserFn = func() (*user.User, error) { return fakeUser, nil }
+		osMkdirAll = func(_ string, _ os.FileMode) error { return nil }
+		osWriteFile = func(_ string, _ []byte, _ os.FileMode) error { return nil }
+	}
+
+	t.Run("lynxd in PATH", func(t *testing.T) {
+		setupUserMode()
+		lookPath = func(file string) (string, error) {
+			switch file {
+			case "systemctl":
+				return "/usr/bin/systemctl", nil
+			case "lynxd":
+				return "/usr/local/bin/lynxd", nil
+			}
+			return "", errors.New("not found")
+		}
+
+		var writtenContent string
+		osWriteFile = func(_ string, data []byte, _ os.FileMode) error {
+			writtenContent = string(data)
+			return nil
+		}
+
+		runner := &MockRunner{}
+		if err := Run(runner, []string{}); err != nil {
+			t.Fatalf("expected success, got: %v", err)
+		}
+
+		if !strings.Contains(writtenContent, "ExecStart=") {
+			t.Error("unit file missing ExecStart")
+		}
+		if !strings.Contains(writtenContent, "[Service]") {
+			t.Error("unit file missing [Service] section")
+		}
+		if !strings.Contains(writtenContent, "Restart=always") {
+			t.Error("unit file missing Restart=always")
+		}
+
+		expectedCalls := []string{
+			"loginctl enable-linger testuser",
+			"systemctl --user daemon-reload",
+			"systemctl --user enable --now lynxd",
+		}
+		if len(runner.Calls) != len(expectedCalls) {
+			t.Fatalf("expected %d calls, got %d: %v", len(expectedCalls), len(runner.Calls), runner.Calls)
+		}
+		for i, call := range runner.Calls {
+			if call != expectedCalls[i] {
+				t.Errorf("call %d: got %q, want %q", i, call, expectedCalls[i])
+			}
+		}
+	})
+
+	t.Run("lynxd fallback to /usr/sbin/lynxd", func(t *testing.T) {
+		setupUserMode()
+		lookPath = func(file string) (string, error) {
+			if file == "systemctl" {
+				return "/usr/bin/systemctl", nil
+			}
+			return "", errors.New("not found")
+		}
+		stat = func(path string) (os.FileInfo, error) {
+			if path == "/run/systemd/system" {
+				return nil, nil
+			}
+			if path == "/usr/sbin/lynxd" {
+				return nil, nil
+			}
+			return nil, os.ErrNotExist
+		}
+
+		var writtenContent string
+		osWriteFile = func(_ string, data []byte, _ os.FileMode) error {
+			writtenContent = string(data)
+			return nil
+		}
+
+		runner := &MockRunner{}
+		if err := Run(runner, []string{}); err != nil {
+			t.Fatalf("expected success, got: %v", err)
+		}
+		if !strings.Contains(writtenContent, "/usr/sbin/lynxd") {
+			t.Errorf("unit file should reference /usr/sbin/lynxd, got:\n%s", writtenContent)
+		}
+	})
+
+	t.Run("lynxd fallback to /usr/local/bin/lynxd", func(t *testing.T) {
+		setupUserMode()
+		lookPath = func(file string) (string, error) {
+			if file == "systemctl" {
+				return "/usr/bin/systemctl", nil
+			}
+			return "", errors.New("not found")
+		}
+		stat = func(path string) (os.FileInfo, error) {
+			if path == "/run/systemd/system" {
+				return nil, nil
+			}
+			if path == "/usr/local/bin/lynxd" {
+				return nil, nil
+			}
+			return nil, os.ErrNotExist
+		}
+
+		var writtenContent string
+		osWriteFile = func(_ string, data []byte, _ os.FileMode) error {
+			writtenContent = string(data)
+			return nil
+		}
+
+		runner := &MockRunner{}
+		if err := Run(runner, []string{}); err != nil {
+			t.Fatalf("expected success, got: %v", err)
+		}
+		if !strings.Contains(writtenContent, "/usr/local/bin/lynxd") {
+			t.Errorf("unit file should reference /usr/local/bin/lynxd, got:\n%s", writtenContent)
+		}
+	})
+
+	t.Run("lynxd not found anywhere", func(t *testing.T) {
+		setupUserMode()
+		lookPath = func(file string) (string, error) {
+			if file == "systemctl" {
+				return "/usr/bin/systemctl", nil
+			}
+			return "", errors.New("not found")
+		}
+		stat = func(path string) (os.FileInfo, error) {
+			if path == "/run/systemd/system" {
+				return nil, nil
+			}
+			return nil, os.ErrNotExist
+		}
+
+		runner := &MockRunner{}
+		err := Run(runner, []string{})
+		if err == nil {
+			t.Fatal("expected error when lynxd not found")
+		}
+		if !strings.Contains(err.Error(), "lynxd binary not found") {
+			t.Errorf("unexpected error: %v", err)
+		}
+	})
+
+	t.Run("linger failure is warning, not error", func(t *testing.T) {
+		setupUserMode()
+		lookPath = func(file string) (string, error) {
+			switch file {
+			case "systemctl":
+				return "/usr/bin/systemctl", nil
+			case "lynxd":
+				return "/usr/bin/lynxd", nil
+			}
+			return "", errors.New("not found")
+		}
+
+		runner := &MockRunner{
+			Responses: map[string]MockResult{
+				"loginctl enable-linger": {Err: errors.New("permission denied"), Stderr: "not allowed"},
+			},
+		}
+		if err := Run(runner, []string{}); err != nil {
+			t.Errorf("linger failure should not abort startup, got: %v", err)
+		}
+	})
+
+	t.Run("daemon-reload failure returns error", func(t *testing.T) {
+		setupUserMode()
+		lookPath = func(file string) (string, error) {
+			switch file {
+			case "systemctl":
+				return "/usr/bin/systemctl", nil
+			case "lynxd":
+				return "/usr/bin/lynxd", nil
+			}
+			return "", errors.New("not found")
+		}
+
+		runner := &MockRunner{
+			Responses: map[string]MockResult{
+				"systemctl --user daemon-reload": {Err: errors.New("failed"), Stderr: "access denied"},
+			},
+		}
+		err := Run(runner, []string{})
+		if err == nil {
+			t.Fatal("expected error for daemon-reload failure")
+		}
+		if !strings.Contains(err.Error(), "failed to reload user daemon") {
+			t.Errorf("unexpected error: %v", err)
+		}
+	})
+
+	t.Run("write unit file failure returns error", func(t *testing.T) {
+		setupUserMode()
+		lookPath = func(file string) (string, error) {
+			switch file {
+			case "systemctl":
+				return "/usr/bin/systemctl", nil
+			case "lynxd":
+				return "/usr/bin/lynxd", nil
+			}
+			return "", errors.New("not found")
+		}
+		osWriteFile = func(_ string, _ []byte, _ os.FileMode) error {
+			return errors.New("disk full")
+		}
+
+		runner := &MockRunner{}
+		err := Run(runner, []string{})
+		if err == nil {
+			t.Fatal("expected error for write failure")
+		}
+		if !strings.Contains(err.Error(), "failed to write unit file") {
+			t.Errorf("unexpected error: %v", err)
 		}
 	})
 }

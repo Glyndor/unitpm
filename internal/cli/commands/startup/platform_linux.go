@@ -15,9 +15,12 @@ import (
 )
 
 var (
-	getEuid  = os.Geteuid
-	stat     = os.Stat
-	lookPath = exec.LookPath
+	getEuid       = os.Geteuid
+	stat          = os.Stat
+	lookPath      = exec.LookPath
+	currentUserFn = user.Current
+	osMkdirAll    = os.MkdirAll
+	osWriteFile   = os.WriteFile
 )
 
 // systemdUserUnit is the template for the user-level systemd service.
@@ -78,7 +81,7 @@ func runSystemStartup(runner Runner) error {
 }
 
 func runUserStartup(runner Runner) error {
-	currentUser, err := user.Current()
+	currentUser, err := currentUserFn()
 	if err != nil {
 		return fmt.Errorf("failed to get current user: %w", err)
 	}
@@ -86,16 +89,16 @@ func runUserStartup(runner Runner) error {
 	fmt.Printf("Detected user mode (%s). Installing user daemon...\n", currentUser.Username)
 
 	configDir := filepath.Join(currentUser.HomeDir, ".config", "systemd", "user")
-	if err := os.MkdirAll(configDir, 0755); err != nil {
+	if err := osMkdirAll(configDir, 0755); err != nil {
 		return fmt.Errorf("failed to create config dir: %w", err)
 	}
 
-	lynxdPath, err := exec.LookPath("lynxd")
+	lynxdPath, err := lookPath("lynxd")
 	if err != nil {
 		// Fall back to common install locations when PATH lookup fails.
-		if _, err := os.Stat("/usr/sbin/lynxd"); err == nil {
+		if _, err := stat("/usr/sbin/lynxd"); err == nil {
 			lynxdPath = "/usr/sbin/lynxd"
-		} else if _, err := os.Stat("/usr/local/bin/lynxd"); err == nil {
+		} else if _, err := stat("/usr/local/bin/lynxd"); err == nil {
 			lynxdPath = "/usr/local/bin/lynxd"
 		} else {
 			return errors.New("lynxd binary not found. Please install Lynx correctly")
@@ -107,7 +110,7 @@ func runUserStartup(runner Runner) error {
 	unitContent := fmt.Sprintf(systemdUserUnit, lynxdPath, "")
 
 	unitPath := filepath.Join(configDir, "lynxd.service")
-	if err := os.WriteFile(unitPath, []byte(unitContent), 0644); err != nil {
+	if err := osWriteFile(unitPath, []byte(unitContent), 0644); err != nil {
 		return fmt.Errorf("failed to write unit file: %w", err)
 	}
 	fmt.Printf("Created unit file at %s\n", unitPath)

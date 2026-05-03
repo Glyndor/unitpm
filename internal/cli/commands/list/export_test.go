@@ -10,3 +10,8 @@ var (
 	ShortIDLen      = shortIDLen
 	FilterProcesses = filterProcesses
 )
+
+var (
+	WaitUpdateAndNotify = waitUpdateAndNotify
+	PrintUpdateBanner   = printUpdateBanner
+)

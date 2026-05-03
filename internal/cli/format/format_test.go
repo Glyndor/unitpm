@@ -84,3 +84,28 @@ func TestTimestampParses(t *testing.T) {
 		t.Errorf("Timestamp = %q, missing relative form", got)
 	}
 }
+
+func TestUptimeExact_Zero(t *testing.T) {
+	got := format.UptimeExact(0)
+	if got == "" {
+		t.Error("UptimeExact(0) should return dimmed dash, got empty")
+	}
+}
+
+func TestUptimeExact_Negative(t *testing.T) {
+	got := format.UptimeExact(-1)
+	if got == "" {
+		t.Error("UptimeExact(-1) should return dimmed dash, got empty")
+	}
+}
+
+func TestUptimeExact_Positive(t *testing.T) {
+	// 61 seconds = "1m 1s"
+	got := format.UptimeExact(61_000)
+	if !strings.Contains(got, "1m 1s") {
+		t.Errorf("UptimeExact(61000) = %q, want to contain '1m 1s'", got)
+	}
+	if !strings.Contains(got, "61000 ms") {
+		t.Errorf("UptimeExact(61000) = %q, want to contain '61000 ms'", got)
+	}
+}
