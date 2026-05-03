@@ -1,6 +1,6 @@
 ---
 title: Architecture
-description: "How Lynx is structured: CLI, daemon, IPC, systemd generation, restore on boot."
+description: Lynx process manager architecture — lynxpm CLI and lynxd daemon over a Unix socket, systemd transient unit generation, IPC protocol, and restore-on-boot flow.
 ---
 
 

@@ -1,6 +1,6 @@
 ---
 title: "lynxpm stop"
-description: "Stop one or more running processes"
+description: Stop one or more Lynx-managed processes. Supports names, namespace selectors (--namespace), and glob patterns. Stopped processes can be restarted later.
 sidebar:
   label: stop
 ---

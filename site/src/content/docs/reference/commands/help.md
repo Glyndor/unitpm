@@ -1,6 +1,6 @@
 ---
 title: "lynxpm help"
-description: "Display help information about Lynx commands"
+description: Show usage, flags, and examples for any Lynx CLI command. Run lynxpm help followed by a command name for detailed documentation on flags and options.
 sidebar:
   label: help
 ---

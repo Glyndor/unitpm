@@ -1,6 +1,6 @@
 ---
 title: Introduction
-description: What Lynx is, why it exists, and how it fits into the Linux process-manager landscape.
+description: Lynx is a systemd-native process manager for Linux — 15 MB idle, 8 ms cold start. Secure alternative to PM2 and Supervisor with DynamicUser + landlock sandboxing.
 ---
 
 Lynx is a **process manager for Linux** — spawn, supervise, restart, and
@@ -44,6 +44,6 @@ the wheel.
 
 ## Next
 
-- [Install](/start/install/)
-- [Quickstart](/start/quickstart/)
-- [Access model](/start/access-model/) — system vs. user mode
+- [Install](./install/)
+- [Quickstart](./quickstart/)
+- [Access model](./access-model/) — system vs. user mode

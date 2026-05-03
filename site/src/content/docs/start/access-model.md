@@ -1,6 +1,6 @@
 ---
 title: Access model
-description: System-mode vs user-mode daemon, the unix-socket permissions, and the lynxadm group.
+description: Lynx system-mode daemon runs as the lynx user under systemd. User-mode runs per-UID. Learn socket paths, lynxadm group permissions, and privilege boundaries.
 ---
 
 Lynx runs in one of two modes. Pick based on who should own the
@@ -60,5 +60,5 @@ pin it explicitly.
 
 ## Related
 
-- [Install](/start/install/) — how the `.deb` wires this up.
-- Security model — the [security reference](/reference/security/).
+- [Install](./install/) — how the `.deb` wires this up.
+- Security model — the [security reference](../reference/security/).

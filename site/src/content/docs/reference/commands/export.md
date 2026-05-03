@@ -1,6 +1,6 @@
 ---
 title: "lynxpm export"
-description: "Export all applications in a namespace to a Lynxfile YAML document"
+description: Export running Lynx processes to a Lynxfile YAML document. Capture the exact spec of all apps in a namespace for reproducible, version-controlled deploys.
 sidebar:
   label: export
 ---

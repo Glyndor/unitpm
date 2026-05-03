@@ -1,6 +1,6 @@
 ---
 title: "lynxpm monit"
-description: "Display live statistics for all managed processes"
+description: Live CPU, memory, and uptime dashboard for all Lynx-managed processes. Refreshes in-place in the terminal. Use --json for machine-readable metric output.
 sidebar:
   label: monit
 ---

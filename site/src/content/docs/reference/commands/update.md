@@ -1,6 +1,6 @@
 ---
 title: "lynxpm update"
-description: "Check for updates and apply them"
+description: Check for and apply updates to Lynx process manager. Downloads the latest release from GitHub and replaces the installed binary. Process state is preserved.
 sidebar:
   label: update
 ---

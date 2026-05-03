@@ -1,6 +1,6 @@
 ---
 title: Lynx process manager vs PM2
-description: Detailed comparison of Lynx process manager vs PM2. Benchmarks, feature differences, and migration guide for Linux servers.
+description: Lynx process manager vs PM2 — benchmark comparison (47x faster cold start, 4.5x less memory), feature differences, and migration guide for Linux.
 ---
 
 Lynx is a systemd-native process manager for Linux written in Go. PM2 is a Node.js-based process manager. This page compares them across performance, architecture, security, and day-to-day usage.
@@ -133,6 +133,6 @@ lynxpm list
 
 ## See also
 
-- [Lynx vs Supervisor](/Lynx/guides/vs-supervisor/)
-- [Install Lynx](/Lynx/start/install/)
-- [Quickstart](/Lynx/start/quickstart/)
+- [Lynx vs Supervisor](./vs-supervisor/)
+- [Install Lynx](../start/install/)
+- [Quickstart](../start/quickstart/)

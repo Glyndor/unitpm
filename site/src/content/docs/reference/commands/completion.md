@@ -1,6 +1,6 @@
 ---
 title: "lynxpm completion"
-description: "Emit a shell completion script for bash, zsh, or fish"
+description: Generate shell completion scripts for the Lynx CLI (lynxpm) for bash, zsh, or fish. Enables tab-completion for all commands, flags, and process names.
 sidebar:
   label: completion
 ---

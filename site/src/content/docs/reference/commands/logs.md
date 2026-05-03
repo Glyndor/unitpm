@@ -1,6 +1,6 @@
 ---
 title: "lynxpm logs"
-description: "View and follow process log files managed by Lynx"
+description: View and follow stdout and stderr log files for Lynx-managed processes. Supports live --follow mode, --lines limit, and --stdout / --stderr stream filtering.
 sidebar:
   label: logs
 ---

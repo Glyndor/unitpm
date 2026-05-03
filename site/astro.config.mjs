@@ -99,6 +99,8 @@ export default defineConfig({
 						{ label: 'FAQ', slug: 'guides/faq' },
 						{ label: 'Lynx vs PM2', slug: 'guides/vs-pm2' },
 						{ label: 'Lynx vs Supervisor', slug: 'guides/vs-supervisor' },
+						{ label: 'systemd-native', slug: 'guides/systemd-process-manager' },
+						{ label: 'Lightweight & fast', slug: 'guides/lightweight-process-manager' },
 					],
 				},
 				{

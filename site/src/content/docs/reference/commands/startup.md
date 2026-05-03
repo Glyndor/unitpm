@@ -1,6 +1,6 @@
 ---
 title: "lynxpm startup"
-description: "Generate and install the system startup script for Lynx"
+description: Install the Lynx daemon as a systemd service that starts on boot and restores all managed processes after a reboot. Supports system and user mode.
 sidebar:
   label: startup
 ---

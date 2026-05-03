@@ -1,6 +1,6 @@
 ---
 title: "lynxpm reset"
-description: "Zero the Restarts counter for a process without stopping or restarting it"
+description: Zero the restart counter for a Lynx process without stopping it. Useful after resolving a crash loop to clear the counter before re-evaluating restart limits.
 sidebar:
   label: reset
 ---

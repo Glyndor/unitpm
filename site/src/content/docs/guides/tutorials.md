@@ -1,6 +1,6 @@
 ---
 title: Tutorials
-description: "Real-world deployments: Next.js, Express, FastAPI, Django, production hardening, Lynxfile."
+description: Lynx process manager tutorials — deploying Next.js, Express, FastAPI, Django, production hardening with namespaces, and declarative Lynxfile config.
 ---
 
 

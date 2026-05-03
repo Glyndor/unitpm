@@ -1,6 +1,6 @@
 ---
 title: Install
-description: Install Lynx on Debian, Ubuntu, or any Linux distro via the prebuilt binary.
+description: Install Lynx process manager on Debian, Ubuntu, or any systemd Linux. Prebuilt .deb for amd64 and arm64, static binary download, or build from Go source.
 ---
 
 Pick the path that matches your target machine.
@@ -74,5 +74,5 @@ gh release download --repo Jaro-c/Lynx --pattern 'lynxpm_linux_amd64*'
 
 ## Next
 
-- [Quickstart](/start/quickstart/) — run your first process.
-- [Access model](/start/access-model/) — system-mode vs user-mode daemon.
+- [Quickstart](./quickstart/) — run your first process.
+- [Access model](./access-model/) — system-mode vs user-mode daemon.

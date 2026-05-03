@@ -1,6 +1,6 @@
 ---
 title: "lynxpm start"
-description: "Start a new process managed by Lynx"
+description: Start a new process under Lynx with restart policy, namespace, resource limits, and sandboxing. Supervision is delegated to systemd for crash resilience.
 sidebar:
   label: start
 ---
