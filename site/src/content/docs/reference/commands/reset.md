@@ -1,6 +1,11 @@
 ---
 title: "lynxpm reset"
 description: Zero the restart counter for a Lynx process without stopping it. Useful after resolving a crash loop to clear the counter before re-evaluating restart limits.
+head:
+  - tag: script
+    attrs:
+      type: application/ld+json
+    content: '{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Lynx","item":"https://jaro-c.github.io/Lynx/"},{"@type":"ListItem","position":2,"name":"Reference","item":"https://jaro-c.github.io/Lynx/reference/architecture/"},{"@type":"ListItem","position":3,"name":"lynxpm reset","item":"https://jaro-c.github.io/Lynx/reference/commands/reset/"}]}'
 sidebar:
   label: reset
 ---

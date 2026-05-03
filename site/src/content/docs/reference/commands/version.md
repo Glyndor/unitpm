@@ -1,6 +1,11 @@
 ---
 title: "lynxpm version"
 description: Show version numbers for the Lynx CLI (lynxpm), daemon (lynxd), and IPC protocol. Pass --json for machine-readable output suitable for scripts and CI.
+head:
+  - tag: script
+    attrs:
+      type: application/ld+json
+    content: '{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Lynx","item":"https://jaro-c.github.io/Lynx/"},{"@type":"ListItem","position":2,"name":"Reference","item":"https://jaro-c.github.io/Lynx/reference/architecture/"},{"@type":"ListItem","position":3,"name":"lynxpm version","item":"https://jaro-c.github.io/Lynx/reference/commands/version/"}]}'
 sidebar:
   label: version
 ---

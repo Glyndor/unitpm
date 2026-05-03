@@ -1,6 +1,11 @@
 ---
 title: "lynxpm list"
 description: List all processes managed by Lynx with status, PID, namespace, restart count, and uptime. Supports --json for scripting and --namespace for filtering.
+head:
+  - tag: script
+    attrs:
+      type: application/ld+json
+    content: '{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Lynx","item":"https://jaro-c.github.io/Lynx/"},{"@type":"ListItem","position":2,"name":"Reference","item":"https://jaro-c.github.io/Lynx/reference/architecture/"},{"@type":"ListItem","position":3,"name":"lynxpm list","item":"https://jaro-c.github.io/Lynx/reference/commands/list/"}]}'
 sidebar:
   label: list
 ---

@@ -1,6 +1,11 @@
 ---
 title: "lynxpm delete"
 description: Delete one or more Lynx-managed processes and remove their stored specs. Use --purge to also remove log files. Supports namespace selectors and globs.
+head:
+  - tag: script
+    attrs:
+      type: application/ld+json
+    content: '{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Lynx","item":"https://jaro-c.github.io/Lynx/"},{"@type":"ListItem","position":2,"name":"Reference","item":"https://jaro-c.github.io/Lynx/reference/architecture/"},{"@type":"ListItem","position":3,"name":"lynxpm delete","item":"https://jaro-c.github.io/Lynx/reference/commands/delete/"}]}'
 sidebar:
   label: delete
 ---

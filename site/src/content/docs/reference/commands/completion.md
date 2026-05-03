@@ -1,6 +1,11 @@
 ---
 title: "lynxpm completion"
 description: Generate shell completion scripts for the Lynx CLI (lynxpm) for bash, zsh, or fish. Enables tab-completion for all commands, flags, and process names.
+head:
+  - tag: script
+    attrs:
+      type: application/ld+json
+    content: '{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Lynx","item":"https://jaro-c.github.io/Lynx/"},{"@type":"ListItem","position":2,"name":"Reference","item":"https://jaro-c.github.io/Lynx/reference/architecture/"},{"@type":"ListItem","position":3,"name":"lynxpm completion","item":"https://jaro-c.github.io/Lynx/reference/commands/completion/"}]}'
 sidebar:
   label: completion
 ---

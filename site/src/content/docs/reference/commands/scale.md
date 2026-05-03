@@ -1,6 +1,11 @@
 ---
 title: "lynxpm scale"
 description: Grow or shrink a Lynx-managed app to a target number of parallel instances. Running instances are preserved; only the delta is started or stopped in-place.
+head:
+  - tag: script
+    attrs:
+      type: application/ld+json
+    content: '{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Lynx","item":"https://jaro-c.github.io/Lynx/"},{"@type":"ListItem","position":2,"name":"Reference","item":"https://jaro-c.github.io/Lynx/reference/architecture/"},{"@type":"ListItem","position":3,"name":"lynxpm scale","item":"https://jaro-c.github.io/Lynx/reference/commands/scale/"}]}'
 sidebar:
   label: scale
 ---

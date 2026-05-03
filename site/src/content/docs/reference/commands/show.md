@@ -1,6 +1,11 @@
 ---
 title: "lynxpm show"
 description: Show detailed runtime and spec for a single Lynx process — PID, uptime, restart history, resource limits, environment variables, and isolation mode.
+head:
+  - tag: script
+    attrs:
+      type: application/ld+json
+    content: '{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Lynx","item":"https://jaro-c.github.io/Lynx/"},{"@type":"ListItem","position":2,"name":"Reference","item":"https://jaro-c.github.io/Lynx/reference/architecture/"},{"@type":"ListItem","position":3,"name":"lynxpm show","item":"https://jaro-c.github.io/Lynx/reference/commands/show/"}]}'
 sidebar:
   label: show
 ---

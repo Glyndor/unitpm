@@ -1,6 +1,11 @@
 ---
 title: "lynxpm startup"
 description: Install the Lynx daemon as a systemd service that starts on boot and restores all managed processes after a reboot. Supports system and user mode.
+head:
+  - tag: script
+    attrs:
+      type: application/ld+json
+    content: '{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Lynx","item":"https://jaro-c.github.io/Lynx/"},{"@type":"ListItem","position":2,"name":"Reference","item":"https://jaro-c.github.io/Lynx/reference/architecture/"},{"@type":"ListItem","position":3,"name":"lynxpm startup","item":"https://jaro-c.github.io/Lynx/reference/commands/startup/"}]}'
 sidebar:
   label: startup
 ---

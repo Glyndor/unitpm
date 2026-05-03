@@ -1,6 +1,11 @@
 ---
 title: "lynxpm restart"
 description: Restart one or more Lynx-managed processes. Supports individual names, bulk restart by namespace (--namespace prod), and glob selectors such as 'prod:*'.
+head:
+  - tag: script
+    attrs:
+      type: application/ld+json
+    content: '{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Lynx","item":"https://jaro-c.github.io/Lynx/"},{"@type":"ListItem","position":2,"name":"Reference","item":"https://jaro-c.github.io/Lynx/reference/architecture/"},{"@type":"ListItem","position":3,"name":"lynxpm restart","item":"https://jaro-c.github.io/Lynx/reference/commands/restart/"}]}'
 sidebar:
   label: restart
 ---

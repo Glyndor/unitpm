@@ -54,26 +54,6 @@ export default defineConfig({
 					attrs: { type: 'application/ld+json' },
 					content: JSON.stringify({
 						'@context': 'https://schema.org',
-						'@type': 'SoftwareApplication',
-						name: 'Lynx',
-						alternateName: 'Lynx process manager',
-						description:
-							'Systemd-native process manager for Linux. Compiled Go daemon — 15 MB idle, 8 ms cold start, DynamicUser + landlock sandboxing, zero-privilege deploy.',
-						applicationCategory: 'DeveloperApplication',
-						operatingSystem: 'Linux',
-						softwareVersion: '0.9.8',
-						keywords: 'process manager, Linux, systemd, PM2 alternative, supervisor alternative, Go, daemon',
-						offers: { '@type': 'Offer', price: '0' },
-						downloadUrl: 'https://github.com/Jaro-c/Lynx/releases',
-						url: 'https://jaro-c.github.io/Lynx/',
-						sameAs: ['https://github.com/Jaro-c/Lynx'],
-					}),
-				},
-				{
-					tag: 'script',
-					attrs: { type: 'application/ld+json' },
-					content: JSON.stringify({
-						'@context': 'https://schema.org',
 						'@type': 'Organization',
 						name: 'Lynx',
 						url: 'https://jaro-c.github.io/Lynx/',

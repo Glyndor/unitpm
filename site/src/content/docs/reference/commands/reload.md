@@ -1,6 +1,11 @@
 ---
 title: "lynxpm reload"
 description: Reload a Lynx process spec from stored configuration and restart it. Applies updated flags or environment variables without recreating the process record.
+head:
+  - tag: script
+    attrs:
+      type: application/ld+json
+    content: '{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Lynx","item":"https://jaro-c.github.io/Lynx/"},{"@type":"ListItem","position":2,"name":"Reference","item":"https://jaro-c.github.io/Lynx/reference/architecture/"},{"@type":"ListItem","position":3,"name":"lynxpm reload","item":"https://jaro-c.github.io/Lynx/reference/commands/reload/"}]}'
 sidebar:
   label: reload
 ---
