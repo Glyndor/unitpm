@@ -1,6 +1,11 @@
 ---
 title: "lynxpm flush"
 description: Truncate stdout and stderr log files for a Lynx-managed process. Frees disk space without stopping the process or affecting future log capture.
+head:
+  - tag: script
+    attrs:
+      type: application/ld+json
+    content: '{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Lynx","item":"https://jaro-c.github.io/Lynx/"},{"@type":"ListItem","position":2,"name":"Reference","item":"https://jaro-c.github.io/Lynx/reference/architecture/"},{"@type":"ListItem","position":3,"name":"lynxpm flush","item":"https://jaro-c.github.io/Lynx/reference/commands/flush/"}]}'
 sidebar:
   label: flush
 ---

@@ -1,6 +1,11 @@
 ---
 title: "lynxpm start"
 description: Start a new process under Lynx with restart policy, namespace, resource limits, and sandboxing. Supervision is delegated to systemd for crash resilience.
+head:
+  - tag: script
+    attrs:
+      type: application/ld+json
+    content: '{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Lynx","item":"https://jaro-c.github.io/Lynx/"},{"@type":"ListItem","position":2,"name":"Reference","item":"https://jaro-c.github.io/Lynx/reference/architecture/"},{"@type":"ListItem","position":3,"name":"lynxpm start","item":"https://jaro-c.github.io/Lynx/reference/commands/start/"}]}'
 sidebar:
   label: start
 ---

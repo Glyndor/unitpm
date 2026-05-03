@@ -1,6 +1,11 @@
 ---
 title: "lynxpm install-tools"
 description: Symlink Node.js, Bun, Go, Python and other runtimes to /usr/local/bin so the Lynx daemon can find them. Required when binaries are absent from the system PATH.
+head:
+  - tag: script
+    attrs:
+      type: application/ld+json
+    content: '{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Lynx","item":"https://jaro-c.github.io/Lynx/"},{"@type":"ListItem","position":2,"name":"Reference","item":"https://jaro-c.github.io/Lynx/reference/architecture/"},{"@type":"ListItem","position":3,"name":"lynxpm install-tools","item":"https://jaro-c.github.io/Lynx/reference/commands/install-tools/"}]}'
 sidebar:
   label: install-tools
 ---

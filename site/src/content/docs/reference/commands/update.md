@@ -1,6 +1,11 @@
 ---
 title: "lynxpm update"
 description: Check for and apply updates to Lynx process manager. Downloads the latest release from GitHub and replaces the installed binary. Process state is preserved.
+head:
+  - tag: script
+    attrs:
+      type: application/ld+json
+    content: '{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Lynx","item":"https://jaro-c.github.io/Lynx/"},{"@type":"ListItem","position":2,"name":"Reference","item":"https://jaro-c.github.io/Lynx/reference/architecture/"},{"@type":"ListItem","position":3,"name":"lynxpm update","item":"https://jaro-c.github.io/Lynx/reference/commands/update/"}]}'
 sidebar:
   label: update
 ---
