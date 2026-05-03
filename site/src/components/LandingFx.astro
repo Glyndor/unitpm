@@ -13,11 +13,13 @@ const revealTargets = document.querySelectorAll(
 revealTargets.forEach((el) => el.classList.add('lx-reveal'));
 
 if (!prefersReduced && 'IntersectionObserver' in window) {
+  const domIndex = new Map([...revealTargets].map((el, i) => [el, i]));
   const io = new IntersectionObserver(
     (entries) => {
-      entries.forEach((entry, i) => {
+      entries.forEach((entry) => {
         if (entry.isIntersecting) {
           const target = entry.target as HTMLElement;
+          const i = domIndex.get(target) ?? 0;
           target.style.transitionDelay = `${Math.min(i, 5) * 60}ms`;
           target.classList.add('is-in');
           io.unobserve(target);
