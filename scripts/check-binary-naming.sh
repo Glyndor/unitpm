@@ -83,6 +83,9 @@ ALLOW_SUBSTRINGS=(
   # backward-compat upgrade fallbacks (legacy debian tests probe both)
   'lynx.polkit.rules'
 
+  # docs example for systemd unit naming convention (lynx-{processname}.service)
+  'lynx-api'
+
   # bench scenario tag (product name)
   'lynx-bench'
 
