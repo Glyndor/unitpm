@@ -5,6 +5,7 @@ package transport_test
 import (
 	"context"
 	"errors"
+	"net"
 	"os"
 	"strconv"
 	"strings"
@@ -317,5 +318,120 @@ func TestServerRecoverFromHandlerPanic(t *testing.T) {
 	}
 	if result["response"] != "pong" {
 		t.Errorf("Unexpected response after panic: got %v, want pong", result)
+	}
+}
+
+func TestHasHandler(t *testing.T) {
+	setupTestSocket(t)
+	server := transport.NewServer()
+	server.Register("ping", func(_ context.Context, _ jsonx.RawMessage) (jsonx.RawMessage, error) {
+		return jsonx.Marshal("pong")
+	})
+
+	if !server.HasHandler("ping") {
+		t.Error("HasHandler(ping) = false, want true")
+	}
+	if server.HasHandler("nonexistent") {
+		t.Error("HasHandler(nonexistent) = true, want false")
+	}
+}
+
+func TestResponseDecoder(t *testing.T) {
+	setupTestSocket(t)
+	server := transport.NewServer()
+	server.Register("echo", func(_ context.Context, p jsonx.RawMessage) (jsonx.RawMessage, error) {
+		return p, nil
+	})
+	if err := server.Start(); err != nil {
+		t.Fatalf("start: %v", err)
+	}
+	defer func() { _ = server.Close() }()
+	time.Sleep(50 * time.Millisecond)
+
+	client, err := transport.NewClient()
+	if err != nil {
+		t.Fatalf("client: %v", err)
+	}
+	defer func() { _ = client.Close() }()
+
+	var result string
+	if err := client.Call("echo", "hello", &result); err != nil {
+		t.Fatalf("echo: %v", err)
+	}
+	if result != "hello" {
+		t.Errorf("result = %q, want hello", result)
+	}
+}
+
+func TestDispatchStart_ProtocolMismatch(t *testing.T) {
+	setupTestSocket(t)
+	server := transport.NewServer()
+	if err := server.Start(); err != nil {
+		t.Fatalf("start: %v", err)
+	}
+	defer func() { _ = server.Close() }()
+	time.Sleep(50 * time.Millisecond)
+
+	// Connect manually and send a "start" type message with wrong protocol version.
+	path, err := transport.GetSocketPath()
+	if err != nil {
+		t.Fatalf("socket path: %v", err)
+	}
+	conn, err := net.Dial("unix", path)
+	if err != nil {
+		t.Fatalf("dial: %v", err)
+	}
+	defer conn.Close()
+
+	req := `{"type":"start","protocol_version":0,"request_id":"test-req-1"}` + "\n"
+	if _, err := conn.Write([]byte(req)); err != nil {
+		t.Fatalf("write: %v", err)
+	}
+
+	buf := make([]byte, 4096)
+	n, err := conn.Read(buf)
+	if err != nil {
+		t.Fatalf("read: %v", err)
+	}
+	resp := string(buf[:n])
+	if !strings.Contains(resp, "PROTOCOL_MISMATCH") {
+		t.Errorf("expected PROTOCOL_MISMATCH in response, got: %s", resp)
+	}
+}
+
+func TestDispatchStart_NoHandler(t *testing.T) {
+	setupTestSocket(t)
+	server := transport.NewServer()
+	// Do NOT register "start" handler.
+	if err := server.Start(); err != nil {
+		t.Fatalf("start: %v", err)
+	}
+	defer func() { _ = server.Close() }()
+	time.Sleep(50 * time.Millisecond)
+
+	path, err := transport.GetSocketPath()
+	if err != nil {
+		t.Fatalf("socket path: %v", err)
+	}
+	conn, err := net.Dial("unix", path)
+	if err != nil {
+		t.Fatalf("dial: %v", err)
+	}
+	defer conn.Close()
+
+	// Send valid protocol version. Transport version is 1.
+	req := `{"type":"start","protocol_version":1,"request_id":"test-req-2"}` + "\n"
+	if _, err := conn.Write([]byte(req)); err != nil {
+		t.Fatalf("write: %v", err)
+	}
+
+	buf := make([]byte, 4096)
+	n, err := conn.Read(buf)
+	if err != nil {
+		t.Fatalf("read: %v", err)
+	}
+	resp := string(buf[:n])
+	if !strings.Contains(resp, "UNKNOWN_COMMAND") {
+		t.Errorf("expected UNKNOWN_COMMAND in response, got: %s", resp)
 	}
 }
