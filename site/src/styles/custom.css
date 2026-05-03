@@ -263,6 +263,16 @@ body:has(.lx-hero) h1#_top {
 	margin: 2.25rem 0 0;
 }
 
+@media (max-width: 480px) {
+	.lx-hero__stats {
+		grid-template-columns: repeat(3, 1fr);
+		gap: 1rem;
+	}
+	.lx-hero__terminal {
+		display: none;
+	}
+}
+
 .lx-hero__stats > div {
 	display: flex;
 	flex-direction: column;
@@ -678,6 +688,7 @@ body:has(.lx-hero) h1#_top {
 .lx-term {
 	transition: transform 320ms cubic-bezier(0.22, 1, 0.36, 1);
 	animation: lx-float 7s ease-in-out infinite;
+	will-change: transform;
 }
 
 @keyframes lx-float {

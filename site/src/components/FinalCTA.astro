@@ -1,6 +1,7 @@
 ---
 // Closing banner — the last thing a skimmer sees before bouncing.
 // One command, one button, done.
+const base = import.meta.env.BASE_URL.replace(/\/$/, '');
 ---
 <section class="lx-cta">
   <div class="lx-cta__inner">
@@ -17,7 +18,7 @@
           <svg class="lx-copy__check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12 L10 17 L19 7"/></svg>
         </button>
       </div>
-      <a class="lx-cta__button" href="/Lynx/start/quickstart/">Read the quickstart →</a>
+      <a class="lx-cta__button" href={`${base}/start/quickstart/`}>Read the quickstart →</a>
     </div>
   </div>
 </section>
