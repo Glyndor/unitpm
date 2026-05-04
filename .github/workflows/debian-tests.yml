@@ -1,15 +1,12 @@
 name: Debian package tests
 
 on:
-  push:
+  # On main: only run after CI passes — no point building .deb if tests failed.
+  workflow_run:
+    workflows: ["CI"]
+    types: [completed]
     branches: [main]
-    paths:
-      - "debian/**"
-      - ".github/workflows/debian-tests.yml"
-      - "cmd/**"
-      - "internal/**"
-      - "go.mod"
-      - "go.sum"
+  # On PRs: run directly with path filtering for fast feedback.
   pull_request:
     branches: [main]
     paths:
@@ -24,11 +21,14 @@ permissions:
   contents: read
 
 concurrency:
-  group: debian-tests-${{ github.ref }}
+  group: debian-tests-${{ github.event.workflow_run.head_sha || github.ref }}
   cancel-in-progress: true
 
 jobs:
   build-deb:
+    if: >
+      github.event_name == 'pull_request' ||
+      (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success')
     name: Build .deb
     runs-on: ubuntu-latest
     steps:
