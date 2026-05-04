@@ -34,22 +34,6 @@
 
 ---
 
-## The Zero-Privilege Deploy
-
-One command spawns an API with no access to `/home`, no new privileges, and
-secrets delivered through systemd credentials instead of environment disk:
-
-```bash
-lynxpm start api.js \
-    --name api \
-    --isolation dynamic \
-    --env-file .env.production
-```
-
-Secrets never appear in `/proc/<pid>/environ`, `ps`, or the on-disk spec.
-
----
-
 ## Quickstart
 
 ### Install — `.deb` (recommended)
@@ -91,6 +75,22 @@ lynxpm delete --namespace old --purge
 
 ---
 
+## The Zero-Privilege Deploy
+
+One command spawns an API with no access to `/home`, no new privileges, and
+secrets delivered through systemd credentials instead of environment disk:
+
+```bash
+lynxpm start api.js \
+    --name api \
+    --isolation dynamic \
+    --env-file .env.production
+```
+
+Secrets never appear in `/proc/<pid>/environ`, `ps`, or the on-disk spec.
+
+---
+
 ## Documentation
 
 📘 **Full docs site: <https://jaro-c.github.io/Lynx/>** — searchable,
@@ -110,25 +110,13 @@ command's flag reference.
 
 ## Access model
 
-- **System mode** (default with the `.deb`) — daemon runs as the `lynx`
-  system user under `systemd`, socket at `/run/lynxd/lynx.sock` (`0660`,
-  group `lynxadm`). Does **not** inherit the caller's env. Use for
-  production.
-- **User mode** — daemon runs under `systemd --user`, socket at
-  `$XDG_RUNTIME_DIR/lynx-<uid>/lynx.sock` (`0600`). Inherits your env.
-  Use for dev.
+| Mode | Socket | Use for |
+|------|--------|---------|
+| **System** (default with `.deb`) | `/run/lynxd/lynx.sock` (`0660`, group `lynxadm`) | Production |
+| **User** | `$XDG_RUNTIME_DIR/lynx-<uid>/lynx.sock` (`0600`) | Dev |
 
-Launch user mode ad-hoc with `lynxd &`, or `sudo lynxpm startup` to
-wire the systemd unit at boot. Details in the [FAQ](docs/FAQ.md).
-
----
-
-## Supported runtimes
-
-Anything you can spawn as a Linux process: Node, Bun, Deno, Python
-(system / venv / `uv` / `uvx`), Go, Rust, Ruby, Java/JVM, PHP, Lua,
-Erlang, shell, and more. Per-runtime recipes in
-[`docs/RUNTIMES.md`](docs/RUNTIMES.md).
+System mode does **not** inherit the caller's env. User mode does.
+Launch user mode ad-hoc with `lynxd &`, or `sudo lynxpm startup` for boot persistence. Details in the [FAQ](docs/FAQ.md).
 
 ---
 
@@ -145,12 +133,9 @@ Erlang, shell, and more. Per-runtime recipes in
 
 ## Development
 
-Lynx is **Linux-only**. Contributors on macOS/Windows should use a
-Linux VM or VS Code Remote-WSL — local editors flag false-positive
-errors without `GOOS=linux`.
+Lynx is **Linux-only**. Contributors on macOS/Windows should use a Linux VM or VS Code Remote-WSL.
 
-See [`CONTRIBUTING.md`](CONTRIBUTING.md) for the full workflow, and
-[`ARCHITECTURE.md`](ARCHITECTURE.md) for the internals.
+See [`CONTRIBUTING.md`](CONTRIBUTING.md) for the full workflow and [`ARCHITECTURE.md`](ARCHITECTURE.md) for the internals.
 
 ---
 
