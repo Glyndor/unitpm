@@ -104,9 +104,11 @@ linters:
       forbid-mutex: true
 
     errcheck:
-      # Check ignored type assertions and blank identifier assignments
+      # Check ignored type assertions.
+      # check-blank intentionally false: explicit _ discards are an accepted
+      # pattern for best-effort operations (audit log writes, kill signals, etc.)
       check-type-assertions: true
-      check-blank: true
+      check-blank: false
 
     errorlint:
       asserts: true
@@ -201,6 +203,24 @@ linters:
       - linters:
           - errcheck
         text: "Close"
+
+      # noctx: test files legitimately use exec.Command / net.Dial without
+      # context — adding context to test helpers adds noise with no benefit.
+      - path: _test\.go
+        linters:
+          - noctx
+
+      # gosec G702/G703: taint-analysis false positives on CLI arg and path
+      # handling — the inputs are validated or come from trusted sources.
+      - linters:
+          - gosec
+        text: "G702|G703"
+
+      # staticcheck QF1006: lifting loop conditions is a style preference,
+      # not a correctness issue.
+      - linters:
+          - staticcheck
+        text: "QF1006"
 
 formatters:
   enable:

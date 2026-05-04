@@ -50,13 +50,13 @@ func listen(path string) (net.Listener, error) {
 		}
 		// Check owner is root or the executing user (e.g. 'lynx')
 		stat_t := info.Sys().(*syscall.Stat_t)
-		expectedUid := uint32(os.Getuid())
+		expectedUID := uint32(os.Getuid())
 
-		if stat_t.Uid != 0 && stat_t.Uid != expectedUid {
+		if stat_t.Uid != 0 && stat_t.Uid != expectedUID {
 			return nil, fmt.Errorf(
 				"socket directory %s is owned by uid %d, "+
 					"expected root (0) or daemon user (%d)",
-				dir, stat_t.Uid, expectedUid)
+				dir, stat_t.Uid, expectedUID)
 		}
 	}
 
@@ -72,12 +72,7 @@ func listen(path string) (net.Listener, error) {
 		g, err := user.LookupGroup("lynxadm")
 		if err == nil {
 			gid, _ := strconv.Atoi(g.Gid)
-			// Change group ownership of the SOCKET
-			if err := os.Chown(path, -1, gid); err != nil {
-				// Log error? We don't have logger here.
-				// But failing to set group might be okay if we are not running as a user who can do it (e.g. dev)
-				// However, in production it should work.
-			}
+			_ = os.Chown(path, -1, gid)
 		}
 
 		// Set permissions to 0660 (rw-rw----)

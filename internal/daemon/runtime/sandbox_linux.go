@@ -64,7 +64,7 @@ func WrapSandbox(ctx context.Context, cmd *exec.Cmd, opts SandboxOptions) (*exec
 	newCmd.Stdin = cmd.Stdin
 
 	// Propagate env plus the config blob.
-	newCmd.Env = append(cmd.Env, execsandbox.ConfigEnvVar()+"="+payload)
+	newCmd.Env = append(cmd.Env, execsandbox.ConfigEnvVar()+"="+payload) //nolint:gocritic // intentional: extend parent env into child without modifying it
 
 	// User + PID + mount namespaces. UID/GID mapped to 0 inside so the
 	// child "feels" like root but has no real privileges.

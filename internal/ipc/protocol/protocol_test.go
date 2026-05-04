@@ -261,10 +261,9 @@ func TestRemoteError_Error(t *testing.T) {
 }
 
 func TestRemoteError_ImplementsError(t *testing.T) {
-	var err error = &protocol.RemoteError{Code: "X", Message: "y"}
-	if err == nil {
-		t.Error("RemoteError should implement error interface")
-	}
+	// Compile-time check: *RemoteError satisfies the error interface.
+	var _ error = (*protocol.RemoteError)(nil)
+	_ = t
 }
 
 func TestStartResponse_ErrorCase(t *testing.T) {

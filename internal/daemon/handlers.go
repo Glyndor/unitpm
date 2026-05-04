@@ -143,7 +143,6 @@ func RegisterHandlers(server *transport.Server, mgr *manager.Manager, privileged
 			if err == nil {
 				targetResolved, err := filepath.EvalSymlinks(appLogDir)
 				if err == nil && paths.WithinRoot(baseResolved, targetResolved) {
-					//nolint:gosec // path is validated to be within allowed log root
 					_ = os.RemoveAll(targetResolved)
 				}
 			}
@@ -412,7 +411,7 @@ func auditEvent(l *audit.Logger, ctx context.Context, action, target, name, ns s
 
 // processMeta best-effort fetches name+namespace for audit enrichment. Empty
 // strings if the process is already gone (e.g. post-delete).
-func processMeta(mgr *manager.Manager, id string) (name, ns string) {
+func processMeta(mgr *manager.Manager, id string) (string, string) {
 	if p, ok := mgr.Get(id); ok {
 		info := p.Info()
 		return info.Name, info.Namespace

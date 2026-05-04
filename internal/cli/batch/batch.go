@@ -31,7 +31,7 @@ import (
 // --key value pairs). Value-taking flags would be misclassified as
 // positionals. Use SplitArgsWithValues when the command accepts
 // value-taking flags like `--namespace prod`.
-func SplitArgs(args []string) (flags, positional []string) {
+func SplitArgs(args []string) ([]string, []string) {
 	return SplitArgsWithValues(args, nil)
 }
 
@@ -41,7 +41,8 @@ func SplitArgs(args []string) (flags, positional []string) {
 // both `--namespace prod` (two tokens) and `--namespace=prod` (one token).
 // Unknown long flags fall back to the boolean-style classification used
 // by SplitArgs.
-func SplitArgsWithValues(args []string, valueFlags map[string]bool) (flags, positional []string) {
+func SplitArgsWithValues(args []string, valueFlags map[string]bool) ([]string, []string) {
+	var flags, positional []string
 	for i := 0; i < len(args); i++ {
 		a := args[i]
 		if len(a) > 1 && strings.HasPrefix(a, "-") {
@@ -193,12 +194,5 @@ func statusMark(ok bool) string {
 }
 
 func joinParts(parts []string) string {
-	out := ""
-	for i, p := range parts {
-		if i > 0 {
-			out += ", "
-		}
-		out += p
-	}
-	return out
+	return strings.Join(parts, ", ")
 }

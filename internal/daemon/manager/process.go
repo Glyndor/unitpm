@@ -272,12 +272,15 @@ func (p *Process) prepareCmd() (*exec.Cmd, error) {
 	var cmd *exec.Cmd
 	if p.spec.Exec.Shell {
 		shellBin := "/bin/sh"
-		shellArgs := []string{"-c"}
-		cmdLine := shellQuote(finalBin)
+		shellArgs := make([]string, 1, 2)
+		shellArgs[0] = "-c"
+		var sb strings.Builder
+		sb.WriteString(shellQuote(finalBin))
 		for _, a := range finalArgs {
-			cmdLine += " " + shellQuote(a)
+			sb.WriteByte(' ')
+			sb.WriteString(shellQuote(a))
 		}
-		cmd = exec.CommandContext(ctx, shellBin, append(shellArgs, cmdLine)...)
+		cmd = exec.CommandContext(ctx, shellBin, append(shellArgs, sb.String())...)
 	} else {
 		cmd = exec.CommandContext(ctx, finalBin, finalArgs...)
 	}
