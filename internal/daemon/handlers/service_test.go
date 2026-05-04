@@ -3,9 +3,9 @@
 package handlers_test
 
 import (
-	"fmt"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"syscall"
 	"testing"
@@ -18,8 +18,8 @@ import (
 
 func selfIdentity() *transport.Identity {
 	return &transport.Identity{
-		UID: fmt.Sprintf("%d", os.Getuid()),
-		GID: fmt.Sprintf("%d", os.Getgid()),
+		UID: strconv.Itoa(os.Getuid()),
+		GID: strconv.Itoa(os.Getgid()),
 		PID: os.Getpid(),
 	}
 }
@@ -202,10 +202,10 @@ func TestValidateEnvFile_ViaStart(t *testing.T) {
 			t.Skip("no syscall.Stat_t")
 		}
 		// Pretend caller is a different non-root UID than the file owner.
-		uid := uint32(stat.Uid) + 1
+		uid := stat.Uid + 1
 		ident := &transport.Identity{
-			UID: fmt.Sprintf("%d", uid),
-			GID: fmt.Sprintf("%d", os.Getgid()),
+			UID: strconv.FormatUint(uint64(uid), 10),
+			GID: strconv.Itoa(os.Getgid()),
 			PID: os.Getpid(),
 		}
 		s := baseSpec()

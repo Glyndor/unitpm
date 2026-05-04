@@ -3,7 +3,6 @@
 package transport_test
 
 import (
-	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -137,7 +136,7 @@ func TestDaemonUnreachableError_UserModeHint(t *testing.T) {
 		t.Fatalf("mkdirall: %v", err)
 	}
 	t.Setenv("LYNX_SOCKET", sockPath)
-	t.Setenv("XDG_RUNTIME_DIR", fmt.Sprintf("%s/run/user/1000", dir))
+	t.Setenv("XDG_RUNTIME_DIR", dir+"/run/user/1000")
 
 	_, err := transport.NewClient()
 	if err == nil {

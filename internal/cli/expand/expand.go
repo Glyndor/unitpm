@@ -13,6 +13,7 @@
 package expand
 
 import (
+	"errors"
 	"fmt"
 	"strings"
 
@@ -106,7 +107,7 @@ func Targets(client transport.IPCClient, ids []string, namespace string) ([]stri
 		switch {
 		case sel.AllProcs:
 			if len(procs) == 0 {
-				return nil, fmt.Errorf("no managed processes")
+				return nil, errors.New("no managed processes")
 			}
 			for _, p := range procs {
 				add(p.ID)
@@ -148,7 +149,7 @@ func expandNamespace(client transport.IPCClient, ns string) ([]string, error) {
 
 func fetchList(client transport.IPCClient) ([]types.ProcessInfo, error) {
 	if client == nil {
-		return nil, fmt.Errorf("internal error: expand requires an IPC client")
+		return nil, errors.New("internal error: expand requires an IPC client")
 	}
 	var procs []types.ProcessInfo
 	if err := client.Call("list", nil, &procs); err != nil {

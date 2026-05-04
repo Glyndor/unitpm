@@ -48,11 +48,10 @@ func Run(client transport.IPCClient, args []string) error {
 	}
 
 	target := rest[1]
-	namespace := ""
 	name := rest[0]
-	if idx := strings.Index(name, ":"); idx != -1 {
-		namespace = name[:idx]
-		name = name[idx+1:]
+	var namespace string
+	if n, after, ok := strings.Cut(name, ":"); ok {
+		namespace, name = n, after
 	}
 	n, err := strconv.Atoi(target)
 	if err != nil || n < 0 {

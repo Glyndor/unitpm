@@ -174,13 +174,14 @@ func wrapText(text string, width int) []string {
 			lines = append(lines, splitLongWord(word, width)...)
 			continue
 		}
-		if currentLen+wordLen+1 > width && currentLen > 0 {
+		switch {
+		case currentLen+wordLen+1 > width && currentLen > 0:
 			lines = append(lines, currentLine)
 			currentLine, currentLen = word, wordLen
-		} else if currentLen > 0 {
+		case currentLen > 0:
 			currentLine += " " + word
 			currentLen += 1 + wordLen
-		} else {
+		default:
 			currentLine, currentLen = word, wordLen
 		}
 	}
@@ -214,20 +215,20 @@ func splitLongWord(word string, width int) []string {
 	return parts
 }
 
-// KV renders a titled key/value table. Rows with an empty value are
-// omitted so callers can pass optional fields unconditionally.
-//
-// Example:
-//
-//	table.KV("Process", [][2]string{
-//	    {"state", "running"},
-//	    {"pid",   "1234"},
-//	})
+// KVRow is a [title, value] pair for use with KV. Rows with an empty value
+// are omitted so callers can supply optional fields unconditionally.
 type KVRow [2]string
 
 // KV prints a 2-column table with the given section title printed above.
 // Empty values are dropped before rendering so the caller can supply
 // optional fields unconditionally.
+//
+// Example:
+//
+//	table.KV("Process", []KVRow{
+//	    {"state", "running"},
+//	    {"pid",   "1234"},
+//	})
 func KV(title string, rows []KVRow) {
 	filtered := rows[:0]
 	for _, r := range rows {

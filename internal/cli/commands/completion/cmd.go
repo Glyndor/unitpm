@@ -2,6 +2,7 @@
 package completion
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -19,7 +20,7 @@ func Run(args []string) error {
 		return nil
 	}
 	if len(args) == 0 {
-		return fmt.Errorf("usage: lynxpm completion <bash|zsh|fish>")
+		return errors.New("usage: lynxpm completion <bash|zsh|fish>")
 	}
 
 	shell := args[0]
