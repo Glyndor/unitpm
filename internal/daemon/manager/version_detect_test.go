@@ -28,7 +28,11 @@ func TestDetectProjectVersion_CargoToml(t *testing.T) {
 
 func TestDetectProjectVersion_PyprojectToml(t *testing.T) {
 	dir := t.TempDir()
-	_ = os.WriteFile(filepath.Join(dir, "pyproject.toml"), []byte("[project]\nname = \"app\"\nversion = \"1.2.3\"\n"), 0600)
+	_ = os.WriteFile(
+		filepath.Join(dir, "pyproject.toml"),
+		[]byte("[project]\nname = \"app\"\nversion = \"1.2.3\"\n"),
+		0600,
+	)
 
 	v := detectProjectVersion(dir)
 	if v != "1.2.3" {

@@ -269,10 +269,10 @@ func (m *Manager) Reset(id string) error {
 // Returns an error if no instance exists to use as template.
 func (m *Manager) Scale(namespace, base string, target int) (*protocol.ScaleResponse, error) {
 	if target < 0 {
-		return nil, fmt.Errorf("ERR_BAD_REQUEST: target count must be >= 0")
+		return nil, errors.New("ERR_BAD_REQUEST: target count must be >= 0")
 	}
 	if target > 1024 {
-		return nil, fmt.Errorf("ERR_LIMITS: target count must be <= 1024")
+		return nil, errors.New("ERR_LIMITS: target count must be <= 1024")
 	}
 	if namespace == "" {
 		namespace = types.DefaultNamespace

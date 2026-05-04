@@ -68,7 +68,7 @@ func tailFileLegacy(ctx context.Context, path, label string, n int, follow bool,
 	if !follow {
 		return
 	}
-	_, _ = f.Seek(0, io.SeekEnd) //nolint:errcheck
+	_, _ = f.Seek(0, io.SeekEnd)
 	reader := bufio.NewReader(f)
 	for {
 		select {
@@ -99,7 +99,7 @@ func printLastNLinesLegacy(f *os.File, label string, n int) {
 	if offset < 0 {
 		offset = 0
 	}
-	_, _ = f.Seek(offset, io.SeekStart) //nolint:errcheck
+	_, _ = f.Seek(offset, io.SeekStart)
 
 	scanner := bufio.NewScanner(f)
 	if offset > 0 {
