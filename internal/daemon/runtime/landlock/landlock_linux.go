@@ -110,6 +110,9 @@ func addPathRule(rulesetFD int, a PathAccess, handledMask uint64) error {
 	if !filepath.IsAbs(a.Path) {
 		return errors.New("path must be absolute")
 	}
+	// Resolve symlinks so the landlock fd points at the real inode.
+	// Fall back to the original path when it doesn't exist yet — the
+	// Open call below will then fail and skip the rule silently.
 	resolved, err := filepath.EvalSymlinks(a.Path)
 	if err != nil {
 		resolved = a.Path

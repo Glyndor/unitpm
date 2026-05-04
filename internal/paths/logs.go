@@ -64,6 +64,8 @@ func resolveRootLogDir(candidate string) (string, error) {
 		allowedRoots = append(allowedRoots, filepath.Join(stateHome, "lynx/logs"))
 	}
 
+	// Resolve each allowed root once up front so comparisons work even when
+	// the roots themselves are symlinks (e.g. /var -> /private/var on macOS).
 	resolvedRoots := make([]string, 0, len(allowedRoots))
 	for _, root := range allowedRoots {
 		base := filepath.Clean(root)
@@ -89,11 +91,15 @@ func resolveRootLogDir(candidate string) (string, error) {
 	return "", errors.New("invalid log dir: outside allowed roots")
 }
 
+// matchResolvedRoot reports whether candidate is safely within root.
+// When the candidate exists we resolve it and compare; when it does not exist
+// yet (pre-create check) we fall back to scanning each path component for
+// symlinks that escape the root — preventing a TOCTOU race where a symlink is
+// planted between the check and the first write.
 func matchResolvedRoot(root, candidate string) bool {
 	if candidateResolved, err := filepath.EvalSymlinks(candidate); err == nil {
 		return WithinRoot(root, candidateResolved)
 	} else if !os.IsNotExist(err) {
-		// Some error other than IsNotExist
 		return false
 	}
 

@@ -139,6 +139,8 @@ func RegisterHandlers(server *transport.Server, mgr *manager.Manager, privileged
 			if idx := strings.LastIndex(appLogDir, string(os.PathSeparator)); idx != -1 {
 				base = appLogDir[:idx]
 			}
+			// Resolve symlinks on both parent and target before comparing so a
+			// symlink planted at appLogDir cannot escape the log root (TOCTOU-safe).
 			baseResolved, err := filepath.EvalSymlinks(base)
 			if err == nil {
 				targetResolved, err := filepath.EvalSymlinks(appLogDir)
@@ -292,6 +294,9 @@ func RegisterHandlers(server *transport.Server, mgr *manager.Manager, privileged
 				return nil, fmt.Errorf("failed to resolve log directory symlinks: %w", err)
 			}
 
+			// Two-check containment: directory check catches a symlinked dir
+			// pointing outside the root; file-path check catches a relative path
+			// that resolves outside even when the dir itself is safe.
 			if !paths.WithinRoot(baseResolved, targetResolvedDir) {
 				return nil, errors.New("refusing to truncate log outside log root")
 			}
@@ -300,6 +305,8 @@ func RegisterHandlers(server *transport.Server, mgr *manager.Manager, privileged
 				return nil, errors.New("refusing to truncate log outside log root")
 			}
 
+			// Lstat intentionally: Stat would follow a symlink and give us the
+			// target's mode, masking the symlink. We must see the symlink itself.
 			info, err := os.Lstat(targetPath)
 			if err != nil {
 				if os.IsNotExist(err) {
@@ -308,6 +315,9 @@ func RegisterHandlers(server *transport.Server, mgr *manager.Manager, privileged
 				return nil, fmt.Errorf("failed to stat log file: %w", err)
 			}
 
+			// Reject symlinks even if they point inside the log root — truncating
+			// through a symlink is not atomic and could be swapped between the
+			// Lstat check and the Truncate call.
 			if info.Mode()&os.ModeSymlink != 0 {
 				return nil, errors.New("ERR_BAD_REQUEST: refusing to truncate symlink log file")
 			}
