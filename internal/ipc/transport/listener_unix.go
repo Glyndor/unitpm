@@ -49,7 +49,10 @@ func listen(path string) (net.Listener, error) {
 			return nil, fmt.Errorf("socket directory %s is world-writable (mode %o): insecure", dir, mode)
 		}
 		// Check owner is root or the executing user (e.g. 'lynx')
-		stat_t := info.Sys().(*syscall.Stat_t)
+		stat_t, ok := info.Sys().(*syscall.Stat_t)
+		if !ok {
+			return nil, fmt.Errorf("socket directory %s: cannot read ownership (non-Unix filesystem)", dir)
+		}
 		expectedUID := uint32(os.Getuid())
 
 		if stat_t.Uid != 0 && stat_t.Uid != expectedUID {

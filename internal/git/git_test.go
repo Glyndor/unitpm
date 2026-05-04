@@ -45,7 +45,7 @@ func TestGetInfo(t *testing.T) {
 
 	// Configure git user (needed for commit)
 	// We need to set these config values locally to avoid errors in environments without global git config
-	_ = exec.CommandContext( //nolint:errcheck
+	_ = exec.CommandContext(
 		ctx,
 		"git",
 		"-C",
@@ -54,7 +54,7 @@ func TestGetInfo(t *testing.T) {
 		"user.email",
 		"test@example.com",
 	).Run()
-	_ = exec.CommandContext( //nolint:errcheck
+	_ = exec.CommandContext(
 		ctx,
 		"git",
 		"-C",
@@ -65,7 +65,7 @@ func TestGetInfo(t *testing.T) {
 	).Run()
 
 	// Default branch name to main to avoid differences between git versions
-	_ = exec.CommandContext( //nolint:errcheck
+	_ = exec.CommandContext(
 		ctx,
 		"git",
 		"-C",

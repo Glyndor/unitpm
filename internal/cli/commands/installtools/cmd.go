@@ -5,6 +5,7 @@ package installtools
 
 import (
 	"bufio"
+	"errors"
 	"fmt"
 	"os"
 	"os/exec"
@@ -45,7 +46,7 @@ func Run(args []string) error {
 	var destDir string
 	if systemMode {
 		if !paths.IsRoot() {
-			return fmt.Errorf("--system requires root privileges (run with sudo)")
+			return errors.New("--system requires root privileges (run with sudo)")
 		}
 		destDir = "/usr/local/bin"
 	} else {
@@ -182,14 +183,14 @@ func Run(args []string) error {
 // findViaRunuser locates a tool binary via a full login shell for the given user.
 // Used in --system mode so we can find tools installed in the original user's PATH.
 func findViaRunuser(user, tool string) (string, error) {
-	cmd := exec.Command("runuser", "-l", user, "-c", "which "+tool)
+	cmd := exec.Command("runuser", "-l", user, "-c", "which "+tool) //nolint:noctx // no context available; runuser exits quickly
 	out, err := cmd.Output()
 	if err != nil {
 		return "", err
 	}
 	path := strings.TrimSpace(string(out))
 	if path == "" || !filepath.IsAbs(path) {
-		return "", fmt.Errorf("not found")
+		return "", errors.New("not found")
 	}
 	return path, nil
 }
