@@ -387,7 +387,7 @@ func TestWaitOpen_FileAppearsLater(t *testing.T) {
 
 	go func() {
 		time.Sleep(50 * time.Millisecond)
-		_ = os.WriteFile(p, []byte("hello\n"), 0o600) //nolint:errcheck
+		_ = os.WriteFile(p, []byte("hello\n"), 0o600)
 	}()
 
 	f, err := waitOpen(ctx, p, time.Sleep)

@@ -183,7 +183,8 @@ func Run(args []string) error {
 // findViaRunuser locates a tool binary via a full login shell for the given user.
 // Used in --system mode so we can find tools installed in the original user's PATH.
 func findViaRunuser(user, tool string) (string, error) {
-	cmd := exec.Command("runuser", "-l", user, "-c", "which "+tool) //nolint:noctx // no context available; runuser exits quickly
+	//nolint:noctx // no context available; runuser exits quickly
+	cmd := exec.Command("runuser", "-l", user, "-c", "which "+tool)
 	out, err := cmd.Output()
 	if err != nil {
 		return "", err

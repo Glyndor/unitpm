@@ -489,7 +489,7 @@ func (p *specParser) finalize() (protocol.AppSpec, error) {
 				ignore = append(ignore, pat)
 			}
 			if len(ignore) > 100 {
-				return protocol.AppSpec{}, fmt.Errorf("too many ignore patterns (max 100)")
+				return protocol.AppSpec{}, errors.New("too many ignore patterns (max 100)")
 			}
 		}
 		spec.Watch = &protocol.AppWatch{
