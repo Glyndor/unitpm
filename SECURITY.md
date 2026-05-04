@@ -7,8 +7,8 @@ considered end-of-life.
 
 | Version | Supported |
 | ------- | --------- |
-| 0.4.x   | ✅        |
-| < 0.4   | ❌        |
+| 0.12.x  | ✅        |
+| < 0.12  | ❌        |
 
 ## Reporting a Vulnerability
 

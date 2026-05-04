@@ -74,36 +74,10 @@ Maintainers may request changes before accepting a contribution.
 
 ## Branching Model
 
-This project uses a two-branch workflow:
+All changes go through Pull Requests targeting `main`. Direct commits to `main` are not allowed.
 
-- `main`: stable, production-ready code
-- `develop`: integration branch for ongoing development
-
-Direct commits to `main` and `develop` are not allowed.
-All changes must be introduced through Pull Requests.
-
-
-## Forks and Pull Requests
-
-### External contributors
-
-External contributors must:
-
-1. Fork the repository
-2. Create a branch in their fork
-3. Open a Pull Request targeting the `develop` branch
-
-Pull Requests from forks targeting `main` will not be accepted.
-
-
-### Maintainers and collaborators
-
-Maintainers and approved collaborators may:
-
-- Create branches directly in the main repository
-- Open Pull Requests targeting `develop`
-
-Only maintainers are responsible for merging changes from `develop` into `main`.
+- External contributors: fork the repo, create a branch, open a PR targeting `main`.
+- Maintainers and collaborators: may create branches directly in the repo and open PRs targeting `main`.
 
 
 ## Commit Message Convention
@@ -143,30 +117,6 @@ Examples:
 - `security/limit-socket-perms`
 
 
-## Conventions Scope
-
-The conventions described in this document are intended to provide clarity
-and consistency without introducing unnecessary rigidity.
-
-- Conventional Commits applies to **commit messages**
-- Branch naming convention applies to **branch names**
-
-Both conventions are complementary and aim to improve collaboration,
-readability, and long-term maintainability.
-
-
-## Project Authority
-
-Final decisions regarding the project, including design, scope, roadmap,
-and licensing, are made by the original author and designated maintainers.
-
-Contributions do not grant control, authority, or licensing exceptions.
-
-
 ## Note on Commercial Use
 
-Lynx may be used internally by commercial organizations under the project
-license. However, contributions or proposals intended to facilitate the
-commercialization of Lynx itself (selling Lynx, paid access, SaaS/PaaS,
-“enterprise editions”, or proprietary relicensing paths) are not aligned
-with the project and will not be accepted.
+Lynx may be used internally by commercial organizations under the Apache 2.0 license. Contributions intended to commercialize Lynx itself (paid access, SaaS/PaaS, proprietary relicensing) are not aligned with the project and will not be accepted.

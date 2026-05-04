@@ -156,7 +156,4 @@ See [`CONTRIBUTING.md`](CONTRIBUTING.md) for the full workflow, and
 
 ## License
 
-Lynx is open source under the **[Apache License 2.0](LICENSE)** —
-commercial use, modification, distribution, and the explicit patent
-grant all included. Preserve the copyright notice and ship a copy of
-the license with any redistribution.
+[Apache License 2.0](LICENSE) — commercial use, modification, and distribution permitted. Patent grant included.
