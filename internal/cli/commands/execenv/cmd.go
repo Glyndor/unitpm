@@ -6,6 +6,7 @@
 package execenv
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"os/exec"
@@ -18,7 +19,7 @@ import (
 // Run executes the _exec-env command.
 func Run(args []string) error {
 	if len(args) == 0 {
-		return fmt.Errorf("usage: lynxpm _exec-env <cmd> [args...]")
+		return errors.New("usage: lynxpm _exec-env <cmd> [args...]")
 	}
 
 	credsDir := os.Getenv("CREDENTIALS_DIRECTORY")

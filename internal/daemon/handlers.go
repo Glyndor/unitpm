@@ -131,7 +131,7 @@ func RegisterHandlers(server *transport.Server, mgr *manager.Manager, privileged
 			return nil, err
 		}
 
-		_ = spec.DeleteSpec(id) //nolint:errcheck // Ignore error if spec missing
+		_ = spec.DeleteSpec(id)
 		auditEvent(auditor, ctx, "delete", id, delName, delNS, true, nil)
 
 		if args.Purge && appLogDir != "" {
