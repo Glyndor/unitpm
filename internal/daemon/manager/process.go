@@ -527,6 +527,7 @@ func (p *Process) prepareIsolation(ctx context.Context, cmd *exec.Cmd) (*exec.Cm
 		return newCmd, nil
 	}
 
+	// "self" mode: run as the daemon's own uid/gid with optional uid/gid overrides.
 	if err := daemonRuntime.ConfigureProcessIsolation(cmd, runAs); err != nil {
 		return nil, err
 	}
