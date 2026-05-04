@@ -1,12 +1,22 @@
 name: Bench
 
 # Weekly supervisor benchmark. Numbers feed README + site stats; rerun on
-# demand via workflow_dispatch.
+# demand via workflow_dispatch. Pass a ref to benchmark any branch or commit.
 
 on:
   schedule:
     - cron: "17 6 * * 1" # Mondays 06:17 UTC
   workflow_dispatch:
+    inputs:
+      ref:
+        description: "Branch or commit SHA to benchmark (default: current branch)"
+        required: false
+        default: ""
+      no-cache:
+        description: "Force a clean Docker build (ignore layer cache)"
+        required: false
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -22,9 +32,21 @@ jobs:
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+        with:
+          ref: ${{ inputs.ref || github.ref }}
+
+      - uses: docker/setup-buildx-action@v3
 
       - name: Build the bench image
-        run: docker build -f scripts/bench/Dockerfile -t lynx-bench .
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: scripts/bench/Dockerfile
+          tags: lynx-bench
+          load: true
+          no-cache: ${{ inputs.no-cache == true }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
 
       - name: Run the bench
         run: |
