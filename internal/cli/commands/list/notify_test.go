@@ -29,7 +29,7 @@ func TestWaitUpdateAndNotify_WithRelease(t *testing.T) {
 }
 
 func TestWaitUpdateAndNotify_Timeout(t *testing.T) {
-	ch := make(chan *updater.Release) // nothing sent
+	ch := make(chan *updater.Release)            // nothing sent
 	deadline := time.Now().Add(-1 * time.Second) // already expired
 	// Should return immediately (timer fires instantly).
 	list.WaitUpdateAndNotify(ch, deadline)

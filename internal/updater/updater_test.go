@@ -299,7 +299,7 @@ func TestVerifyFileSignature_Valid(t *testing.T) {
 	sig := ed25519.Sign(priv, content)
 
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
-		_, _ = w.Write(sig)
+		_, _ = w.Write([]byte(base64.StdEncoding.EncodeToString(sig)))
 	}))
 	t.Cleanup(srv.Close)
 
