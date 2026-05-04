@@ -1,3 +1,24 @@
+lynxpm (0.13.0-1) unstable; urgency=medium
+
+  * feat(ci): add workflow inputs for custom ref and cache bypass to
+    benchmark pipeline.
+  * test: add benchmarks for IPC round-trip latency and process tree
+    scanning; expand coverage for signature verification, platform
+    startup, formatting, and daemon sandbox implementation.
+  * fix(lint): remove unused nolint directives and resolve golangci-lint
+    failures across four rounds of cleanup.
+  * refactor: address linting warnings, improve error handling, optimize
+    string concatenation, and modernize path/error handling.
+  * ci: add pre-commit configuration; pin action SHAs to fix Scorecard
+    Pinned-Dependencies alerts.
+  * docs: reorder README sections, convert access-model list to table,
+    simplify contribution branching model, clarify license terms, and
+    update supported security versions.
+  * chore: add explanatory comments to security-sensitive path
+    containment, symlink-escape prevention, and sandbox isolation logic.
+
+ -- Jaro-c <75870284+Jaro-c@users.noreply.github.com>  Sat, 03 May 2026 12:00:00 -0500
+
 lynxpm (0.11.0-1) unstable; urgency=medium
 
   * feat(logs): `lynxpm logs` now merges stdout and stderr by

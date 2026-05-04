@@ -20,7 +20,7 @@ sudo systemctl enable --now lynxd
 sudo lynxpm install-tools   # optional: expose bun/node/go/… to the daemon
 ```
 
-You're done. `lynxpm --version` should print `0.12.0` or newer.
+You're done. `lynxpm --version` should print `0.13.0` or newer.
 
 ## Prebuilt binary (any Linux)
 
