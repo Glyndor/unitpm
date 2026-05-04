@@ -2,11 +2,25 @@ name: Binary naming check
 
 on:
   pull_request:
+    paths:
+      - "cmd/**"
+      - "internal/**"
+      - "scripts/check-binary-naming.sh"
+      - ".github/workflows/binary-naming.yml"
   push:
     branches: [main]
+    paths:
+      - "cmd/**"
+      - "internal/**"
+      - "scripts/check-binary-naming.sh"
+      - ".github/workflows/binary-naming.yml"
 
 permissions:
   contents: read
+
+concurrency:
+  group: binary-naming-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   check:
