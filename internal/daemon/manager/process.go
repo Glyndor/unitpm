@@ -101,7 +101,7 @@ func NewProcess(id string, spec protocol.AppSpec) (*Process, error) {
 
 		proc.scheduler = cron.New()
 		_, err := proc.scheduler.AddFunc(spec.Cron, func() {
-			_ = proc.Restart() //nolint:errcheck
+			_ = proc.Restart()
 		})
 		if err != nil {
 			return nil, fmt.Errorf("ERR_LIMITS: invalid cron schedule: %w", err)
