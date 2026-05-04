@@ -544,7 +544,7 @@ func TestRunLegacySplit_BothFiles(t *testing.T) {
 	defer cancel()
 
 	// Capture os.Stdout via a pipe; legacy path writes via fmt.Printf.
-	r, w, _ := os.Pipe() //nolint:errcheck
+	r, w, _ := os.Pipe()
 	orig := os.Stdout
 	os.Stdout = w
 	defer func() { os.Stdout = orig }()
@@ -552,7 +552,7 @@ func TestRunLegacySplit_BothFiles(t *testing.T) {
 	done := make(chan struct{})
 	var captured bytes.Buffer
 	go func() {
-		_, _ = io.Copy(&captured, r) //nolint:errcheck
+		_, _ = io.Copy(&captured, r)
 		close(done)
 	}()
 
@@ -575,7 +575,7 @@ func TestTailFileLegacy_MissingFile(t *testing.T) {
 	dir := t.TempDir()
 	p := filepath.Join(dir, "nope.log")
 
-	r, w, _ := os.Pipe() //nolint:errcheck
+	r, w, _ := os.Pipe()
 	orig := os.Stdout
 	os.Stdout = w
 	defer func() { os.Stdout = orig }()
@@ -583,7 +583,7 @@ func TestTailFileLegacy_MissingFile(t *testing.T) {
 	done := make(chan struct{})
 	var buf bytes.Buffer
 	go func() {
-		_, _ = io.Copy(&buf, r) //nolint:errcheck
+		_, _ = io.Copy(&buf, r)
 		close(done)
 	}()
 
@@ -636,7 +636,7 @@ func TestRunWithContext_MergeSmoke(t *testing.T) {
 	}
 	defer func() { _ = os.Remove(specPath) }()
 
-	r, w, _ := os.Pipe() //nolint:errcheck
+	r, w, _ := os.Pipe()
 	orig := os.Stdout
 	os.Stdout = w
 	defer func() { os.Stdout = orig }()
@@ -644,7 +644,7 @@ func TestRunWithContext_MergeSmoke(t *testing.T) {
 	done := make(chan struct{})
 	var buf bytes.Buffer
 	go func() {
-		_, _ = io.Copy(&buf, r) //nolint:errcheck
+		_, _ = io.Copy(&buf, r)
 		close(done)
 	}()
 
