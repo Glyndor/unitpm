@@ -255,7 +255,7 @@ func (p *Process) restartLocked(emitBanner bool) error {
 		}()
 	}
 
-	_ = p.Stop(false) //nolint:errcheck
+	_ = p.Stop(false)
 	time.Sleep(100 * time.Millisecond)
 	return p.Start()
 }
@@ -777,7 +777,7 @@ func (p *Process) handleRestart(exitCode int) {
 	go func() {
 		select {
 		case <-time.After(delay):
-			_ = p.autoRestart() //nolint:errcheck
+			_ = p.autoRestart()
 		case <-ctx.Done():
 		}
 	}()
