@@ -201,7 +201,7 @@ func (m *Manager) Stop(id string) error {
 // Delete stops a process and removes it from the manager.
 func (m *Manager) Delete(id string) error {
 	// Best effort stop
-	_ = m.Stop(id) //nolint:errcheck
+	_ = m.Stop(id)
 
 	m.mu.Lock()
 	defer m.mu.Unlock()
@@ -430,7 +430,7 @@ func (m *Manager) Reload(id string) error {
 		log.Printf("Warning: failed to save spec for %s: %v", s.ID, err)
 	}
 
-	_ = m.Stop(id) //nolint:errcheck
+	_ = m.Stop(id)
 
 	m.mu.Lock()
 	defer m.mu.Unlock()

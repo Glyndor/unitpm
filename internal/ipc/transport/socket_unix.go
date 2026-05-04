@@ -4,6 +4,7 @@
 package transport
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"os/user"
@@ -43,7 +44,7 @@ func GetSocketPath() (string, error) {
 	// /tmp/lynx-<victimUid> and hijack the socket on the victim's next run.
 	baseDir := os.Getenv("XDG_RUNTIME_DIR")
 	if baseDir == "" {
-		return "", fmt.Errorf(
+		return "", errors.New(
 			"XDG_RUNTIME_DIR is not set; run under a login session " +
 				"(ssh, systemd-user) or export LYNX_SOCKET to an absolute " +
 				"path in a private directory",
