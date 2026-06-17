@@ -3,7 +3,7 @@ module github.com/Jaro-c/Lynx
 go 1.26.2
 
 require (
-	github.com/bytedance/sonic v1.15.1
+	github.com/bytedance/sonic v1.15.2
 	github.com/google/uuid v1.6.0
 	github.com/robfig/cron/v3 v3.0.1
 	golang.org/x/sys v0.43.0
