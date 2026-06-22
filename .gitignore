@@ -99,3 +99,12 @@ testdata/apps/go-compiled/go-compiled
 # Bench output
 # =====================
 scripts/bench/out/
+
+# Agent / AI-tool artifacts — never commit (zero AI trace).
+.claude/
+.agents/
+.cursor/
+.aider*
+.continue/
+.playwright-mcp/
+**/*-mcp/
