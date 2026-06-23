@@ -6,7 +6,7 @@
 
 FROM ubuntu:24.04@sha256:c4a8d5503dfb2a3eb8ab5f807da5bc69a85730fb49b5cfca2330194ebcc41c7b
 
-ARG GO_VERSION=1.26.2
+ARG GO_VERSION=1.26.4
 ARG NODE_VERSION=24.15.0
 ARG NODE_SHA256=472655581fb851559730c48763e0c9d3bc25975c59d518003fc0849d3e4ba0f6
 # pm2 version + per-dep sha512 integrity lives in scripts/bench/pm2/package-lock.json.
