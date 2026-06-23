@@ -35,18 +35,13 @@ jobs:
         with:
           ref: ${{ inputs.ref || github.ref }}
 
-      - uses: docker/setup-buildx-action@4d04d5d9486b7bd6fa91e7baf45bbb4f8b9deedd # v4
-
       - name: Build the bench image
-        uses: docker/build-push-action@bcafcacb16a39f128d818304e6c9c0c18556b85f # v7
-        with:
-          context: .
-          file: scripts/bench/Dockerfile
-          tags: lynx-bench
-          load: true
-          no-cache: ${{ inputs.no-cache == true }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+        run: |
+          docker build \
+            ${{ inputs.no-cache == true && '--no-cache' || '' }} \
+            -f scripts/bench/Dockerfile \
+            -t lynx-bench \
+            .
 
       - name: Run the bench
         run: |
