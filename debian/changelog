@@ -1,3 +1,20 @@
+lynxpm (0.13.1-1) unstable; urgency=medium
+
+  * fix(security): update the Go toolchain to 1.26.4, resolving four
+    standard-library advisories (net/http, net, crypto/x509 and
+    net/textproto) reachable from the updater, the IPC transport and the
+    Lynxfile parser.
+  * ci: drop the prohibited third-party actions (Codecov, OpenSSF
+    Scorecard, Docker buildx/build-push) in favour of first-party steps
+    and GitHub's default code-scanning setup.
+  * fix(ci): reference the correct RELEASE_SIGN_KEY signing secret so the
+    release workflow can publish signed artifacts.
+  * deps(go): bump x/term to 0.44.0, x/sys to 0.46.0 and sonic to 1.15.2.
+  * deps(bench): patch the high-severity transitive dependencies in the
+    pinned pm2 benchmark install.
+
+ -- Jaro-c <75870284+Jaro-c@users.noreply.github.com>  Mon, 22 Jun 2026 23:00:00 -0500
+
 lynxpm (0.13.0-1) unstable; urgency=medium
 
   * feat(ci): add workflow inputs for custom ref and cache bypass to
