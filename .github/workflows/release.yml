@@ -46,7 +46,7 @@ jobs:
 
       - name: Sign binaries
         env:
-          RELEASE_SIGNING_KEY: ${{ secrets.RELEASE_SIGN_KEY }}
+          RELEASE_SIGNING_KEY: ${{ secrets.GLYNDOR_RELEASE_ED25519_KEY }}
         run: |
           go run scripts/sign.go lynxpm_linux_amd64
           go run scripts/sign.go lynxpm_linux_arm64
