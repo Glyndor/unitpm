@@ -35,7 +35,7 @@ var releasesURL = fmt.Sprintf("https://api.github.com/repos/%s/%s/releases/lates
 
 // releasePublicKeyB64 is the ed25519 public key used to verify release
 // signatures. Base64 (std) encoding of the 32-byte public key.
-const releasePublicKeyB64 = "3eSCGskGd4rjnsVcBfKM5a25SNkJayBHcqZ6dpCfWIw="
+const releasePublicKeyB64 = "HFv7vg5FCY7YyKUDbJhaQSfB9SboJGSblJtFbLmLHzM="
 
 // ErrSignatureRequired is returned when signature verification is required
 // but the release does not ship a signature asset.
