@@ -1,37 +1,26 @@
-# 🦁 Lynx
+# Lynx
 
-<div align="center">
-  <h3>The Secure, Systemd-Native Process Manager for Linux</h3>
-  <p>A lean, hardened alternative to PM2 and Supervisor — built directly on top of <code>systemd</code>.</p>
+Systemd-native process manager for Linux — a lean alternative to PM2 and
+Supervisor built directly on `systemd` rather than a custom supervisor daemon.
 
-  <img src="https://img.shields.io/badge/OS-Linux%20Only-informational?style=for-the-badge&logo=linux&color=2ecc71" alt="Linux Only" />
-  <img src="https://img.shields.io/badge/Go-1.26+-00ADD8?style=for-the-badge&logo=go" alt="Go Version" />
-  <img src="https://img.shields.io/github/v/release/Jaro-c/Lynx?style=for-the-badge&color=ff69b4" alt="Release" />
-  <img src="https://img.shields.io/github/actions/workflow/status/Jaro-c/Lynx/ci.yml?branch=main&style=for-the-badge&logo=github&label=CI" alt="CI" />
-  <a href="LICENSE"><img src="https://img.shields.io/badge/license-Apache%202.0-blue?style=for-the-badge" alt="License: Apache 2.0" /></a>
-</div>
+[![CI](https://github.com/Jaro-c/Lynx/actions/workflows/ci.yml/badge.svg)](https://github.com/Jaro-c/Lynx/actions/workflows/ci.yml)
 
----
+Go 1.26+ · Linux only · License: Apache-2.0
 
-## Why Lynx?
+## Architecture
 
-| Feature | 🦁 Lynx | 🐢 PM2 | 🦖 Supervisor |
+| | Lynx | PM2 | Supervisor |
 | :--- | :--- | :--- | :--- |
 | **Runtime** | Compiled Go, native | Node.js (V8) | Python (interpreted) |
-| **Cold start** | **7.8 ms** | 366 ms | 252 ms |
-| **Idle RSS** | **14.7 MB** | 66.7 MB | 27.1 MB |
-| **RSS w/ 10 procs** | **22.8 MB** | 69.3 MB | 27.3 MB |
-| **Daemon binary** | **7.2 MB** | Node + deps | Python + libs |
-| **Supervisor** | **`systemd`** | Custom daemon | `supervisord` |
+| **Supervisor** | `systemd` | Custom daemon | `supervisord` |
 | **Crash resilience** | Apps outlive the CLI | Apps die with PM2 | Apps die with the daemon |
-| **Sandboxing** | **`DynamicUser` + landlock** | User-space only | User-space only |
+| **Sandboxing** | `DynamicUser` + landlock | User-space only | User-space only |
 | **Config** | CLI flags or `Lynxfile.yml` | `ecosystem.config.js` | INI files |
 
-> Numbers from [`scripts/bench`](./scripts/bench/) running in CI on Ubuntu 24.04
-> (kernel 6.17). PM2 5.4.3, supervisord 4.2.5. Reproduce locally with
-> `docker build -f scripts/bench/Dockerfile -t lynx-bench . && docker run --rm lynx-bench`.
-
----
+Startup/memory measurements and the reproduction harness:
+[`scripts/bench`](./scripts/bench/) — run in CI on Ubuntu 24.04 (kernel 6.17)
+against PM2 5.4.3 and supervisord 4.2.5, reproducible locally with
+`docker build -f scripts/bench/Dockerfile -t lynx-bench . && docker run --rm lynx-bench`.
 
 ## Quickstart
 
@@ -92,9 +81,7 @@ Secrets never appear in `/proc/<pid>/environ`, `ps`, or the on-disk spec.
 
 ## Documentation
 
-📘 **Full docs site: <https://jaro-c.github.io/Lynx/>** — searchable,
-with the landing page, quickstart, runtimes, tutorials, and every
-command's flag reference.
+Rendered docs: <https://jaro-c.github.io/Lynx/>. In-repo:
 
 | Topic | Link |
 |-------|------|
