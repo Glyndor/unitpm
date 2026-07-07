@@ -4,6 +4,6 @@
   "private": true,
   "description": "Pinned pm2 install for bench Dockerfile",
   "dependencies": {
-    "pm2": "6.0.14"
+    "pm2": "7.0.3"
   }
 }
