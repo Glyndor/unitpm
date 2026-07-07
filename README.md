@@ -9,13 +9,12 @@ Go 1.26+ · Linux only · License: Apache-2.0
 
 ## Architecture
 
-| | Lynx | PM2 | Supervisor |
-| :--- | :--- | :--- | :--- |
-| **Runtime** | Compiled Go, native | Node.js (V8) | Python (interpreted) |
-| **Supervisor** | `systemd` | Custom daemon | `supervisord` |
-| **Crash resilience** | Apps outlive the CLI | Apps die with PM2 | Apps die with the daemon |
-| **Sandboxing** | `DynamicUser` + landlock | User-space only | User-space only |
-| **Config** | CLI flags or `Lynxfile.yml` | `ecosystem.config.js` | INI files |
+| | |
+| :--- | :--- |
+| **Runtime** | Compiled Go, native |
+| **Supervisor** | `systemd` — apps outlive the CLI |
+| **Sandboxing** | `DynamicUser` + landlock |
+| **Config** | CLI flags or `Lynxfile.yml` |
 
 Startup/memory measurements and the reproduction harness:
 [`scripts/bench`](./scripts/bench/) — run in CI on Ubuntu 24.04 (kernel 6.17)
