@@ -1,6 +1,12 @@
 // sign.go signs a file with an ed25519 private key and writes the raw
 // 64-byte signature to <file>.sig. The private key is read from the
-// RELEASE_SIGNING_KEY env var (base64-encoded 64-byte ed25519 seed+pub).
+// RELEASE_SIGNING_KEY env var, base64 (std) encoded, as either a 32-byte
+// seed or a 64-byte seed+pub.
+//
+// The org signing secret (GLYNDOR_RELEASE_ED25519_KEY) is a raw 32-byte
+// seed -- that is what podup's signer reads, and what signed podup 1.9.1.
+// Accepting only the 64-byte form is why this signer could never use the
+// shared key, and why unitpm ended up on a release key of its own.
 //
 // Usage: go run scripts/sign.go <file>
 package main
@@ -29,11 +35,17 @@ func main() {
 		fmt.Fprintf(os.Stderr, "decode key: %v\n", err)
 		os.Exit(1)
 	}
-	if len(keyRaw) != ed25519.PrivateKeySize {
-		fmt.Fprintf(os.Stderr, "key size %d, want %d\n", len(keyRaw), ed25519.PrivateKeySize)
+	var privKey ed25519.PrivateKey
+	switch len(keyRaw) {
+	case ed25519.SeedSize:
+		privKey = ed25519.NewKeyFromSeed(keyRaw)
+	case ed25519.PrivateKeySize:
+		privKey = ed25519.PrivateKey(keyRaw)
+	default:
+		fmt.Fprintf(os.Stderr, "key size %d, want %d (seed) or %d (seed+pub)\n",
+			len(keyRaw), ed25519.SeedSize, ed25519.PrivateKeySize)
 		os.Exit(1)
 	}
-	privKey := ed25519.PrivateKey(keyRaw)
 
 	body, err := os.ReadFile(filePath)
 	if err != nil {
