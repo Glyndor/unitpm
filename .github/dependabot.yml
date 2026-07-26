@@ -7,10 +7,9 @@ updates:
       interval: "daily"
     open-pull-requests-limit: 10
     labels:
-      - "dependencies"
-      - "go"
+      - "type:deps"
     commit-message:
-      prefix: "deps(go)"
+      prefix: "build"
       include: "scope"
 
   # GitHub Actions (keeps workflow action SHAs/tags up to date)
@@ -18,10 +17,10 @@ updates:
     directory: "/"
     schedule:
       interval: "daily"
-    open-pull-requests-limit: 5
+    open-pull-requests-limit: 10
     labels:
-      - "dependencies"
-      - "ci"
+      - "type:deps"
+      - "type:ci"
     commit-message:
-      prefix: "deps(ci)"
+      prefix: "ci"
       include: "scope"
