@@ -5,7 +5,7 @@ Supervisor built directly on `systemd` rather than a custom supervisor daemon.
 
 [![CI](https://github.com/Jaro-c/Lynx/actions/workflows/ci.yml/badge.svg)](https://github.com/Jaro-c/Lynx/actions/workflows/ci.yml)
 
-Go 1.26+ · Linux only · License: Apache-2.0
+Go 1.26+ · Linux only · License: MIT
 
 ## Architecture
 
@@ -126,4 +126,4 @@ See [`CONTRIBUTING.md`](CONTRIBUTING.md) for the full workflow and [`ARCHITECTUR
 
 ## License
 
-[Apache License 2.0](LICENSE) — commercial use, modification, and distribution permitted. Patent grant included.
+[MIT](LICENSE) — commercial use, modification, and distribution permitted.
