@@ -79,13 +79,13 @@ DOCUMENTATION
 [ ] Documentation updated (README / docs / comments)
 
 
-LICENSE ALIGNMENT (Apache 2.0)
-------------------------------
+LICENSE ALIGNMENT (MIT)
+-----------------------
 
 Confirm that this Pull Request:
 
 [ ] Does not introduce proprietary or closed-source dependencies
-[ ] Contributions are submitted under the Apache License, Version 2.0
+[ ] Contributions are submitted under the MIT License
 
 
 CHECKLIST
