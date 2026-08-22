@@ -14,8 +14,29 @@ use std::sync::Mutex;
 /// that with an explicit mutex.
 static ENV_LOCK: Mutex<()> = Mutex::new(());
 
-fn env_lock() -> std::sync::MutexGuard<'static, ()> {
-	ENV_LOCK.lock().unwrap_or_else(|e| e.into_inner())
+/// Holds the lock **and** restores the process-global state on the way out.
+///
+/// The mutex alone is not enough. It serialises access, but a test that sets
+/// the euid override and does not clear it leaves the next test to run under
+/// it, so the result depends on the order the runner happens to pick. That is
+/// how `resolve_log_paths_default_paths` saw `/var/log/unitpm` instead of the
+/// XDG path on roughly one run in five.
+///
+/// Restoring in `Drop` rather than at the end of each test also covers the
+/// case that matters most: a failing assertion unwinds, and trailing cleanup
+/// never runs at all — so the first failure would poison every later test and
+/// hide its own cause.
+struct EnvGuard(#[allow(dead_code)] std::sync::MutexGuard<'static, ()>);
+
+impl Drop for EnvGuard {
+	fn drop(&mut self) {
+		super::clear_euid_for_tests();
+		std::env::remove_var("XDG_STATE_HOME");
+	}
+}
+
+fn env_lock() -> EnvGuard {
+	EnvGuard(ENV_LOCK.lock().unwrap_or_else(|e| e.into_inner()))
 }
 
 fn temp_xdg(tmp: &tempfile::TempDir) -> PathBuf {
