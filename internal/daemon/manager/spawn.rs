@@ -12,7 +12,7 @@ use std::collections::HashMap;
 use std::fs::{self, File, OpenOptions};
 use std::io;
 use std::os::unix::fs::{OpenOptionsExt, PermissionsExt};
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 
 use crate::daemon::manager::logwriter::timestamp_writer::{wrap_file, TimestampWriter};
 use crate::daemon::manager::rotate::{current_rotate_config, rotate_if_large_cfg};

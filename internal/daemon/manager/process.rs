@@ -30,7 +30,7 @@ use crate::daemon::manager::supervise::{build_command, RESTART_GRACE};
 use crate::daemon::manager::version_detect::detect_project_version;
 use crate::daemon::manager::watcher::FileWatcher;
 use crate::ipc::protocol::{AppSpec, RunAsPolicy};
-use crate::metrics::{self, Collector, ProcessTreeCollector};
+use crate::metrics::{self, Collector, ProcTreeCollector};
 use crate::types::{ProcessInfo, ProcessState};
 use std::io::Write as IoWrite;
 use std::path::PathBuf;
@@ -49,7 +49,7 @@ pub struct Process {
 	pub no_auto_restart: bool,
 	pub exit_error: Option<std::io::Error>,
 	pub start_time: Option<Instant>,
-	pub metrics: Option<ProcessTreeCollector>,
+	pub metrics: Option<ProcTreeCollector>,
 	pub cron_scheduler: Option<CronScheduler>,
 	pub restart_count: i32,
 	pub last_restart: Option<Instant>,

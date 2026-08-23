@@ -181,7 +181,6 @@ fn copy_file(src: &str, dst: &str) -> io::Result<()> {
 #[cfg(test)]
 mod tests {
 	use super::*;
-	use std::io::Write;
 
 	fn read_gz(path: &str) -> String {
 		let mut f = File::open(path).expect("open");
@@ -317,7 +316,6 @@ mod tests {
 			max_age: Duration::from_millis(50),
 			delay_compress: true,
 			notif_empty: true,
-			..RotateConfig::default()
 		};
 		let anchor = Instant::now() - Duration::from_secs(1);
 		let rotated = rotate_now_cfg(path.to_str().unwrap(), &cfg, anchor);
@@ -336,7 +334,6 @@ mod tests {
 			max_age: Duration::from_secs(3600),
 			delay_compress: true,
 			notif_empty: true,
-			..RotateConfig::default()
 		};
 		let rotated = rotate_now_cfg(path.to_str().unwrap(), &cfg, Instant::now());
 		assert!(!rotated);

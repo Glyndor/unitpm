@@ -27,6 +27,17 @@
 //! `Restore`, the per-process `Process` struct, and the daemon-wide log
 //! rotation loop.
 
+// Phase 4b ports the manager; phase 4c ports the daemon loop that calls it,
+// and phase 6 the CLI. Until those land, most of this module is reachable only
+// from its own tests, and `dead_code` cannot tell "nothing uses this" from
+// "nothing uses this yet" — it would have us delete the port one function at a
+// time and write it again next phase.
+//
+// Scoped to this module rather than the crate, and it comes off when 4c lands.
+// If anything here is still unreachable once the daemon calls into it, that is
+// a genuine finding and the code should go.
+#![allow(dead_code)]
+
 // The inner `manager` module shares its name with the parent. Go's
 // `manager.go` is conventionally the "main" file in a Go package; the
 // Rust port preserves that shape so the directory layout mirrors the Go
@@ -55,14 +66,31 @@ pub use stop::DEFAULT_STOP_TIMEOUT;
 pub use supervise::{RestartPolicy, STOP_SIGNALS};
 pub use systemd::{dynamic_args, DynamicCommand, EXEC_ENV_SUBCOMMAND, UNIT_NAME_PREFIX};
 
+// The daemon loop (phase 4c) and the CLI (phase 6) are the consumers of this
+// module's internal surface, and neither exists in Rust yet. Re-exporting it
+// now keeps the shape the Go package had, so the next phase finds it where it
+// expects rather than rediscovering it — and `dead_code` cannot tell
+// "nothing uses this" from "nothing uses this yet".
+//
+// This attribute comes off when phase 4c lands. If it is still here after
+// that, the re-export is genuinely unused and should be deleted instead.
+#[allow(unused_imports)]
 pub(crate) use logwriter::{timestamp_writer::TimestampWriter, write_banner};
+#[allow(unused_imports)]
 pub(crate) use process::Process;
+#[allow(unused_imports)]
 pub(crate) use rotate::{current_rotate_config, rotate_now_cfg, RotateConfig};
+#[allow(unused_imports)]
 pub(crate) use spawn::prepare_env;
+#[allow(unused_imports)]
 pub(crate) use stop::{graceful_kill, signal_tree, walk_descendants, KillError};
+#[allow(unused_imports)]
 pub(crate) use supervise::ProcessInternal;
+#[allow(unused_imports)]
 pub(crate) use systemd::DynamicContext;
+#[allow(unused_imports)]
 pub(crate) use version_detect::detect_project_version;
+#[allow(unused_imports)]
 pub(crate) use watcher::{file_watcher, FileWatcher};
 
 /// Helpers shared between the public surface and the tests.

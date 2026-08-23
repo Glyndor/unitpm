@@ -16,7 +16,7 @@
 use std::process::Command as StdCommand;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
-use std::thread::{self, JoinHandle};
+use std::thread::JoinHandle;
 use std::time::{Duration, Instant};
 
 use libc::pid_t;

@@ -16,7 +16,7 @@ use crate::daemon::manager::logwriter::write_banner;
 use crate::daemon::manager::process::Process;
 use crate::daemon::manager::watcher::file_watcher;
 use crate::git;
-use crate::metrics::ProcessTreeCollector;
+use crate::metrics::ProcTreeCollector;
 use crate::types::ProcessState;
 
 /// Start the process. Mirrors `manager.Start`.
@@ -39,7 +39,7 @@ pub fn start_process(p: &mut Process) -> Result<(), String> {
 	}
 	p.exit_error = None;
 	p.stopped_by_user = false;
-	if let Some(col) = ProcessTreeCollector::new(pid) {
+	if let Ok(col) = ProcTreeCollector::new(pid) {
 		p.metrics = Some(col);
 	}
 	if !p.spec.cwd.as_deref().unwrap_or("").is_empty() {

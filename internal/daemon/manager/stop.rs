@@ -14,7 +14,7 @@ use std::ffi::c_int;
 use std::fs;
 use std::io;
 use std::path::PathBuf;
-use std::sync::atomic::{AtomicI32, Ordering};
+use std::sync::atomic::AtomicI32;
 use std::time::{Duration, Instant};
 
 use libc::{self, pid_t};
