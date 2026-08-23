@@ -1,8 +1,9 @@
 //! CLI-specific types.
 //!
 //! Phase 6a carries the CLI infrastructure packages (no commands).
-//! Phase 6b ports the lifecycle commands (`list`, `start`, `stop`,
-//! `restart`); phases 6c and 6d land the remaining ones.
+//! Phases 6b, 6c and 6d port the command tree in parallel: 6b the
+//! lifecycle commands (`list`, `start`, `stop`, `restart`), 6c the
+//! output-heavy ones (`logs`, `monit`, `show`), 6d the remaining fourteen.
 
 pub mod batch;
 pub mod commands;
