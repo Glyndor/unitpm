@@ -16,4 +16,5 @@ pub mod metrics;
 pub mod paths;
 pub mod spec;
 pub mod types;
+pub mod updater;
 pub mod version;
