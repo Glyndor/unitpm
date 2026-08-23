@@ -19,7 +19,7 @@ static ENV_LOCK: Mutex<()> = Mutex::new(());
 /// The mutex alone is not enough. It serialises access, but a test that sets
 /// the euid override and does not clear it leaves the next test to run under
 /// it, so the result depends on the order the runner happens to pick. That is
-/// how `resolve_log_paths_default_paths` saw `/var/log/unitpm` instead of the
+/// how `resolve_log_paths_default_paths` saw the system log root instead of the
 /// XDG path on roughly one run in five.
 ///
 /// Restoring in `Drop` rather than at the end of each test also covers the
@@ -59,14 +59,24 @@ fn is_root_with_overrides() {
 fn within_root_table() {
 	let cases = [
 		(
-			"/var/log/unitpm",
-			"/var/log/unitpm/app/stdout.log",
+			"/var/log/glyndor/unitpm",
+			"/var/log/glyndor/unitpm/app/stdout.log",
 			true,
 			"inside",
 		),
-		("/var/log/unitpm", "/var/log/unitpm", true, "equal"),
-		("/var/log/unitpm", "/etc/passwd", false, "escape"),
-		("/var/log/unitpm", "/var/log/other", false, "sibling"),
+		(
+			"/var/log/glyndor/unitpm",
+			"/var/log/glyndor/unitpm",
+			true,
+			"equal",
+		),
+		("/var/log/glyndor/unitpm", "/etc/passwd", false, "escape"),
+		(
+			"/var/log/glyndor/unitpm",
+			"/var/log/other",
+			false,
+			"sibling",
+		),
 	];
 	for (root, path, want, name) in cases {
 		let got = within_root(Path::new(root), Path::new(path));
