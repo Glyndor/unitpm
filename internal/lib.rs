@@ -8,9 +8,11 @@
 pub mod cli;
 pub mod daemon;
 pub mod env;
+pub mod git;
 pub mod ipc;
 pub mod jsonx;
 pub mod manifest;
+pub mod metrics;
 pub mod paths;
 pub mod spec;
 pub mod types;
