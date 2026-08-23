@@ -25,7 +25,9 @@ use crate::daemon::manager::logwriter::write_banner;
 use crate::daemon::manager::spawn::{
 	build_dynamic_args, prepare_env, process_binary, resolve_command, SpawnError,
 };
-use crate::daemon::manager::stop::{cleanup_credentials, graceful_kill, resolve_stop, KillError};
+use crate::daemon::manager::stop::{
+	cleanup_credentials, kill_tree, resolve_stop, signal_tree, KillError,
+};
 use crate::daemon::manager::supervise::{build_command, RESTART_GRACE};
 use crate::daemon::manager::version_detect::detect_project_version;
 use crate::daemon::manager::watcher::FileWatcher;
@@ -338,7 +340,49 @@ impl Process {
 			self.spec.stop.as_ref().and_then(|s| s.signal.as_deref()),
 			self.spec.stop.as_ref().and_then(|s| s.timeout_ms),
 		);
-		graceful_kill(pid as i32, sig, timeout)?;
+		// Send signal and poll `Child::try_wait()` so a zombie is reaped at
+		// the same time we detect exit. Without the reap the PID stays in
+		// the process table as a zombie and `kill(pid, 0)` keeps reporting
+		// success — which is exactly what `graceful_kill` polls. We carry
+		// `&mut self.cmd` (the `Child` handle) so we can both detect exit
+		// and reap the entry in one syscall.
+		let _ = signal_tree(pid as i32, sig);
+		let deadline = std::time::Instant::now() + timeout;
+		let mut next_tick = std::time::Instant::now() + Duration::from_millis(50);
+		loop {
+			let now = std::time::Instant::now();
+			if now >= deadline {
+				if let Some(child) = self.cmd.as_mut() {
+					let _ = child.kill();
+					let _ = child.wait();
+				}
+				kill_tree(pid as i32).ok();
+				self.cmd = None;
+				break;
+			}
+			if now >= next_tick {
+				if let Some(child) = self.cmd.as_mut() {
+					match child.try_wait() {
+						Ok(Some(_status)) => {
+							self.cmd = None;
+							break;
+						}
+						Ok(None) => {}
+						Err(_) => {}
+					}
+				}
+				next_tick = now + Duration::from_millis(50);
+			}
+			let sleep_for = next_tick
+				.min(deadline)
+				.duration_since(now)
+				.min(Duration::from_millis(10));
+			std::thread::sleep(sleep_for);
+		}
+		// Mark as stopped so a subsequent `start_process` doesn't refuse
+		// with "process already started".
+		self.info.state = ProcessState::Stopped;
+		self.info.pid = 0;
 		if by_user {
 			cleanup_credentials(&self.info.id);
 		}

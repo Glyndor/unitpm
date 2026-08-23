@@ -52,13 +52,25 @@ pub struct ProcessInfo {
 	pub memory: i64,
 	pub user: String,
 	pub watch: bool,
-	#[serde(rename = "git_branch", skip_serializing_if = "Option::is_none")]
+	#[serde(
+		rename = "git_branch",
+		default,
+		skip_serializing_if = "Option::is_none"
+	)]
 	pub git_branch: Option<String>,
-	#[serde(rename = "git_commit", skip_serializing_if = "Option::is_none")]
+	#[serde(
+		rename = "git_commit",
+		default,
+		skip_serializing_if = "Option::is_none"
+	)]
 	pub git_commit: Option<String>,
-	#[serde(rename = "git_dirty", skip_serializing_if = "is_false")]
+	#[serde(rename = "git_dirty", default, skip_serializing_if = "is_false")]
 	pub git_dirty: bool,
-	#[serde(rename = "created_at", skip_serializing_if = "Option::is_none")]
+	#[serde(
+		rename = "created_at",
+		default,
+		skip_serializing_if = "Option::is_none"
+	)]
 	pub created_at: Option<String>,
 }
 
