@@ -88,11 +88,27 @@ pub fn execute_with<O: Write, E: Write>(args: &[String], out: &mut O, err: &mut 
 		return print_command_help_to(&cmd_name, out);
 	}
 
-	if let Some(cmd_err) = run_command(&cmd_name, &args[1..]) {
-		handle_error_to(cmd_err, &cmd_name, out, err);
-		return 1;
+	if is_stubbed(&cmd_name) {
+		// Real lifecycle commands ported in phase 6b — wire them
+		// through to their typed `run`. Other names get the
+		// "not yet ported" path.
+		if matches!(
+			cmd_name.as_str(),
+			stubs::cmd::LIST | stubs::cmd::START | stubs::cmd::STOP | stubs::cmd::RESTART
+		) {
+			return run_real(&cmd_name, &args[1..], out, err);
+		}
+		if let Some(cmd_err) = run_command(&cmd_name, &args[1..]) {
+			handle_error_to(cmd_err, &cmd_name, out, err);
+			return 1;
+		}
+		return 0;
 	}
-	0
+
+	// Unknown command.
+	print_error(err, &format!("Command not found: {}", cmd_name));
+	let _ = render_root_help(out, &specs, true);
+	1
 }
 
 /// Resolve a command-name argument to the canonical command name. Mirrors
@@ -117,10 +133,64 @@ pub fn resolve_command(name: &str) -> Option<String> {
 	}
 }
 
+/// Run the four real phase-6b lifecycle commands.
+///
+/// Each typed `run` needs an IPC client. The dispatcher falls back to
+/// a "connection refused" error when no client is available — the same
+/// behaviour the Go side surfaces through `transport.NewClient()`'s
+/// `DaemonUnreachable` variant. Production callers wire a real client
+/// ahead of [`execute_with`] by overriding [`stubs::set_dispatcher_client`].
+fn run_real<O: Write, E: Write>(name: &str, args: &[String], out: &mut O, err: &mut E) -> i32 {
+	let no_client_msg = || -> Box<dyn std::error::Error> {
+		Box::<dyn std::error::Error>::from(format!(
+			"{name}: daemon unreachable (no IPC client wired into the dispatcher)"
+		))
+	};
+	let mut client = match stubs::take_dispatcher_client() {
+		Some(c) => c,
+		None => {
+			handle_error_to(no_client_msg(), name, out, err);
+			return 1;
+		}
+	};
+	let result = match name {
+		stubs::cmd::LIST => {
+			let mut handle = client.list_handle();
+			crate::cli::commands::list::run(&mut handle, out, args)
+				.map_err(|e| -> Box<dyn std::error::Error> { e })
+		}
+		stubs::cmd::START => {
+			let mut handle = client.start_handle();
+			crate::cli::commands::start::run::<O, E, _>(Some(&mut handle), out, err, args)
+				.map_err(|e| -> Box<dyn std::error::Error> { e })
+		}
+		stubs::cmd::STOP => {
+			let mut handle = client.stop_handle();
+			crate::cli::commands::stop::run(&mut handle, out, err, args)
+				.map_err(|e| -> Box<dyn std::error::Error> { e })
+		}
+		stubs::cmd::RESTART => {
+			let mut handle = client.restart_handle();
+			crate::cli::commands::restart::run(&mut handle, out, err, args)
+				.map_err(|e| -> Box<dyn std::error::Error> { e })
+		}
+		_ => unreachable!("run_real invoked with non-6b command name"),
+	};
+	// Client ownership ends on return; we used it by-reference above.
+	drop(client);
+	match result {
+		Ok(()) => 0,
+		Err(e) => {
+			handle_error_to(e, name, out, err);
+			1
+		}
+	}
+}
+
 /// Invoke `name` with `args`. Returns `Some(err)` on a command error;
-/// `None` means "command ran fine or wasn't recognised" — the Go side
-/// returns `nil` for unknown names, and the test
-/// `TestRunCommand_UnknownReturnsNil` pins that.
+/// `None` means "command wasn't recognised" — the Go side returns
+/// `nil` for unknown names, and the test `TestRunCommand_UnknownReturnsNil`
+/// pins that.
 #[must_use]
 pub fn run_command(name: &str, _args: &[String]) -> Option<Box<dyn std::error::Error>> {
 	if is_stubbed(name) {
