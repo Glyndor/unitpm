@@ -120,7 +120,9 @@ export default defineConfig({
 						{ label: 'Security', slug: 'reference/security' },
 						{
 							label: 'Commands',
-							autogenerate: { directory: 'reference/commands' },
+							// Starlight 0.39 removed `label` alongside `autogenerate`;
+							// the group now wraps it in `items`.
+							items: [{ autogenerate: { directory: 'reference/commands' } }],
 						},
 					],
 				},
