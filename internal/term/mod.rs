@@ -255,4 +255,8 @@ pub fn should_use_color() -> bool {
 use std::fmt;
 
 #[cfg(test)]
-mod tests;
+// `pub(crate)` because command tests outside this module take the same
+// guard: `NO_COLOR`, `TERM` and the quiet flag are process-global, so a
+// command test that renders coloured output has to serialise against the
+// term tests or they race. Test-only, so it leaves no public surface.
+pub(crate) mod tests;
