@@ -373,6 +373,50 @@ fn start_run_empty_args_errors_with_missing_command() {
 }
 
 #[test]
+fn scaled_start_injects_the_instance_index_under_the_unitpm_prefix() {
+	// The managed process reads this to know which replica it is, so the
+	// name is observable behaviour rather than an internal detail.
+	//
+	// It is asserted here because nothing did: the port carried the
+	// pre-org `LYNX_INSTANCE` through, and every other one of the
+	// eighteen environment variables had already been renamed. A rename
+	// nothing tests is a rename that gets missed.
+	let _g = lock_spec_env();
+	let _tmp = set_xdg_tempdir();
+
+	let mut client = MockStart::new("abc-123", 9999, "running");
+	let mut out = Vec::new();
+	let mut err_buf = Vec::new();
+	let args = vec![
+		"echo".to_string(),
+		"hello".to_string(),
+		"--instances".to_string(),
+		"2".to_string(),
+		"--no-list".to_string(),
+	];
+	run(Some(&mut client), &mut out, &mut err_buf, &args).expect("ok");
+
+	let calls = client.calls();
+	assert_eq!(calls.len(), 2, "expected two instances, got {calls:?}");
+
+	let mut seen: Vec<String> = calls
+		.iter()
+		.map(|c| {
+			let env = c.spec.env.as_ref().expect("scaled spec carries an env map");
+			assert!(
+				!env.contains_key("LYNX_INSTANCE"),
+				"the dead brand must not reach a managed process: {env:?}"
+			);
+			env.get("UNITPM_INSTANCE")
+				.unwrap_or_else(|| panic!("no UNITPM_INSTANCE in {env:?}"))
+				.clone()
+		})
+		.collect();
+	seen.sort();
+	assert_eq!(seen, vec!["0".to_string(), "1".to_string()]);
+}
+
+#[test]
 fn start_run_success_makes_one_ipc_call() {
 	// XDG_CONFIG_HOME points at a tempdir so save_spec_protocol
 	// cannot pollute the user's home. The guard serialises parallel

@@ -163,7 +163,7 @@ pub fn run<O: Write, E: Write, C: StartOps + list::IpcOps>(
 			this_spec.env = Some(BTreeMap::new());
 		}
 		if let Some(env) = this_spec.env.as_mut() {
-			env.insert("LYNX_INSTANCE".to_string(), i.to_string());
+			env.insert("UNITPM_INSTANCE".to_string(), i.to_string());
 		}
 
 		// Persist the spec before calling the daemon so it survives a
