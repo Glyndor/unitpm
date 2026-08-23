@@ -15,14 +15,14 @@ use std::path::{Component, Path, PathBuf};
 use std::sync::atomic::{AtomicI32, Ordering};
 
 /// System-mode directory where the daemon writes per-process logs.
-pub const LOG_ROOT: &str = "/var/log/unitpm";
+pub const LOG_ROOT: &str = "/var/log/glyndor/unitpm";
 /// System-mode runtime directory that holds the IPC socket.
 pub const RUN_DIR: &str = "/run/unitpmd";
 /// Where systemd `LoadCredential=` staging files are written for
 /// `--isolation dynamic`, one subdirectory per process ID.
-pub const CREDS_DIR: &str = "/var/lib/unitpm/creds";
+pub const CREDS_DIR: &str = "/var/lib/glyndor/unitpm/creds";
 /// Persistent state root for the system user.
-pub const DATA_DIR: &str = "/var/lib/unitpm";
+pub const DATA_DIR: &str = "/var/lib/glyndor/unitpm";
 
 const MAX_DIR_LEN: usize = 4096;
 
