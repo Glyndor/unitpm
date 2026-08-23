@@ -1,5 +1,12 @@
 //! CLI-specific types.
 //!
-//! Phase 1 only carries `errs`; later phases will add commands/ and friends.
+//! Phase 6a carries the CLI infrastructure packages (no commands).
 
+pub mod batch;
 pub mod errs;
+pub mod expand;
+pub mod format;
+pub mod help;
+pub mod registry;
+pub mod root;
+pub mod table;
