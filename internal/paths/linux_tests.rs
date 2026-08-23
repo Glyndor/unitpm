@@ -76,6 +76,17 @@ fn within_root_table() {
 			false,
 			"escape",
 		),
+		// A sibling whose name *starts with* the root's, which is the case a
+		// string-prefix comparison gets wrong and a component-wise one gets
+		// right. Without it the table passes against an implementation that
+		// only checks `starts_with`, so the two cases above prove less than
+		// they look like they do.
+		(
+			"/var/log/glyndor/unitpm",
+			"/var/log/glyndor/unitpm-evil/x.log",
+			false,
+			"sibling sharing the root's name as a string prefix",
+		),
 		(
 			"/var/log/glyndor/unitpm",
 			"/var/log/glyndor/other",
