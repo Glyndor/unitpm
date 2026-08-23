@@ -4,6 +4,13 @@
 /target/
 /Cargo.lock.bak
 
+# cargo-fuzz: keep the workspace isolated, never pull nightly artefacts into
+# the main repo. Mirrors Glyndor/klyradb's setup.
+/fuzz/target/
+/fuzz/corpus/
+/fuzz/artifacts/
+/fuzz/Cargo.lock
+
 # =====================
 # Go
 # =====================

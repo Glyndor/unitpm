@@ -97,7 +97,7 @@ fn app_spec_json_round_trip() {
 		env_file: Some(".env".into()),
 		logs: Some(Box::new(AppLogs {
 			mode: "file".into(),
-			dir: Some("/var/log/myapp".into()),
+			dir: Some("/var/log/glyndor/myapp".into()),
 			stdout: Some("out.log".into()),
 			stderr: Some("err.log".into()),
 			format: Some("json".into()),
