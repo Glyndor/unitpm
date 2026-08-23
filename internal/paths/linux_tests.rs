@@ -19,8 +19,8 @@ static ENV_LOCK: Mutex<()> = Mutex::new(());
 /// The mutex alone is not enough. It serialises access, but a test that sets
 /// the euid override and does not clear it leaves the next test to run under
 /// it, so the result depends on the order the runner happens to pick. That is
-/// how `resolve_log_paths_default_paths` saw the system log root instead of the
-/// XDG path on roughly one run in five.
+/// how `resolve_log_paths_default_paths` saw `/var/log/glyndor/unitpm` instead
+/// of the XDG path on roughly one run in five.
 ///
 /// Restoring in `Drop` rather than at the end of each test also covers the
 /// case that matters most: a failing assertion unwinds, and trailing cleanup
@@ -70,10 +70,26 @@ fn within_root_table() {
 			true,
 			"equal",
 		),
-		("/var/log/glyndor/unitpm", "/etc/passwd", false, "escape"),
 		(
 			"/var/log/glyndor/unitpm",
-			"/var/log/other",
+			"/var/log/glyndor/passwd",
+			false,
+			"escape",
+		),
+		// A sibling whose name *starts with* the root's, which is the case a
+		// string-prefix comparison gets wrong and a component-wise one gets
+		// right. Without it the table passes against an implementation that
+		// only checks `starts_with`, so the two cases above prove less than
+		// they look like they do.
+		(
+			"/var/log/glyndor/unitpm",
+			"/var/log/glyndor/unitpm-evil/x.log",
+			false,
+			"sibling sharing the root's name as a string prefix",
+		),
+		(
+			"/var/log/glyndor/unitpm",
+			"/var/log/glyndor/other",
 			false,
 			"sibling",
 		),
@@ -211,7 +227,7 @@ fn resolve_root_log_dir_not_absolute() {
 fn resolve_root_log_dir_outside_allowed_roots() {
 	let _guard = env_lock();
 	set_euid_for_tests(0);
-	let err = get_log_dir("/etc/passwd");
+	let err = get_log_dir("/var/log/glyndor/passwd");
 	assert!(err.is_err(), "want outside roots error");
 	let msg = err.unwrap_err().to_string();
 	assert!(

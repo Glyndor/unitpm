@@ -9,6 +9,7 @@ pub mod cli;
 pub mod env;
 pub mod ipc;
 pub mod jsonx;
+pub mod manifest;
 pub mod paths;
 pub mod spec;
 pub mod types;
