@@ -8,11 +8,13 @@
 //!   unprivileged sandbox wrapper, and the syscall-attribute setup the
 //!   `self` / reserved modes share).
 //!
-//! The Rust IPC layer under [`crate::ipc`] already covers the transport and
-//! wire format. The handlers that consume `policy::authorize_start` and the
-//! `runtime::WrapSandbox` builder land on a later phase; for now these
-//! modules exist so that they can be exercised in isolation.
+//! Phase 4b ports [`manager`] — the registry, lifecycle, isolation,
+//! rotation, and supervision for one managed application. The Rust IPC layer
+//! under [`crate::ipc`] already covers the transport and wire format. The
+//! handlers that consume `policy::authorize_start` and the
+//! `runtime::WrapSandbox` builder land on a later phase.
 
+pub mod manager;
 pub mod policy;
 
 #[cfg(target_os = "linux")]
