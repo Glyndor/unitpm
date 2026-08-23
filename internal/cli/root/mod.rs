@@ -18,7 +18,7 @@
 
 mod stubs;
 
-pub use stubs::{cmd, has_help, is_stubbed, not_yet_ported, register_all, stub_spec};
+pub use stubs::{cmd, has_help, is_stubbed, not_yet_ported, register_all, run_dispatch, stub_spec};
 
 use std::io::{self, Write};
 
@@ -188,11 +188,17 @@ fn run_real<O: Write, E: Write>(name: &str, args: &[String], out: &mut O, err: &
 }
 
 /// Invoke `name` with `args`. Returns `Some(err)` on a command error;
-/// `None` means "command wasn't recognised" — the Go side returns
-/// `nil` for unknown names, and the test `TestRunCommand_UnknownReturnsNil`
-/// pins that.
+/// `None` means "command ran fine or wasn't recognised" — the Go side
+/// returns `nil` for unknown names, and the test
+/// `TestRunCommand_UnknownReturnsNil` pins that.
+///
+/// Phase 6c forwards `logs` / `monit` / `show` to their real entry
+/// points through [`run_dispatch`] before falling back to the stub.
 #[must_use]
-pub fn run_command(name: &str, _args: &[String]) -> Option<Box<dyn std::error::Error>> {
+pub fn run_command(name: &str, args: &[String]) -> Option<Box<dyn std::error::Error>> {
+	if let Some(err) = run_dispatch(name, args) {
+		return Some(err);
+	}
 	if is_stubbed(name) {
 		Some(not_yet_ported(name))
 	} else {

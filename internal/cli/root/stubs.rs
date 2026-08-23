@@ -2,21 +2,19 @@
 //!
 //! Phase 6a ships no real commands; every command the root dispatcher
 //! recognises has a stub spec here that produces a "not yet ported"
-//! error. Phase 6b replaces `not_yet_ported` and the registration list
-//! as each real implementation lands.
-//!
-//! The four lifecycle commands (`list`, `start`, `stop`, `restart`)
-//! are wired into real implementations in their own modules. The
-//! dispatcher pulls a single optional client via
-//! [`take_dispatcher_client`]; production wires a real
-//! `transport::Client` through [`install_dispatcher_client`], tests
-//! install a mock. When no client is set, the dispatcher surfaces a
-//! "daemon unreachable" error that mirrors the Go side's
-//! `DaemonUnreachable` variant.
+//! error. Phase 6c replaces the `logs`, `monit`, and `show` stubs with
+//! real registrations + dispatchers; the rest still report
+//! "not yet ported" until phases 6b / 6d land.
 
 use std::sync::{Mutex, OnceLock};
 
-use crate::cli::commands;
+use crate::cli::commands::list;
+use crate::cli::commands::logs;
+use crate::cli::commands::monit;
+use crate::cli::commands::restart;
+use crate::cli::commands::show;
+use crate::cli::commands::start;
+use crate::cli::commands::stop;
 use crate::cli::help::CommandSpec;
 use crate::cli::registry;
 
@@ -46,6 +44,27 @@ pub mod cmd {
 	pub const COMPLETION: &str = "completion";
 	pub const HELP: &str = "help";
 }
+
+/// Commands that have a real implementation in this phase. Used by
+/// [`register_all`] to register the real spec and by [`run_dispatch`]
+/// to forward to the real entry point. Everything else still goes
+/// through the phase 6a stub path.
+/// Commands that have a real implementation rather than a phase 6a stub.
+///
+/// Phases 6b, 6c and 6d ported the command tree in parallel, so this list is
+/// where the lanes meet. It grows as each lands; when it holds every command,
+/// the stub machinery in this file goes away entirely.
+const PORTED: &[&str] = &[
+	// 6b — lifecycle
+	cmd::LIST,
+	cmd::START,
+	cmd::STOP,
+	cmd::RESTART,
+	// 6c — output
+	cmd::LOGS,
+	cmd::SHOW,
+	cmd::MONIT,
+];
 
 /// Standard error returned by every stub command. Phase 6b replaces these
 /// with real implementations; the message is intentionally descriptive so a
@@ -78,22 +97,17 @@ pub fn stub_spec(name: &str) -> CommandSpec {
 	}
 }
 
-/// Register every spec with the global registry. Phase-6b commands
-/// (`list`, `start`, `stop`, `restart`) wire their real [`CommandSpec`];
-/// every other command — `apply`, `completion`, `delete`, etc. — keeps
-/// its "not yet ported" stub until phases 6c/6d land. Called by the
-/// dispatcher at the top of `execute` so a fresh process always sees a
-/// fully-populated registry, no matter the entry point.
+/// Register every spec with the global registry. Phase 6c commands get
+/// the real spec from their own module; the rest get the phase 6a
+/// stub. Called by the dispatcher at the top of `execute` so a fresh
+/// process always sees a fully-populated registry.
 pub fn register_all() {
-	// Real implementations ported in phase 6b.
-	registry::register(commands::list::spec());
-	registry::register(commands::start::spec());
-	registry::register(commands::stop::spec());
-	registry::register(commands::restart::spec());
-
-	// Stubs for commands outside phase 6b's scope.
-	let stubbed = [
+	let names = [
+		cmd::LIST,
 		cmd::LOGS,
+		cmd::START,
+		cmd::STOP,
+		cmd::RESTART,
 		cmd::DELETE,
 		cmd::STARTUP,
 		cmd::VERSION,
@@ -111,34 +125,53 @@ pub fn register_all() {
 		cmd::SCALE,
 		cmd::FLUSH,
 	];
-	for n in stubbed {
-		registry::register(stub_spec(n));
+	for n in names {
+		if let Some(spec) = ported_spec(n) {
+			registry::register(spec);
+		} else {
+			registry::register(stub_spec(n));
+		}
 	}
 }
 
-/// Names recognised by the dispatcher. Mirrors [`register_all`] — every
-/// command registered must also be dispatchable from `run_command`, and
-/// unknown names fall through to `None` so the Go test
-/// `TestRunCommand_UnknownReturnsNil` still pins that behaviour.
+/// Real `CommandSpec` for a ported command. `None` means "no real spec yet"
+/// and the caller falls back to the phase 6a stub.
 ///
-/// Phase 6b: `list`, `start`, `stop`, `restart` are real; the rest are
-/// stub errors saying "phase 6c/6d not ported yet".
+/// Every arm here must have its name in [`PORTED`], or the command registers
+/// its real help page while `run_command` still reports it as unported — which
+/// is the state phase 6b's four commands were left in.
+fn ported_spec(name: &str) -> Option<CommandSpec> {
+	match name {
+		cmd::LIST => Some(list::spec()),
+		cmd::START => Some(start::spec()),
+		cmd::STOP => Some(stop::spec()),
+		cmd::RESTART => Some(restart::spec()),
+		cmd::LOGS => Some(logs::spec()),
+		cmd::SHOW => Some(show::spec()),
+		cmd::MONIT => Some(monit::spec()),
+		_ => None,
+	}
+}
+
+/// Names recognised by the stubbed `run_command` dispatch. Phase 6c
+/// commands drop out so [`run_command`] in `mod.rs` can forward them
+/// through [`run_dispatch`]. Mirrors [`register_all`].
 #[must_use]
 pub fn is_stubbed(name: &str) -> bool {
+	if PORTED.contains(&name) {
+		return false;
+	}
 	matches!(
 		name,
 		cmd::LIST
 			| cmd::START
 			| cmd::STOP
 			| cmd::RESTART
-			| cmd::LOGS
 			| cmd::DELETE
 			| cmd::STARTUP
 			| cmd::VERSION
 			| cmd::APPLY
 			| cmd::EXPORT
-			| cmd::SHOW
-			| cmd::MONIT
 			| cmd::RELOAD
 			| cmd::RESET
 			| cmd::SCALE
@@ -159,8 +192,43 @@ pub fn has_help(name: &str) -> bool {
 	is_stubbed(name) && name != cmd::HELP
 }
 
-// --- Dispatcher client slot ---------------------------------------------
-//
+/// Dispatch a phase 6c command to its real entry point. The
+/// dispatcher calls this before falling back to the stub path; a
+/// `None` return tells the dispatcher this name is still stubbed.
+/// Errors produced by the real command are returned boxed so the
+/// dispatcher can render them via the shared error machinery.
+pub fn run_dispatch(name: &str, args: &[String]) -> Option<Box<dyn std::error::Error>> {
+	match name {
+		cmd::LOGS => from_logs(args),
+		cmd::SHOW => from_show(args),
+		cmd::MONIT => from_monit(args),
+		_ => None,
+	}
+}
+
+fn from_logs(args: &[String]) -> Option<Box<dyn std::error::Error>> {
+	logs::run(args)
+		.err()
+		.map(|e| Box::<dyn std::error::Error>::from(format!("{e}")))
+}
+
+fn from_show(args: &[String]) -> Option<Box<dyn std::error::Error>> {
+	// `show::run` constructs its own transport client when the
+	// dispatcher passes `None`, mirroring Go's `show.Run(nil, args)`.
+	show::run(None, args)
+		.err()
+		.map(|e| Box::<dyn std::error::Error>::from(format!("{e}")))
+}
+
+fn from_monit(args: &[String]) -> Option<Box<dyn std::error::Error>> {
+	// `monit::run` takes a borrowed client and an events iterator;
+	// passing `None` lets the module build its own transport client,
+	// and the stdin events iterator drives the render loop without
+	// touching the terminal directly.
+	monit::run(None, args, &mut monit::stdin_events())
+		.err()
+		.map(|e| Box::<dyn std::error::Error>::from(format!("{e}")))
+}
 // The dispatcher needs a single optional IPC client that satisfies the
 // `Start`/`Stop`/`Restart`/`List` surface. We keep it in a process-global
 // because `execute_with` doesn't take one — the Go side builds the
