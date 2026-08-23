@@ -6,6 +6,7 @@
 //! buildable alongside this one until phase 7 deletes the old code.
 
 pub mod cli;
+pub mod daemon;
 pub mod env;
 pub mod ipc;
 pub mod jsonx;
