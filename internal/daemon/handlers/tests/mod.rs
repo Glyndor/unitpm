@@ -74,7 +74,16 @@ pub(crate) fn new_manager() -> crate::daemon::handlers::SharedManager {
 	std::sync::Arc::new(std::sync::Mutex::new(crate::daemon::manager::Manager::new()))
 }
 
+/// Shared integration test scaffolding. Lives here (rather than inside
+/// `integration_tests`) so the per-topic test files (`flush_tests`,
+/// `proctree_tests`) can call `setup()` without crossing module
+/// boundaries — `super::super::integration_tests::setup` would chain
+/// through private modules.
+pub(crate) mod stack;
+
+mod flush_tests;
 mod integration_tests;
+mod proctree_tests;
 mod register_tests;
 mod service_tests;
 mod start_tests;

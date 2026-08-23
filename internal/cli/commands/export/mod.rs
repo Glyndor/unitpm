@@ -2,7 +2,7 @@
 //!
 //! 10 cases ported from `internal/cli/commands/export/cmd_test.go`.
 //!
-//! Renders the on-disk specs in a single namespace as a unitpmfile.yml
+//! Renders the on-disk specs in a single namespace as a unitpm.yml
 //! manifest. The `--namespace <name>` / `-n <name>` selector is required.
 //! The output is YAML on stdout; the CLI does not call the daemon.
 
@@ -139,10 +139,10 @@ fn spec_err(e: crate::spec::SpecError) -> Box<dyn std::error::Error> {
 }
 
 fn yaml_err(e: serde_yaml::Error) -> Box<dyn std::error::Error> {
-	Box::<dyn std::error::Error>::from(format!("failed to encode unitpmfile: {e}"))
+	Box::<dyn std::error::Error>::from(format!("failed to encode unitpm.yml file: {e}"))
 }
 
-/// Internal YAML shape mirroring the Go `unitpmfile.File` / `AppConfig`.
+/// Internal YAML shape mirroring the Go `unitpm.yml file.File` / `AppConfig`.
 /// Kept private — the on-disk format is consumed by `manifest::File`
 /// when `apply` reads it back.
 #[derive(serde::Serialize)]
@@ -209,7 +209,7 @@ pub fn spec() -> CommandSpec {
 		name: "export".to_string(),
 		aliases: Vec::new(),
 		usage: "unitpm export --namespace <name>".to_string(),
-		description: "Export current applications in a namespace to unitpmfile.yml format"
+		description: "Export current applications in a namespace to unitpm.yml format"
 			.to_string(),
 		options: vec![crate::cli::help::Option {
 			short: "-h".to_string(),

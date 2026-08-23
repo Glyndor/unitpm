@@ -93,11 +93,11 @@ pub fn run<W: Write>(
 	}
 
 	if positional.is_empty() {
-		return Err(usage("missing unitpmfile path".to_string()));
+		return Err(usage("missing unitpm.yml file path".to_string()));
 	}
 	let path = Path::new(&positional[0]);
 
-	let file = fs::File::open(path).map_err(|e| format!("failed to open unitpmfile: {e}"))?;
+	let file = fs::File::open(path).map_err(|e| format!("failed to open unitpm.yml file: {e}"))?;
 	let manifest_file = manifest::parse(file).map_err(apply_err)?;
 	let specs = manifest_file
 		.to_app_specs()
@@ -292,8 +292,8 @@ pub fn spec() -> CommandSpec {
 	CommandSpec {
 		name: "apply".to_string(),
 		aliases: Vec::new(),
-		usage: "unitpm apply <unitpmfile.yml> [--json]".to_string(),
-		description: "Apply a unitpmfile.yml declarative configuration".to_string(),
+		usage: "unitpm apply <unitpm.yml> [--json]".to_string(),
+		description: "Apply a unitpm.yml declarative configuration".to_string(),
 		options: vec![
 			crate::cli::help::Option {
 				short: String::new(),

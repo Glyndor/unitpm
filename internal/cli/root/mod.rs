@@ -18,7 +18,10 @@
 
 mod stubs;
 
-pub use stubs::{cmd, has_help, is_stubbed, not_yet_ported, register_all, run_dispatch, stub_spec};
+pub use stubs::{
+	cmd, has_help, install_dispatcher_client, is_stubbed, not_yet_ported, register_all,
+	run_dispatch, stub_spec, TransportDispatcherClient,
+};
 
 use std::io::{self, Write};
 

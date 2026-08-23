@@ -5,8 +5,16 @@
 //! error. Phase 6c replaces the `logs`, `monit`, and `show` stubs with
 //! real registrations + dispatchers; the rest still report
 //! "not yet ported" until phases 6b / 6d land.
+//!
+//! Phase 7a fills in the production dispatcher client
+//! ([`transport_dispatcher_client`]) so `unitpm list` actually dials the
+//! socket instead of answering "no IPC client wired into the
+//! dispatcher". The four backend trait impls live at the bottom of the
+//! file; the struct itself wraps `transport::Client` behind an
+//! `Arc<Mutex<..>>` so each `*_handle()` can hand out an owned handle
+//! without moving the original client.
 
-use std::sync::{Mutex, OnceLock};
+use std::sync::{Arc, Mutex, MutexGuard, OnceLock};
 
 use crate::cli::commands::list;
 use crate::cli::commands::logs;
@@ -17,6 +25,9 @@ use crate::cli::commands::start;
 use crate::cli::commands::stop;
 use crate::cli::help::CommandSpec;
 use crate::cli::registry;
+use crate::ipc::protocol::{StartRequest, StartResponseData};
+use crate::ipc::transport::{Client, IPCClient};
+use crate::types::ProcessInfo;
 
 /// Names recognised by the dispatcher. Kept as constants so a rename only
 /// happens in one place.
@@ -64,6 +75,21 @@ const PORTED: &[&str] = &[
 	cmd::LOGS,
 	cmd::SHOW,
 	cmd::MONIT,
+	// 6d — the rest
+	cmd::APPLY,
+	cmd::COMPLETION,
+	cmd::DELETE,
+	cmd::EXEC_ENV,
+	cmd::EXEC_SANDBOX,
+	cmd::EXPORT,
+	cmd::FLUSH,
+	cmd::INSTALL_TOOLS,
+	cmd::RELOAD,
+	cmd::RESET,
+	cmd::SCALE,
+	cmd::STARTUP,
+	cmd::UPDATE,
+	cmd::VERSION,
 ];
 
 /// Standard error returned by every stub command. Phase 6b replaces these
@@ -149,6 +175,20 @@ fn ported_spec(name: &str) -> Option<CommandSpec> {
 		cmd::LOGS => Some(logs::spec()),
 		cmd::SHOW => Some(show::spec()),
 		cmd::MONIT => Some(monit::spec()),
+		cmd::APPLY => Some(crate::cli::commands::apply::spec()),
+		cmd::COMPLETION => Some(crate::cli::commands::completion::spec()),
+		cmd::DELETE => Some(crate::cli::commands::delete::spec()),
+		cmd::EXEC_ENV => Some(crate::cli::commands::execenv::spec()),
+		cmd::EXEC_SANDBOX => Some(crate::cli::commands::execsandbox::spec()),
+		cmd::EXPORT => Some(crate::cli::commands::export::spec()),
+		cmd::FLUSH => Some(crate::cli::commands::flush::spec()),
+		cmd::INSTALL_TOOLS => Some(crate::cli::commands::installtools::spec()),
+		cmd::RELOAD => Some(crate::cli::commands::reload::spec()),
+		cmd::RESET => Some(crate::cli::commands::reset::spec()),
+		cmd::SCALE => Some(crate::cli::commands::scale::spec()),
+		cmd::STARTUP => Some(crate::cli::commands::startup::spec()),
+		cmd::UPDATE => Some(crate::cli::commands::update::spec()),
+		cmd::VERSION => Some(crate::cli::commands::version::spec()),
 		_ => None,
 	}
 }
@@ -322,19 +362,216 @@ impl<T: RestartBackend + ?Sized> RestartBackend for Box<T> {
 // commands::list::IpcOps), so we can implement them here in the
 // same crate. The keys are re-exports we pull in.
 
-/// Production dispatch client — wraps `transport::Client` and forwards
-/// each verb. Lives here so the transport package stays unaware of
-/// the command surface. Phase 6c/6d wire the impl; until then this
-/// is a placeholder so the type lives in the API surface.
-#[allow(dead_code)]
-pub struct TransportDispatcherClient<C: Send> {
-	inner: C,
+/// Production dispatch client — wraps `transport::Client` behind an
+/// `Arc<Mutex<..>>` so each `*_handle()` can hand out an owned backend
+/// handle without cloning the transport stream. The transport package
+/// stays unaware of the command surface: this is where the four
+/// backend traits meet the real IPC client.
+///
+/// Construction is lazy — the entry point calls
+/// [`TransportDispatcherClient::lazy`] and the first `call_*` opens
+/// the socket, so `unitpm --help`, `unitpm version`, and an unknown
+/// name never dial. This matches the Go behaviour where the four
+/// lifecycle commands built their own clients only when invoked.
+///
+/// Construct via [`TransportDispatcherClient::lazy`] and hand it to
+/// [`install_dispatcher_client`] before calling [`execute`]. The
+/// dispatcher takes ownership of one `Box<dyn DispatcherClient>` per
+/// process invocation.
+pub struct TransportDispatcherClient {
+	client: Arc<Mutex<Option<Client>>>,
 }
 
-#[allow(dead_code)]
-impl<C: Send> TransportDispatcherClient<C> {
-	pub fn new(inner: C) -> Self {
-		Self { inner }
+impl TransportDispatcherClient {
+	/// Build a client that dials the socket on first use. Errors
+	/// surface from the first call that needs the socket, mirroring
+	/// the Go `transport.NewClient()` flow that ran inside the
+	/// lifecycle command modules when no client was supplied.
+	#[must_use]
+	pub fn lazy() -> Self {
+		Self {
+			client: Arc::new(Mutex::new(None)),
+		}
+	}
+
+	/// Wrap an already-connected transport client. Tests use this to
+	/// avoid the lazy-dial path.
+	#[must_use]
+	pub fn from_client(client: Client) -> Self {
+		Self {
+			client: Arc::new(Mutex::new(Some(client))),
+		}
+	}
+
+	/// Lock the inner slot, dialing on first use. Returns a
+	/// [`LockedClient`] that derefs to `Client`; every backend method
+	/// uses this to make sure the socket is open before issuing a
+	/// request.
+	fn lock_or_dial(&self) -> Result<LockedClient<'_>, String> {
+		let guard = self.client.lock().map_err(|e| e.to_string())?;
+		Ok(LockedClient { guard })
+	}
+}
+
+/// `MutexGuard` over `Option<Client>` that exposes `&mut Client`
+/// after lazily dialing. The dial error short-circuits the deref so a
+/// dead daemon surfaces through the backend traits' `Result<_, String>`
+/// return type without `unwrap()`s in the call sites.
+pub struct LockedClient<'a> {
+	guard: MutexGuard<'a, Option<Client>>,
+}
+
+impl<'a> LockedClient<'a> {
+	/// Borrow the underlying client, dialing the socket on first use.
+	/// The dial result is cached so subsequent calls skip the connect.
+	pub fn client(&mut self) -> Result<&mut Client, String> {
+		if self.guard.is_none() {
+			let client = Client::new().map_err(|e| e.to_string())?;
+			*self.guard = Some(client);
+		}
+		Ok(self.guard.as_mut().expect("just initialised"))
+	}
+}
+
+impl Clone for TransportDispatcherClient {
+	fn clone(&self) -> Self {
+		Self {
+			client: Arc::clone(&self.client),
+		}
+	}
+}
+
+impl ListBackend for TransportDispatcherClient {
+	fn call_list_inner(&mut self) -> Result<Vec<ProcessInfo>, String> {
+		let mut guard = self.lock_or_dial()?;
+		let mut procs: Vec<ProcessInfo> = Vec::new();
+		guard
+			.client()?
+			.call::<(), Vec<ProcessInfo>>("list", None, Some(&mut procs))
+			.map_err(|e| e.to_string())?;
+		Ok(procs)
+	}
+}
+
+impl StartBackend for TransportDispatcherClient {
+	fn start_inner(&mut self, req: &StartRequest) -> Result<StartResponseData, String> {
+		let mut guard = self.lock_or_dial()?;
+		let mut data: StartResponseData = StartResponseData {
+			id: String::new(),
+			proc_id: None,
+			pid: None,
+			status: None,
+			message: None,
+			created_at: None,
+		};
+		guard
+			.client()?
+			.call::<StartRequest, StartResponseData>("start", Some(req), Some(&mut data))
+			.map_err(|e| e.to_string())?;
+		Ok(data)
+	}
+
+	fn call_list_inner(&mut self) -> Result<Vec<ProcessInfo>, String> {
+		// Forward to the same `list` verb `StartBackend`'s command
+		// path uses internally — the daemon's `start` verb also calls
+		// the manager's process table, so this stays consistent.
+		let mut guard = self.lock_or_dial()?;
+		let mut procs: Vec<ProcessInfo> = Vec::new();
+		guard
+			.client()?
+			.call::<(), Vec<ProcessInfo>>("list", None, Some(&mut procs))
+			.map_err(|e| e.to_string())?;
+		Ok(procs)
+	}
+}
+
+impl StopBackend for TransportDispatcherClient {
+	fn list_processes_inner(&mut self) -> Result<Vec<ProcessInfo>, String> {
+		let mut guard = self.lock_or_dial()?;
+		let mut procs: Vec<ProcessInfo> = Vec::new();
+		guard
+			.client()?
+			.call::<(), Vec<ProcessInfo>>("list", None, Some(&mut procs))
+			.map_err(|e| e.to_string())?;
+		Ok(procs)
+	}
+
+	fn stop_inner(&mut self, id: &str) -> Result<crate::cli::commands::stop::StopResponse, String> {
+		let mut guard = self.lock_or_dial()?;
+		let mut resp: serde_json::Value = serde_json::Value::Null;
+		let params = serde_json::json!({ "id": id });
+		guard
+			.client()?
+			.call::<serde_json::Value, serde_json::Value>("stop", Some(&params), Some(&mut resp))
+			.map_err(|e| e.to_string())?;
+		Ok(crate::cli::commands::stop::StopResponse {
+			status: resp
+				.get("status")
+				.and_then(|v| v.as_str())
+				.unwrap_or("")
+				.to_string(),
+			id: resp
+				.get("id")
+				.and_then(|v| v.as_str())
+				.unwrap_or("")
+				.to_string(),
+			was_running: resp
+				.get("was_running")
+				.and_then(|v| v.as_bool())
+				.unwrap_or(false),
+		})
+	}
+}
+
+impl RestartBackend for TransportDispatcherClient {
+	fn list_processes_inner(&mut self) -> Result<Vec<ProcessInfo>, String> {
+		let mut guard = self.lock_or_dial()?;
+		let mut procs: Vec<ProcessInfo> = Vec::new();
+		guard
+			.client()?
+			.call::<(), Vec<ProcessInfo>>("list", None, Some(&mut procs))
+			.map_err(|e| e.to_string())?;
+		Ok(procs)
+	}
+
+	fn restart_inner(
+		&mut self,
+		id: &str,
+	) -> Result<crate::cli::commands::restart::RestartResponse, String> {
+		let mut guard = self.lock_or_dial()?;
+		let mut resp: serde_json::Value = serde_json::Value::Null;
+		let params = serde_json::json!({ "id": id });
+		guard
+			.client()?
+			.call::<serde_json::Value, serde_json::Value>("restart", Some(&params), Some(&mut resp))
+			.map_err(|e| e.to_string())?;
+		Ok(crate::cli::commands::restart::RestartResponse {
+			status: resp
+				.get("status")
+				.and_then(|v| v.as_str())
+				.unwrap_or("")
+				.to_string(),
+			id: resp
+				.get("id")
+				.and_then(|v| v.as_str())
+				.unwrap_or("")
+				.to_string(),
+		})
+	}
+}
+
+impl DispatcherClient for TransportDispatcherClient {
+	fn list_handle(&mut self) -> Box<dyn ListBackend> {
+		Box::new(self.clone())
+	}
+	fn start_handle(&mut self) -> Box<dyn StartBackend> {
+		Box::new(self.clone())
+	}
+	fn stop_handle(&mut self) -> Box<dyn StopBackend> {
+		Box::new(self.clone())
+	}
+	fn restart_handle(&mut self) -> Box<dyn RestartBackend> {
+		Box::new(self.clone())
 	}
 }
 

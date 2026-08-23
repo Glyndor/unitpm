@@ -14,6 +14,18 @@ publish = false
 name = "unitpm"
 path = "internal/lib.rs"
 
+# Phase 7a: the two binaries. `unitpm` is the CLI; `unitpmd` is the IPC
+# daemon. They live under `cmd/` to mirror the prior Go layout
+# (`cmd/lynxpm/`, `cmd/lynxd/`) so the Debian package, systemd unit, and
+# release scripts can target the same paths the previous tree used.
+[[bin]]
+name = "unitpm"
+path = "cmd/unitpm/main.rs"
+
+[[bin]]
+name = "unitpmd"
+path = "cmd/unitpmd/main.rs"
+
 [dependencies]
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"

@@ -5,15 +5,24 @@
 //! IPC call, render dispatch) and `sort.go` (sort-spec parser); they
 //! live together here.
 
+mod args;
 mod sort;
 
+// Test-only. Declared without `#[cfg(test)]` they compile into the library,
+// where their `#[test]` functions vanish and every fixture they import reads
+// as unused.
+#[cfg(test)]
+mod mock_client;
+#[cfg(test)]
+mod parser_tests;
 #[cfg(test)]
 mod tests;
 
 use std::collections::{HashMap, HashSet};
+
+use args::{args_contain_help, parse_args};
 use std::io::{self, Write};
 
-use crate::cli::errs::UsageError;
 use crate::cli::format;
 use crate::cli::help::{CommandSpec, Option as HelpOption};
 use crate::cli::table::Table;
@@ -140,85 +149,6 @@ pub fn fetch_and_render<O: Write, C: IpcOps>(
 		highlight,
 	};
 	render_to(out, &procs, &opts);
-}
-
-// ---------------------------------------------------------------------------
-// Argument parser
-// ---------------------------------------------------------------------------
-
-#[derive(Default, Debug)]
-struct Args {
-	show_long: bool,
-	namespace: String,
-	sort_spec: String,
-	json_output: bool,
-	sort_fields: Vec<SortField>,
-}
-
-fn parse_args(args: &[String]) -> Result<Args, UsageError> {
-	// Lightweight, hand-rolled flag parser. Mirrors the Go `flag`
-	// package surface: boolean flags have no value, value flags consume
-	// the next token.
-	let mut a = Args::default();
-	let mut i = 0;
-	while i < args.len() {
-		let arg = args[i].clone();
-		match arg.as_str() {
-			"--long" => a.show_long = true,
-			"--json" => a.json_output = true,
-			"--namespace" => {
-				a.namespace = take_value(args, &mut i, "--namespace")?;
-			}
-			"--sort" => {
-				a.sort_spec = take_value(args, &mut i, "--sort")?;
-			}
-			"-h" | "--help" => {
-				// Handled earlier; defensive skip.
-			}
-			other if other.starts_with('-') => {
-				let name = other.trim_start_matches('-');
-				return Err(UsageError::new(format!("Unknown flag: -{name}")));
-			}
-			_ => {
-				return Err(UsageError::new(format!(
-					"Unexpected arguments: {}",
-					quote_list(&args[i..])
-				)));
-			}
-		}
-		i += 1;
-	}
-	a.sort_fields = parse_sort_spec(&a.sort_spec).map_err(|e| UsageError::new(e.to_string()))?;
-	// Apply user fields, layered with the default sort. Empty user spec
-	// means default; explicit spec replaces. The Go applies a layered
-	// sort inside `sortProcesses`, mirroring that here means we hand a
-	// combined list to `sort_processes_with`.
-	Ok(a)
-}
-
-fn take_value(args: &[String], i: &mut usize, flag: &str) -> Result<String, UsageError> {
-	if *i + 1 >= args.len() {
-		return Err(UsageError::new(format!("missing value for flag {flag}")));
-	}
-	*i += 1;
-	Ok(args[*i].clone())
-}
-
-fn quote_list(items: &[String]) -> String {
-	let mut out = String::from("[");
-	for (idx, it) in items.iter().enumerate() {
-		if idx > 0 {
-			out.push(' ');
-		}
-		out.push_str(it);
-	}
-	out.push(']');
-	out
-}
-
-fn args_contain_help(args: &[String]) -> bool {
-	args.iter()
-		.any(|a| a == "-h" || a == "--help" || a == "-help")
 }
 
 // ---------------------------------------------------------------------------
