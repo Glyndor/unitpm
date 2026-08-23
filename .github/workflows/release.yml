@@ -59,23 +59,23 @@ jobs:
             lynxpm_linux_arm64
             lynxpm_*.deb
 
-      - name: Generate SBOM (amd64)
-        uses: anchore/sbom-action@e22c389904149dbc22b58101806040fa8d37a610 # v0
-        with:
-          file: lynxpm_linux_amd64
-          format: spdx-json
-          output-file: lynxpm_linux_amd64.spdx.json
-          upload-artifact: false
-          upload-release-assets: false
-
-      - name: Generate SBOM (arm64)
-        uses: anchore/sbom-action@e22c389904149dbc22b58101806040fa8d37a610 # v0
-        with:
-          file: lynxpm_linux_arm64
-          format: spdx-json
-          output-file: lynxpm_linux_arm64.spdx.json
-          upload-artifact: false
-          upload-release-assets: false
+      # The SBOM step is deliberately absent, and this release will ship
+      # without one until it comes back through the shared reusable.
+      #
+      # It used to be two `anchore/sbom-action` calls. That action is a
+      # wrapper around a tool, which the CI standard no longer allows: an
+      # `uses:` is for runner primitives, and everything else is a pinned
+      # tool invoked from a line we wrote. It was also producing spdx-json
+      # where the releases standard requires CycloneDX, and its pin comment
+      # read `# v0` - a major alias rather than a real tag, so Dependabot
+      # could move the SHA under a comment that never became visibly false.
+      #
+      # I am not replacing it with a Go generator, because the Go tree is
+      # being removed by the rewrite and the replacement would be dead on
+      # arrival. `rust-supply-chain.yml` already does exactly this job -
+      # `cargo install --locked cargo-cyclonedx` at a pinned version, then
+      # one line of our own - and this workflow adopts it along with the
+      # rest of the shared CI once the rewrite lands.
 
       - name: Extract release notes
         run: |
@@ -99,8 +99,6 @@ jobs:
             --notes-file release_notes.txt \
             lynxpm_linux_amd64 \
             lynxpm_linux_amd64.sig \
-            lynxpm_linux_amd64.spdx.json \
             lynxpm_linux_arm64 \
             lynxpm_linux_arm64.sig \
-            lynxpm_linux_arm64.spdx.json \
             lynxpm_*.deb
