@@ -243,10 +243,45 @@ impl std::error::Error for SpecError {}
 #[cfg(test)]
 mod tests {
 	use super::*;
+
+	/// Serialises the tests that depend on `XDG_CONFIG_HOME`, and puts it back.
+	///
+	/// The variable is process-global and `cargo test` runs threads in
+	/// parallel by default, while Go only does so when a test asks with
+	/// `t.Parallel()`. Three tests point it at their own temporary directory
+	/// and a fourth reads it through `save_spec_protocol`; without
+	/// serialisation one re-points it while another is mid-write, and that
+	/// one then fails to find the file it just saved:
+	///
+	///     load_spec_protocol: Io(Os { code: 2, kind: NotFound })
+	///
+	/// It reproduced roughly once in twenty default runs and on the first
+	/// run at `--test-threads=32`, which is why the count matters more than
+	/// a single green pass.
+	///
+	/// Restoring in `Drop` rather than at the end of each test matters for
+	/// the same reason it did in `paths`: a failing assertion unwinds and
+	/// trailing cleanup never runs, so the first failure would leave every
+	/// later test pointing at a deleted temporary directory and bury its own
+	/// cause.
+	static ENV_LOCK: std::sync::Mutex<()> = std::sync::Mutex::new(());
+
+	struct EnvGuard(#[allow(dead_code)] std::sync::MutexGuard<'static, ()>);
+
+	impl Drop for EnvGuard {
+		fn drop(&mut self) {
+			std::env::remove_var("XDG_CONFIG_HOME");
+		}
+	}
+
+	fn env_lock() -> EnvGuard {
+		EnvGuard(ENV_LOCK.lock().unwrap_or_else(|e| e.into_inner()))
+	}
 	use crate::ipc::protocol::{AppExec as ProtocolAppExec, AppSpec as ProtocolAppSpec};
 
 	#[test]
 	fn get_spec_dir_creates_xdg_apps_with_0700() {
+		let _guard = env_lock();
 		let dir = tempfile::tempdir().expect("tempdir");
 		std::env::set_var("XDG_CONFIG_HOME", dir.path());
 		let path = get_spec_dir().expect("get_spec_dir");
@@ -262,6 +297,7 @@ mod tests {
 
 	#[test]
 	fn save_load_delete_round_trip() {
+		let _guard = env_lock();
 		let dir = tempfile::tempdir().expect("tempdir");
 		std::env::set_var("XDG_CONFIG_HOME", dir.path());
 
@@ -300,6 +336,7 @@ mod tests {
 
 	#[test]
 	fn protocol_spec_round_trip() {
+		let _guard = env_lock();
 		let dir = tempfile::tempdir().expect("tempdir");
 		std::env::set_var("XDG_CONFIG_HOME", dir.path());
 
