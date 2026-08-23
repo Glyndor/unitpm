@@ -88,27 +88,98 @@ pub fn execute_with<O: Write, E: Write>(args: &[String], out: &mut O, err: &mut 
 		return print_command_help_to(&cmd_name, out);
 	}
 
-	if is_stubbed(&cmd_name) {
-		// Real lifecycle commands ported in phase 6b — wire them
-		// through to their typed `run`. Other names get the
-		// "not yet ported" path.
-		if matches!(
-			cmd_name.as_str(),
-			stubs::cmd::LIST | stubs::cmd::START | stubs::cmd::STOP | stubs::cmd::RESTART
-		) {
-			return run_real(&cmd_name, &args[1..], out, err);
-		}
-		if let Some(cmd_err) = run_command(&cmd_name, &args[1..]) {
+	match dispatch(&cmd_name, &args[1..], out, err) {
+		DispatchOutcome::Ok => 0,
+		DispatchOutcome::Handled => 1,
+		DispatchOutcome::Err(cmd_err) => {
 			handle_error_to(cmd_err, &cmd_name, out, err);
-			return 1;
+			1
 		}
-		return 0;
+		DispatchOutcome::Unknown => {
+			print_error(err, &format!("Command not found: {cmd_name}"));
+			let _ = render_root_help(out, &specs, true);
+			1
+		}
 	}
+}
 
-	// Unknown command.
-	print_error(err, &format!("Command not found: {}", cmd_name));
-	let _ = render_root_help(out, &specs, true);
-	1
+/// Outcome of [`dispatch`].
+///
+/// `Handled` exists because phase 6b's commands return an exit code and have
+/// already written their own message; mapping them to `Err` would print a
+/// second one, and mapping them to `Ok` would exit 0 on a failure.
+enum DispatchOutcome {
+	Ok,
+	Handled,
+	Unknown,
+	Err(Box<dyn std::error::Error>),
+}
+
+impl From<Result<(), Box<dyn std::error::Error>>> for DispatchOutcome {
+	fn from(r: Result<(), Box<dyn std::error::Error>>) -> Self {
+		match r {
+			Ok(()) => DispatchOutcome::Ok,
+			Err(e) => DispatchOutcome::Err(e),
+		}
+	}
+}
+
+/// Route a command name to its implementation.
+///
+/// Three phases wired their commands differently and this is where the three
+/// meet. 6b's four take an IPC client and return an exit code, so they go
+/// through [`run_real`]; 6c's three go through [`stubs::run_dispatch`]; 6d's
+/// fourteen return a `Result` and convert directly. `is_stubbed` is the last
+/// arm, not the first — a name that is registered but unimplemented falls
+/// through to it, and a name nobody knows falls past it to `Unknown`.
+fn dispatch<O: Write, E: Write>(
+	name: &str,
+	args: &[String],
+	out: &mut O,
+	err: &mut E,
+) -> DispatchOutcome {
+	if matches!(
+		name,
+		stubs::cmd::LIST | stubs::cmd::START | stubs::cmd::STOP | stubs::cmd::RESTART
+	) {
+		return if run_real(name, args, out, err) == 0 {
+			DispatchOutcome::Ok
+		} else {
+			DispatchOutcome::Handled
+		};
+	}
+	if matches!(
+		name,
+		stubs::cmd::LOGS | stubs::cmd::SHOW | stubs::cmd::MONIT
+	) {
+		return match stubs::run_dispatch(name, args) {
+			Some(e) => DispatchOutcome::Err(e),
+			None => DispatchOutcome::Ok,
+		};
+	}
+	match name {
+		stubs::cmd::APPLY => crate::cli::commands::apply::run(None, out, args).into(),
+		stubs::cmd::COMPLETION => crate::cli::commands::completion::run(out, args).into(),
+		stubs::cmd::DELETE => crate::cli::commands::delete::run(None, out, args).into(),
+		stubs::cmd::EXEC_ENV => crate::cli::commands::execenv::run(err, args).into(),
+		stubs::cmd::EXEC_SANDBOX => crate::cli::commands::execsandbox::run(out, args).into(),
+		stubs::cmd::EXPORT => crate::cli::commands::export::run(out, args).into(),
+		stubs::cmd::FLUSH => crate::cli::commands::flush::run(None, out, args).into(),
+		stubs::cmd::INSTALL_TOOLS => {
+			crate::cli::commands::installtools::run(out, args, None).into()
+		}
+		stubs::cmd::RELOAD => crate::cli::commands::reload::run(None, out, args).into(),
+		stubs::cmd::RESET => crate::cli::commands::reset::run(None, out, args).into(),
+		stubs::cmd::SCALE => crate::cli::commands::scale::run(None, out, args).into(),
+		stubs::cmd::STARTUP => {
+			crate::cli::commands::startup::run(&mut crate::cli::commands::startup::RealRunner, args)
+				.into()
+		}
+		stubs::cmd::UPDATE => crate::cli::commands::update::run(out, args).into(),
+		stubs::cmd::VERSION => crate::cli::commands::version::run(None, out, args).into(),
+		_ if is_stubbed(name) => DispatchOutcome::Err(not_yet_ported(name)),
+		_ => DispatchOutcome::Unknown,
+	}
 }
 
 /// Resolve a command-name argument to the canonical command name. Mirrors

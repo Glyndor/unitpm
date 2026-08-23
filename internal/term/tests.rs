@@ -12,7 +12,7 @@ use super::*;
 /// edits and restores every piece of global state in `Drop`, so a failing
 /// assertion cannot leave the next test running against the previous one's
 /// environment.
-struct TermGuard {
+pub(crate) struct TermGuard {
 	_lock: MutexGuard<'static, ()>,
 	prev_quiet: bool,
 	prev_no_color: Option<String>,
@@ -21,7 +21,7 @@ struct TermGuard {
 
 static TERM_LOCK: Mutex<()> = Mutex::new(());
 
-fn lock_term() -> TermGuard {
+pub(crate) fn lock_term() -> TermGuard {
 	TermGuard {
 		_lock: TERM_LOCK.lock().unwrap_or_else(|e| e.into_inner()),
 		prev_quiet: is_quiet(),
