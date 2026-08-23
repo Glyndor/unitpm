@@ -12,7 +12,7 @@ use super::*;
 /// edits and restores every piece of global state in `Drop`, so a failing
 /// assertion cannot leave the next test running against the previous one's
 /// environment.
-struct TermGuard {
+pub struct TermGuard {
 	_lock: MutexGuard<'static, ()>,
 	prev_quiet: bool,
 	prev_no_color: Option<String>,
@@ -21,7 +21,11 @@ struct TermGuard {
 
 static TERM_LOCK: Mutex<()> = Mutex::new(());
 
-fn lock_term() -> TermGuard {
+/// Acquire the term-state lock and capture a snapshot of the current
+/// `quiet` flag plus the env vars the colour gate reads. Returns a
+/// guard that restores everything on `Drop`. Re-exported for the
+/// command-test modules in phase 6d.
+pub fn lock_term() -> TermGuard {
 	TermGuard {
 		_lock: TERM_LOCK.lock().unwrap_or_else(|e| e.into_inner()),
 		prev_quiet: is_quiet(),

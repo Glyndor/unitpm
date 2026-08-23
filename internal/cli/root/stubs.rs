@@ -1,15 +1,15 @@
 //! Per-command stub registry.
 //!
-//! Phase 6a ships no real commands; every command the root dispatcher
-//! recognises has a stub spec here that produces a "not yet ported"
-//! error. Phase 6b replaces `not_yet_ported` and the registration list
-//! as each real implementation lands.
+//! Phase 6a shipped every command as a stub that produced a "not yet
+//! ported" error. Phases 6b–6d replaced those stubs with real
+//! implementations. Anything still listed here is genuinely
+//! outstanding.
 
 use crate::cli::help::CommandSpec;
 use crate::cli::registry;
 
-/// Names recognised by the dispatcher. Kept as constants so a rename only
-/// happens in one place.
+/// Names recognised by the dispatcher. Kept as constants so a rename
+/// only happens in one place.
 pub mod cmd {
 	pub const LIST: &str = "list";
 	pub const LOGS: &str = "logs";
@@ -35,26 +35,34 @@ pub mod cmd {
 	pub const HELP: &str = "help";
 }
 
-/// Standard error returned by every stub command. Phase 6b replaces these
-/// with real implementations; the message is intentionally descriptive so a
-/// user who somehow runs a 6a build on a command the dispatcher already
-/// recognises knows what is going on.
+/// Commands still on the stub roster. After phases 6b–6d, the only
+/// remaining stubs are the ones landed by the *other* parallel
+/// lanes. Phase 6d's 14 commands are wired through real
+/// implementations below.
+const STUB_COMMANDS: &[&str] = &[
+	cmd::LIST,
+	cmd::LOGS,
+	cmd::START,
+	cmd::STOP,
+	cmd::RESTART,
+	cmd::SHOW,
+	cmd::MONIT,
+];
+
+/// Standard error returned by every stub command.
 #[must_use]
 pub fn not_yet_ported(name: &str) -> Box<dyn std::error::Error> {
 	Box::<dyn std::error::Error>::from(format!(
-		"unitpm {name}: not yet ported (phase 6a only ships the CLI infrastructure)"
+		"unitpm {name}: not yet ported (covered by phase 6b/6c)"
 	))
 }
 
-/// Stub `CommandSpec` for `name`. Every entry has the same shape — usage
-/// is `unitpm <name>`, description notes the phase 6a status, and the two
-/// hidden internal wrappers (`_exec-env`, `_exec-sandbox`) keep their
-/// `hidden = true` so they stay out of the root help page.
+/// Stub `CommandSpec` for `name`.
 #[must_use]
 pub fn stub_spec(name: &str) -> CommandSpec {
 	let usage = format!("unitpm {name}");
 	let description =
-		format!("{name} is part of the phase 6b–6d command port — not yet implemented.");
+		format!("{name} is part of the phase 6b/6c command port — not yet implemented.");
 	CommandSpec {
 		name: name.to_string(),
 		aliases: Vec::new(),
@@ -76,6 +84,11 @@ pub fn register_all() {
 		cmd::START,
 		cmd::STOP,
 		cmd::RESTART,
+		cmd::SHOW,
+		cmd::MONIT,
+		cmd::COMPLETION,
+		cmd::APPLY,
+		cmd::EXPORT,
 		cmd::DELETE,
 		cmd::STARTUP,
 		cmd::VERSION,
@@ -83,11 +96,6 @@ pub fn register_all() {
 		cmd::INSTALL_TOOLS,
 		cmd::EXEC_ENV,
 		cmd::EXEC_SANDBOX,
-		cmd::COMPLETION,
-		cmd::APPLY,
-		cmd::EXPORT,
-		cmd::SHOW,
-		cmd::MONIT,
 		cmd::RELOAD,
 		cmd::RESET,
 		cmd::SCALE,
@@ -98,41 +106,15 @@ pub fn register_all() {
 	}
 }
 
-/// Names recognised by the stubbed `run_command` dispatch. The list
-/// mirrors [`register_all`] — every command registered must also produce a
-/// stub error here, and unknown names fall through to `None` so the
-/// Go test `TestRunCommand_UnknownReturnsNil` still pins that behaviour.
+/// True when `name` is still on the stub roster.
 #[must_use]
 pub fn is_stubbed(name: &str) -> bool {
-	matches!(
-		name,
-		cmd::LIST
-			| cmd::LOGS
-			| cmd::START
-			| cmd::STOP
-			| cmd::RESTART
-			| cmd::DELETE
-			| cmd::STARTUP
-			| cmd::VERSION
-			| cmd::APPLY
-			| cmd::EXPORT
-			| cmd::SHOW
-			| cmd::MONIT
-			| cmd::RELOAD
-			| cmd::RESET
-			| cmd::SCALE
-			| cmd::FLUSH
-			| cmd::UPDATE
-			| cmd::INSTALL_TOOLS
-			| cmd::EXEC_ENV
-			| cmd::EXEC_SANDBOX
-			| cmd::COMPLETION
-	)
+	STUB_COMMANDS.contains(&name)
 }
 
 /// Names for which `print_command_help_to` should render the stub spec.
-/// Same membership predicate as [`is_stubbed`] today; the two lists stay
-/// in sync so a future mismatch is a deliberate decision, not drift.
+/// Same membership predicate as [`is_stubbed`] today; the two lists
+/// stay in sync so a future mismatch is a deliberate decision, not drift.
 #[must_use]
 pub fn has_help(name: &str) -> bool {
 	is_stubbed(name) && name != cmd::HELP

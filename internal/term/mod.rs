@@ -255,4 +255,4 @@ pub fn should_use_color() -> bool {
 use std::fmt;
 
 #[cfg(test)]
-mod tests;
+pub(crate) mod tests;

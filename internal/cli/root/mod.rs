@@ -4,9 +4,9 @@
 //!
 //! Phase 6a shells the 21 commands as stub `CommandSpec`s so the dispatcher,
 //! help renderer, registry, and global-flag wiring can be exercised and
-//! frozen before phase 6b lands each real implementation. Every stub
-//! reports a "not yet ported" error so callers see the same exit-code
-//! surface as the eventual real implementation.
+//! frozen before phase 6b lands each real implementation. Phase 6d wired
+//! the 14 commands it covered; the remaining stubs are listed in
+//! [`stubs::STUB_COMMANDS`].
 //!
 //! `apply_global_flags` recognises `--quiet` / `-q` and toggles the global
 //! quiet state on [`crate::term`].
@@ -22,6 +22,7 @@ pub use stubs::{cmd, has_help, is_stubbed, not_yet_ported, register_all, stub_sp
 
 use std::io::{self, Write};
 
+use crate::cli::commands;
 use crate::cli::errs::UsageError;
 use crate::cli::help::render_root_help;
 use crate::cli::registry;
@@ -88,11 +89,66 @@ pub fn execute_with<O: Write, E: Write>(args: &[String], out: &mut O, err: &mut 
 		return print_command_help_to(&cmd_name, out);
 	}
 
-	if let Some(cmd_err) = run_command(&cmd_name, &args[1..]) {
-		handle_error_to(cmd_err, &cmd_name, out, err);
-		return 1;
+	match dispatch(&cmd_name, &args[1..], out, err) {
+		DispatchOutcome::Ok => 0,
+		DispatchOutcome::Unknown => {
+			print_error(err, &format!("Command not found: {cmd_name}"));
+			1
+		}
+		DispatchOutcome::Err(cmd_err) => {
+			handle_error_to(cmd_err, &cmd_name, out, err);
+			1
+		}
 	}
-	0
+}
+
+/// Outcome of [`dispatch`]. `Ok` exits 0; `Unknown` means the command
+/// name was recognised by the registry but had no implementation
+/// (yet); `Err` is a real command-level error.
+enum DispatchOutcome {
+	Ok,
+	Unknown,
+	Err(Box<dyn std::error::Error>),
+}
+
+/// Hand `name` to the right command module. Phase 6d covers the
+/// `apply`, `completion`, `delete`, `execenv`/`execsandbox`, `export`,
+/// `flush`, `install-tools`, `reload`, `reset`, `scale`, `startup`,
+/// `update`, and `version` commands. Everything else falls back to a
+/// stub.
+fn dispatch<O: Write, E: Write>(
+	name: &str,
+	args: &[String],
+	out: &mut O,
+	err: &mut E,
+) -> DispatchOutcome {
+	match name {
+		cmd::APPLY => commands::apply::run(None, out, args).into(),
+		cmd::COMPLETION => commands::completion::run(out, args).into(),
+		cmd::DELETE => commands::delete::run(None, out, args).into(),
+		cmd::EXEC_ENV => commands::execenv::run(err, args).into(),
+		cmd::EXEC_SANDBOX => commands::execsandbox::run(out, args).into(),
+		cmd::EXPORT => commands::export::run(out, args).into(),
+		cmd::FLUSH => commands::flush::run(None, out, args).into(),
+		cmd::INSTALL_TOOLS => commands::installtools::run(out, args, None).into(),
+		cmd::RELOAD => commands::reload::run(None, out, args).into(),
+		cmd::RESET => commands::reset::run(None, out, args).into(),
+		cmd::SCALE => commands::scale::run(None, out, args).into(),
+		cmd::STARTUP => commands::startup::run(&mut commands::startup::RealRunner, args).into(),
+		cmd::UPDATE => commands::update::run(out, args).into(),
+		cmd::VERSION => commands::version::run(None, out, args).into(),
+		_ if is_stubbed(name) => DispatchOutcome::Err(not_yet_ported(name)),
+		_ => DispatchOutcome::Unknown,
+	}
+}
+
+impl From<Result<(), Box<dyn std::error::Error>>> for DispatchOutcome {
+	fn from(r: Result<(), Box<dyn std::error::Error>>) -> Self {
+		match r {
+			Ok(()) => DispatchOutcome::Ok,
+			Err(e) => DispatchOutcome::Err(e),
+		}
+	}
 }
 
 /// Resolve a command-name argument to the canonical command name. Mirrors
@@ -117,19 +173,6 @@ pub fn resolve_command(name: &str) -> Option<String> {
 	}
 }
 
-/// Invoke `name` with `args`. Returns `Some(err)` on a command error;
-/// `None` means "command ran fine or wasn't recognised" — the Go side
-/// returns `nil` for unknown names, and the test
-/// `TestRunCommand_UnknownReturnsNil` pins that.
-#[must_use]
-pub fn run_command(name: &str, _args: &[String]) -> Option<Box<dyn std::error::Error>> {
-	if is_stubbed(name) {
-		Some(not_yet_ported(name))
-	} else {
-		None
-	}
-}
-
 /// Print the command-specific help block for `name` to stdout. Returns 0
 /// in every case — the Go tests pin this for both known and unknown names,
 /// and an unknown command does not crash here (the dispatcher handles the
@@ -144,11 +187,35 @@ pub fn print_command_help(name: &str) -> i32 {
 /// Writer-bound variant of [`print_command_help`].
 #[must_use]
 pub fn print_command_help_to<W: Write>(name: &str, out: &mut W) -> i32 {
-	if has_help(name) {
-		let spec = stub_spec(name);
-		let _ = crate::cli::help::render_command_help(out, &spec);
-	}
+	let spec = match command_spec(name) {
+		Some(s) => s,
+		None => stub_spec(name),
+	};
+	let _ = crate::cli::help::render_command_help(out, &spec);
 	0
+}
+
+/// Look up a real command spec by name. Returns `None` when the name
+/// is still on the stub roster so the caller can fall back.
+#[must_use]
+pub fn command_spec(name: &str) -> Option<crate::cli::help::CommandSpec> {
+	match name {
+		cmd::APPLY => Some(commands::apply::spec()),
+		cmd::COMPLETION => Some(commands::completion::spec()),
+		cmd::DELETE => Some(commands::delete::spec()),
+		cmd::EXEC_ENV => Some(commands::execenv::spec()),
+		cmd::EXEC_SANDBOX => Some(commands::execsandbox::spec()),
+		cmd::EXPORT => Some(commands::export::spec()),
+		cmd::FLUSH => Some(commands::flush::spec()),
+		cmd::INSTALL_TOOLS => Some(commands::installtools::spec()),
+		cmd::RELOAD => Some(commands::reload::spec()),
+		cmd::RESET => Some(commands::reset::spec()),
+		cmd::SCALE => Some(commands::scale::spec()),
+		cmd::STARTUP => Some(commands::startup::spec()),
+		cmd::UPDATE => Some(commands::update::spec()),
+		cmd::VERSION => Some(commands::version::spec()),
+		_ => None,
+	}
 }
 
 /// Decide what to do with an error from a subcommand. Usage errors get a
@@ -159,7 +226,7 @@ pub fn handle_error(err: Box<dyn std::error::Error>, cmd_name: &str) {
 	let stderr = io::stderr();
 	let mut out = stdout.lock();
 	let mut err_out = stderr.lock();
-	handle_error_to(err, cmd_name, &mut out, &mut err_out);
+	handle_error_to(err, cmd_name, &mut out, &mut err_out)
 }
 
 /// Writer-bound variant of [`handle_error`].
@@ -211,128 +278,4 @@ fn print_error<W: Write>(w: &mut W, msg: &str) {
 }
 
 #[cfg(test)]
-mod tests {
-	use super::*;
-
-	#[test]
-	fn execute_help_variants_return_zero() {
-		// Sink the side-effect output so the test runner stays clean.
-		let mut out = Vec::new();
-		let mut err = Vec::new();
-		assert_eq!(execute_with(&["help".into()], &mut out, &mut err), 0);
-		assert_eq!(execute_with(&["--help".into()], &mut out, &mut err), 0);
-		assert_eq!(execute_with(&["-h".into()], &mut out, &mut err), 0);
-	}
-
-	#[test]
-	fn execute_unknown_command_returns_one() {
-		let mut out = Vec::new();
-		let mut err = Vec::new();
-		assert_eq!(
-			execute_with(&["unknown-command".into()], &mut out, &mut err),
-			1
-		);
-		assert!(
-			!err.is_empty(),
-			"unknown-command should have written to stderr"
-		);
-	}
-
-	#[test]
-	fn is_help_request_true_for_recognised_flags() {
-		let cases: &[&[&str]] = &[
-			&["-h"],
-			&["--help"],
-			&["start", "-h"],
-			&["--help", "something"],
-			&["foo", "--help", "bar"],
-		];
-		for case in cases {
-			let args: Vec<String> = case.iter().map(|s| (*s).to_string()).collect();
-			assert!(
-				is_help_request(&args),
-				"is_help_request({args:?}) should be true"
-			);
-		}
-	}
-
-	#[test]
-	fn is_help_request_false_for_non_help_args() {
-		let cases: &[&[&str]] = &[
-			&[],
-			&["start"],
-			&["start", "--name", "api"],
-			&["-help"],
-			&["help"],
-		];
-		for case in cases {
-			let args: Vec<String> = case.iter().map(|s| (*s).to_string()).collect();
-			assert!(
-				!is_help_request(&args),
-				"is_help_request({args:?}) should be false"
-			);
-		}
-	}
-
-	#[test]
-	fn handle_error_usage_error_does_not_panic() {
-		// Render the usage path; output goes to a sink buffer which the test
-		// does not assert on. Avoids polluting the test runner's stdout.
-		let err: Box<dyn std::error::Error> =
-			Box::new(UsageError::new("missing required flag --name"));
-		let mut out = Vec::new();
-		let mut err_out = Vec::new();
-		handle_error_to(err, "start", &mut out, &mut err_out);
-	}
-
-	#[test]
-	fn handle_error_generic_error_does_not_panic() {
-		#[derive(Debug)]
-		struct TestError(&'static str);
-		impl std::fmt::Display for TestError {
-			fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-				f.write_str(self.0)
-			}
-		}
-		impl std::error::Error for TestError {}
-		let err: Box<dyn std::error::Error> = Box::new(TestError("daemon not running"));
-		let mut out = Vec::new();
-		let mut err_out = Vec::new();
-		handle_error_to(err, "list", &mut out, &mut err_out);
-	}
-
-	#[test]
-	fn print_command_help_unknown_returns_zero() {
-		let mut buf = Vec::new();
-		assert_eq!(print_command_help_to("unknown-xyz-command", &mut buf), 0);
-	}
-
-	#[test]
-	fn print_command_help_known_returns_zero() {
-		let known = [
-			cmd::LIST,
-			cmd::START,
-			cmd::STOP,
-			cmd::RESTART,
-			cmd::DELETE,
-			cmd::LOGS,
-			cmd::VERSION,
-		];
-		for name in known {
-			let mut buf = Vec::new();
-			assert_eq!(
-				print_command_help_to(name, &mut buf),
-				0,
-				"{name} returned non-zero"
-			);
-		}
-	}
-
-	#[test]
-	fn run_command_unknown_returns_none() {
-		// Unknown command: must return `None` (matches Go's `nil`) so the
-		// dispatcher doesn't surface a phantom error.
-		let err = run_command("nonexistent-command-xyz", &[]);
-		assert!(err.is_none(), "expected None, got {err:?}");
-	}
-}
+mod tests;
