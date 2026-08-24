@@ -23,14 +23,12 @@
 
 #![cfg(target_os = "linux")]
 
-use std::sync::MutexGuard;
-
 /// Guards every environment variable the tests reach into. Acquired on
 /// construction; restored on `Drop`. The restoration step is what makes
 /// this survive a panicking test — without it, the next test would find
 /// the variable pointing at a deleted temp directory.
 pub(crate) struct EnvGuard {
-	_held: MutexGuard<'static, ()>,
+	_held: crate::test_env::Guard,
 	prev: Vec<(&'static str, Option<String>)>,
 }
 
@@ -49,6 +47,9 @@ impl EnvGuard {
 
 impl Drop for EnvGuard {
 	fn drop(&mut self) {
+		// The euid override is a process-wide static like the variables
+		// below, so it has to come back too or it leaks into the next test.
+		crate::paths::clear_euid_for_tests();
 		for (k, prev) in self.prev.iter().rev() {
 			match prev {
 				Some(v) => std::env::set_var(k, v),

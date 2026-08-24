@@ -15,7 +15,7 @@ use std::os::unix::fs::PermissionsExt;
 use crate::ipc::transport::socket_unix::{get_socket_path, SocketPathError};
 
 struct EnvGuard {
-	_unit: std::sync::MutexGuard<'static, ()>,
+	_unit: crate::test_env::Guard,
 	saved_socket: Option<String>,
 	saved_xdg: Option<String>,
 }

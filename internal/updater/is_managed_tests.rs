@@ -22,15 +22,13 @@ use crate::updater::is_managed_by_package_system as _;
 /// environment, so it has to hold a lock that nothing else in the test
 /// suite also touches.
 struct PathGuard {
-	_held: std::sync::MutexGuard<'static, ()>,
+	_held: crate::test_env::Guard,
 	prev: Option<String>,
 }
 
-static PATH_LOCK: std::sync::Mutex<()> = std::sync::Mutex::new(());
-
 impl PathGuard {
 	fn new(dir: &Path) -> Self {
-		let _held = PATH_LOCK.lock().unwrap_or_else(|e| e.into_inner());
+		let _held = crate::test_env::lock();
 		let prev = std::env::var("PATH").ok();
 		std::env::set_var("PATH", dir.as_os_str());
 		Self { _held, prev }

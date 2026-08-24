@@ -19,7 +19,7 @@ use crate::ipc::transport::{Client, IPCClient, RequestContext, Server};
 /// from the socket suite already covers the hint-style error, so this
 /// guard does not bother with `XDG_RUNTIME_DIR`.
 pub(crate) struct EnvGuard {
-	_unit: std::sync::MutexGuard<'static, ()>,
+	_unit: crate::test_env::Guard,
 	saved_socket: Option<String>,
 	saved_allowlist: Option<String>,
 }

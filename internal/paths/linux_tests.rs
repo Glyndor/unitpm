@@ -6,13 +6,10 @@
 
 use super::*;
 use std::path::PathBuf;
-use std::sync::Mutex;
 
-/// Serialises env-mutating tests. Rust runs `cargo test` threads in parallel
-/// by default; the Go equivalent uses `t.Setenv` per test, which is process-
-/// global too but Go's test runner serialises same-package tests. We match
-/// that with an explicit mutex.
-static ENV_LOCK: Mutex<()> = Mutex::new(());
+// Serialised through the crate-wide lock in `test_env`: the euid override and
+// XDG_STATE_HOME are process-global, and so are the variables the transport and
+// handler tests write, so a lock private to this module would not exclude them.
 
 /// Holds the lock **and** restores the process-global state on the way out.
 ///
@@ -26,7 +23,7 @@ static ENV_LOCK: Mutex<()> = Mutex::new(());
 /// case that matters most: a failing assertion unwinds, and trailing cleanup
 /// never runs at all — so the first failure would poison every later test and
 /// hide its own cause.
-struct EnvGuard(#[allow(dead_code)] std::sync::MutexGuard<'static, ()>);
+struct EnvGuard(#[allow(dead_code)] crate::test_env::Guard);
 
 impl Drop for EnvGuard {
 	fn drop(&mut self) {
@@ -36,7 +33,7 @@ impl Drop for EnvGuard {
 }
 
 fn env_lock() -> EnvGuard {
-	EnvGuard(ENV_LOCK.lock().unwrap_or_else(|e| e.into_inner()))
+	EnvGuard(crate::test_env::lock())
 }
 
 fn temp_xdg(tmp: &tempfile::TempDir) -> PathBuf {
