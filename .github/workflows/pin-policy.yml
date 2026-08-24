@@ -1,0 +1,16 @@
+name: pin-policy
+
+on:
+  pull_request:
+  schedule:
+    - cron: "0 6 * * *"
+
+permissions:
+  contents: read
+
+jobs:
+  pin-policy:
+    uses: Glyndor/.github/.github/workflows/pin-policy-reusable.yml@d4bbc5b6ec0c351ca4cb17d948ceaad818da4078 # v1.18.1
+
+  dependabot-freshness:
+    uses: Glyndor/.github/.github/workflows/dependabot-freshness.yml@d4bbc5b6ec0c351ca4cb17d948ceaad818da4078 # v1.18.1

@@ -6,13 +6,13 @@
 //! run without a custom build.
 
 /// Semver string of the build.
-pub static VERSION: &str = "0.13.1";
+pub static VERSION: &str = env!("CARGO_PKG_VERSION");
 
 /// Git commit hash the binary was built from.
-pub static COMMIT: &str = "none";
+pub static COMMIT: &str = env!("UNITPM_COMMIT");
 
 /// Build timestamp, free-form string.
-pub static BUILD_DATE: &str = "unknown";
+pub static BUILD_DATE: &str = env!("UNITPM_BUILD_DATE");
 
 /// IPC protocol version, must match the protocol package's constant.
 pub const PROTOCOL_VERSION: i64 = 1;

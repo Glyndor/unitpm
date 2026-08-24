@@ -8,6 +8,25 @@ on:
 permissions: read-all
 
 jobs:
+  # The Rust cutover deleted the Go tree this workflow builds with, and the
+  # signing helper it calls (`scripts/sign.go`) went with it. Rewriting the
+  # release path — cross-compiled binaries, Ed25519 signing, SLSA provenance
+  # and SBOMs, all in Rust — is tracked separately.
+  #
+  # This guard exists so that failure happens here, loudly, in five seconds,
+  # rather than a third of the way through a tagged release. A release is
+  # immutable org-wide: the expensive place to discover a broken workflow is
+  # after the tag exists.
+  blocked:
+    name: release path not ported
+    runs-on: ubuntu-latest
+    steps:
+      - run: |
+          echo "::error::The release workflow still builds with Go, which this"
+          echo "::error::repository no longer contains. It must be rewritten"
+          echo "::error::for Rust before a tag is pushed. See the tracking issue."
+          exit 1
+
   release:
     runs-on: ubuntu-latest
     permissions:

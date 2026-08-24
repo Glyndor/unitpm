@@ -1,26 +1,41 @@
 #!/usr/bin/make -f
 
-export VERSION := $(shell dpkg-parsechangelog -S Version | cut -d- -f1)
-export COMMIT := $(shell git rev-parse --short HEAD 2>/dev/null || echo unknown)
 export LC_ALL := C
-export BUILD_DATE := $(shell date -u +'%Y-%m-%dT%H:%M:%SZ')
-export LDFLAGS := -s -w -X 'github.com/Jaro-c/unitpm/internal/version.Version=v$(VERSION)' -X 'github.com/Jaro-c/unitpm/internal/version.Commit=$(COMMIT)' -X 'github.com/Jaro-c/unitpm/internal/version.BuildDate=$(BUILD_DATE)'
+export UNITPM_COMMIT := $(shell git rev-parse --short HEAD 2>/dev/null || echo unknown)
+export UNITPM_BUILD_DATE := $(shell date -u +'%Y-%m-%dT%H:%M:%SZ')
+
+# Build against musl and link statically, so the package declares no libc
+# floor and installs on every supported release. Glyndor/podup#1512 is why:
+# every dynamically-linked .deb there carried `libc6 (>= 2.39)`, which
+# excluded Debian 12 (2.36) and Ubuntu 22.04 (2.35), and apt simply refused.
+DEB_HOST_ARCH ?= $(shell dpkg-architecture -qDEB_HOST_ARCH)
+RUST_TARGET_amd64 = x86_64-unknown-linux-musl
+RUST_TARGET_arm64 = aarch64-unknown-linux-musl
+RUST_TARGET = $(RUST_TARGET_$(DEB_HOST_ARCH))
+ifeq ($(RUST_TARGET),)
+$(error no musl Rust target is mapped for DEB_HOST_ARCH=$(DEB_HOST_ARCH); add one above)
+endif
+
+BUILT = target/$(RUST_TARGET)/release
 
 %:
 	dh $@
 
 override_dh_auto_build:
-	go build -v -trimpath -buildvcs=false -ldflags="$(LDFLAGS)" -o unitpm ./cmd/unitpm
-	go build -v -trimpath -buildvcs=false -ldflags="$(LDFLAGS)" -o unitpmd ./cmd/unitpmd
+	cargo build --release --locked --target $(RUST_TARGET)
 
 override_dh_auto_test:
-	go test -v ./...
+	cargo test --release --locked --target $(RUST_TARGET)
+
+override_dh_auto_install:
+	install -D -m 0755 $(BUILT)/unitpm debian/unitpm/usr/bin/unitpm
+	install -D -m 0755 $(BUILT)/unitpmd debian/unitpm/usr/sbin/unitpmd
 
 # Install debian/unitpm.unitpmd.service as /lib/systemd/system/unitpmd.service.
-# Without --name=unitpmd, dh_installsystemd would look for debian/unitpm.service
-# (package-named) and skip the unit file entirely.
+# Without --name=unitpmd, dh_installsystemd looks for debian/unitpm.service
+# (package-named) and skips the unit file entirely.
 override_dh_installsystemd:
 	dh_installsystemd --name=unitpmd
 
 override_dh_dwz:
-	# Skip dwz compression
+	# Skip dwz compression: a statically-linked binary has nothing to dedupe.

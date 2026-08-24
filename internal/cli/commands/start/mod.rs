@@ -14,6 +14,7 @@
 
 mod dryrun;
 mod exec;
+mod finalize;
 mod lexer;
 mod memory;
 mod parser;
