@@ -1,11 +1,11 @@
 ---
-title: "lynxpm flush"
-description: Truncate stdout and stderr log files for a Lynx-managed process. Frees disk space without stopping the process or affecting future log capture.
+title: "unitpm flush"
+description: Truncate stdout and stderr log files for a unitpm-managed process. Frees disk space without stopping the process or affecting future log capture.
 head:
   - tag: script
     attrs:
       type: application/ld+json
-    content: '{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Lynx","item":"https://jaro-c.github.io/Lynx/"},{"@type":"ListItem","position":2,"name":"Reference","item":"https://jaro-c.github.io/Lynx/reference/architecture/"},{"@type":"ListItem","position":3,"name":"lynxpm flush","item":"https://jaro-c.github.io/Lynx/reference/commands/flush/"}]}'
+    content: '{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"unitpm","item":"https://jaro-c.github.io/unitpm/"},{"@type":"ListItem","position":2,"name":"Reference","item":"https://jaro-c.github.io/unitpm/reference/architecture/"},{"@type":"ListItem","position":3,"name":"unitpm flush","item":"https://jaro-c.github.io/unitpm/reference/commands/flush/"}]}'
 sidebar:
   label: flush
 ---
@@ -13,7 +13,7 @@ sidebar:
 ## 📖 Synopsis
 
 ```bash
-lynxpm flush [--namespace <ns>] [--json] <id|name|ns:*|*>...
+unitpm flush [--namespace <ns>] [--json] <id|name|ns:*|*>...
 ```
 
 ## Description
@@ -26,7 +26,7 @@ same number at `.results[].extra.bytes_freed`.
 Bulk selectors:
 
 - `<ns>:*` — every process in that namespace. Quote the glob so the shell
-  does not expand it: `lynxpm flush 'prod:*'`.
+  does not expand it: `unitpm flush 'prod:*'`.
 - `*` or `*:*` — every managed process.
 - `--namespace <ns>` — same as `<ns>:*` but no shell quoting needed.
   Cannot be combined with positional targets.
@@ -43,23 +43,23 @@ Bulk selectors:
 
 Flush logs for one process:
 ```bash
-lynxpm flush my-api
+unitpm flush my-api
 ```
 
 Flush logs for multiple:
 ```bash
-lynxpm flush api-1 api-2
+unitpm flush api-1 api-2
 ```
 
 Flush every process in the `prod` namespace:
 ```bash
-lynxpm flush 'prod:*'           # selector form (quote the glob)
-lynxpm flush --namespace prod   # flag form (script-friendly)
+unitpm flush 'prod:*'           # selector form (quote the glob)
+unitpm flush --namespace prod   # flag form (script-friendly)
 ```
 
 Total bytes reclaimed across a batch:
 ```bash
-lynxpm flush api-1 api-2 --json | jq '[.results[].extra.bytes_freed] | add'
+unitpm flush api-1 api-2 --json | jq '[.results[].extra.bytes_freed] | add'
 ```
 
 ## Exit codes

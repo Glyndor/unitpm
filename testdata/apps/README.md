@@ -32,10 +32,10 @@ Runtime toolchains required:
 make -C testdata/apps/go-compiled
 
 # Start it.
-lynxpm start "node server.js" --name node-smoke --cwd testdata/apps/node-http
-lynxpm logs node-smoke --follow
-lynxpm stop  node-smoke
-lynxpm delete node-smoke
+unitpm start "node server.js" --name node-smoke --cwd testdata/apps/node-http
+unitpm logs node-smoke --follow
+unitpm stop  node-smoke
+unitpm delete node-smoke
 ```
 
 ## Used by

@@ -1,16 +1,16 @@
-# 🦁 `lynxpm startup`
+# 🦁 `unitpm startup`
 
-> *Generate and install the system startup script for Lynx.*
+> *Generate and install the system startup script for unitpm.*
 
 ## 📖 Synopsis
 
 ```bash
-lynxpm startup [flags]
+unitpm startup [flags]
 ```
 
 ## Description
 
-Generate and install the system startup script for Lynx. This command configures `systemd` to start the Lynx daemon automatically on boot.
+Generate and install the system startup script for unitpm. This command configures `systemd` to start the unitpm daemon automatically on boot.
 
 ## ⚙️ Flags
 
@@ -22,25 +22,25 @@ Generate and install the system startup script for Lynx. This command configures
 
 Generate and install systemd unit (requires sudo/root if installing to /etc):
 ```bash
-lynxpm startup
+unitpm startup
 ```
 
 ## 📋 Example Output
 
 Success:
 ```
-Lynx system daemon started. Autostart enabled.
+unitpm system daemon started. Autostart enabled.
 ```
 
 Failure (not root):
 ```
 Admin privileges required. Run:
-  sudo lynxpm startup
+  sudo unitpm startup
 ```
 
 Failure (no systemd):
 ```
-ERR_UNSUPPORTED: Lynx requires Linux with systemd
+ERR_UNSUPPORTED: unitpm requires Linux with systemd
 ```
 
 ## Notes

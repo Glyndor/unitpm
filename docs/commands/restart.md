@@ -1,11 +1,11 @@
-# 🦁 `lynxpm restart`
+# 🦁 `unitpm restart`
 
 > *Restart one or more processes.*
 
 ## 📖 Synopsis
 
 ```bash
-lynxpm restart [--namespace <ns>] [--json] <id|name|ns:*|*>...
+unitpm restart [--namespace <ns>] [--json] <id|name|ns:*|*>...
 ```
 
 ## Description
@@ -16,7 +16,7 @@ starting the process again with the same configuration.
 Bulk selectors:
 
 - `<ns>:*` — every process in that namespace. Quote the glob so the shell
-  does not expand it: `lynxpm restart 'prod:*'`.
+  does not expand it: `unitpm restart 'prod:*'`.
 - `*` or `*:*` — every managed process.
 - `--namespace <ns>` — same as `<ns>:*` but no shell quoting needed.
   Cannot be combined with positional targets.
@@ -34,18 +34,18 @@ Bulk selectors:
 
 Restart a process:
 ```bash
-lynxpm restart my-app
+unitpm restart my-app
 ```
 
 Restart every process in the `prod` namespace:
 ```bash
-lynxpm restart 'prod:*'           # selector form (quote the glob)
-lynxpm restart --namespace prod   # flag form (script-friendly)
+unitpm restart 'prod:*'           # selector form (quote the glob)
+unitpm restart --namespace prod   # flag form (script-friendly)
 ```
 
 Restart many, capture outcomes as JSON:
 ```bash
-lynxpm restart api worker-1 worker-2 --json | jq '.results[] | {id, status}'
+unitpm restart api worker-1 worker-2 --json | jq '.results[] | {id, status}'
 ```
 
 ## Exit codes

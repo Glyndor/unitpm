@@ -1,6 +1,6 @@
 // Binary entry point for the `unitpmd` daemon.
 //
-// Mirrors `cmd/lynxd/main.go`: wire the manager, the IPC server, the
+// wire the manager, the IPC server, the
 // handlers, the audit logger, and the signal-driven lifecycle. Every
 // piece here already exists in the library; this file is the wiring,
 // not the implementation.

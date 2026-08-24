@@ -1,5 +1,5 @@
 /* ===========================================================
- * Lynx brand — dark-first palette keyed off the CLI's lion-green accent.
+ * unitpm brand — dark-first palette keyed off the CLI's lion-green accent.
  * The values below feed Starlight's built-in CSS variables; the landing
  * page components add their own namespaced rules below.
  * =========================================================== */
@@ -553,19 +553,19 @@ body:has(.lx-hero) h1#_top {
 	width: 18ch;
 }
 
-.lx-compare__th-lynx,
-.lx-compare__td-lynx {
+.lx-compare__th-unitpm,
+.lx-compare__td-unitpm {
 	color: var(--sl-color-white) !important;
 	background: color-mix(in oklab, var(--lx-accent) 8%, transparent) !important;
 	border-left: 2px solid var(--lx-accent);
 	border-right: 2px solid var(--lx-accent);
 }
 
-.lx-compare__table tbody tr:last-child .lx-compare__td-lynx {
+.lx-compare__table tbody tr:last-child .lx-compare__td-unitpm {
 	border-bottom: 2px solid var(--lx-accent);
 }
 
-.lx-compare__table thead tr .lx-compare__th-lynx {
+.lx-compare__table thead tr .lx-compare__th-unitpm {
 	border-top: 2px solid var(--lx-accent);
 }
 
@@ -791,7 +791,7 @@ body:has(.lx-hero) h1#_top {
 	transition: background 160ms ease;
 }
 
-.lx-compare__table tbody tr:hover td:not(.lx-compare__td-lynx),
+.lx-compare__table tbody tr:hover td:not(.lx-compare__td-unitpm),
 .lx-compare__table tbody tr:hover th {
 	background: color-mix(in oklab, var(--lx-accent) 4%, transparent);
 }

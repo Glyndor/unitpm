@@ -1,7 +1,7 @@
 #!/usr/bin/env ruby
 # Long-running Ruby worker with SIGTERM handling via Signal.trap.
 # $stdout.sync = true disables Ruby's default line buffering so the
-# supervisor's log tail matches `lynxpm logs --follow` output ordering.
+# supervisor's log tail matches `unitpm logs --follow` output ordering.
 
 $stdout.sync = true
 

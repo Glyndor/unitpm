@@ -1,9 +1,9 @@
 ---
 title: Zero-downtime deployment on Linux
-description: Deploy application updates on Linux without dropping connections using Lynx process manager. Covers graceful restart, rolling deploys, signal handling, health checks, and blue-green deployment.
+description: Deploy application updates on Linux without dropping connections using unitpm process manager. Covers graceful restart, rolling deploys, signal handling, health checks, and blue-green deployment.
 ---
 
-A **zero-downtime deployment** updates a running application without dropping active HTTP connections or interrupting in-progress work. This guide explains how to achieve zero-downtime deploys on Linux using Lynx process manager, graceful shutdown patterns, and Nginx.
+A **zero-downtime deployment** updates a running application without dropping active HTTP connections or interrupting in-progress work. This guide explains how to achieve zero-downtime deploys on Linux using unitpm process manager, graceful shutdown patterns, and Nginx.
 
 ## The problem with naive restarts
 
@@ -69,18 +69,18 @@ app = FastAPI(lifespan=lifespan)
 
 FastAPI + Uvicorn handle SIGTERM gracefully by default.
 
-## Graceful restart with Lynx
+## Graceful restart with unitpm
 
-Lynx's `restart` command sends SIGTERM, waits for the stop timeout, then starts the new process:
+unitpm's `restart` command sends SIGTERM, waits for the stop timeout, then starts the new process:
 
 ```bash
-lynxpm restart api
+unitpm restart api
 ```
 
-Configure how long Lynx waits before sending SIGKILL:
+Configure how long unitpm waits before sending SIGKILL:
 
 ```bash
-lynxpm start "node server.js" \
+unitpm start "node server.js" \
   --name api \
   --restart always \
   --stop-timeout 30000
@@ -96,10 +96,10 @@ git pull origin main
 npm ci --production
 
 # 2. Graceful restart (SIGTERM → wait → start new)
-lynxpm restart api
+unitpm restart api
 
 # 3. Verify
-lynxpm show api
+unitpm show api
 # Status: running
 # Restarts: 1
 # Uptime: 0m 12s
@@ -111,14 +111,14 @@ When running multiple worker processes, restart one at a time to keep capacity o
 
 ```bash
 # Start 3 workers with explicit names
-lynxpm start "node worker.js" --name worker-1 --namespace prod --restart always
-lynxpm start "node worker.js" --name worker-2 --namespace prod --restart always
-lynxpm start "node worker.js" --name worker-3 --namespace prod --restart always
+unitpm start "node worker.js" --name worker-1 --namespace prod --restart always
+unitpm start "node worker.js" --name worker-2 --namespace prod --restart always
+unitpm start "node worker.js" --name worker-3 --namespace prod --restart always
 
 # Update: restart one at a time
-lynxpm restart worker-1 && sleep 5
-lynxpm restart worker-2 && sleep 5
-lynxpm restart worker-3
+unitpm restart worker-1 && sleep 5
+unitpm restart worker-2 && sleep 5
+unitpm restart worker-3
 ```
 
 For Nginx-proxied HTTP services, this keeps at least 2/3 workers accepting requests during the deploy.
@@ -143,7 +143,7 @@ server {
 }
 ```
 
-`proxy_next_upstream` retries on error to the next healthy upstream. Combined with Lynx's graceful restart, a deploy causes zero dropped requests from the user's perspective.
+`proxy_next_upstream` retries on error to the next healthy upstream. Combined with unitpm's graceful restart, a deploy causes zero dropped requests from the user's perspective.
 
 ## Blue-green deployment
 
@@ -154,17 +154,17 @@ Blue (live):  port 4000  ← Nginx proxies here
 Green (idle): port 5000  ← deploy new version here
 ```
 
-### Setup with Lynx
+### Setup with unitpm
 
 ```bash
 # Initial: blue is live
-lynxpm start "node server.js" --name api-blue --restart always \
+unitpm start "node server.js" --name api-blue --restart always \
   --cwd /srv/api \
   --env-file .env \
   --env PORT=4000
 
 # Start green with new version (doesn't affect live traffic yet)
-lynxpm start "node server.js" --name api-green --restart always \
+unitpm start "node server.js" --name api-green --restart always \
   --cwd /srv/api-new \
   --env-file .env \
   --env PORT=5000
@@ -193,16 +193,16 @@ sudo nginx -t && sudo nginx -s reload
 ### Remove blue
 
 ```bash
-lynxpm stop api-blue
-lynxpm delete api-blue
+unitpm stop api-blue
+unitpm delete api-blue
 ```
 
-## Declarative deploys with Lynxfile
+## Declarative deploys with unitpm.yml
 
-Use `lynxpm apply` for idempotent updates:
+Use `unitpm apply` for idempotent updates:
 
 ```yaml
-# Lynxfile.yml
+# unitpm.yml
 version: 1
 processes:
   api:
@@ -217,7 +217,7 @@ processes:
 ```bash
 # Deploy: pull code, apply config
 git pull
-lynxpm apply Lynxfile.yml
+unitpm apply unitpm.yml
 ```
 
 `apply` compares current state to the file. Only changed processes restart. Unchanged processes keep running with zero disruption.
@@ -233,7 +233,7 @@ set -e
 
 git pull origin main
 npm ci --production
-lynxpm restart api
+unitpm restart api
 
 # Wait for process to start
 sleep 3
@@ -242,7 +242,7 @@ sleep 3
 HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" http://127.0.0.1:3000/health)
 if [ "$HTTP_CODE" != "200" ]; then
   echo "Deploy failed: health check returned $HTTP_CODE"
-  lynxpm logs api --lines 50
+  unitpm logs api --lines 50
   exit 1
 fi
 
@@ -257,12 +257,12 @@ echo "Deploy OK"
 | Stop timeout too short | In-flight requests cut off | Match timeout to max request duration |
 | Restart whole namespace at once | All processes restart simultaneously, 100% downtime | Restart one-by-one or use rolling |
 | Health check not implemented | Can't verify deploy success | Add `/health` endpoint |
-| Config change without restart | New env vars not loaded | `lynxpm restart` after env file changes |
+| Config change without restart | New env vars not loaded | `unitpm restart` after env file changes |
 
 ## See also
 
-- [lynxpm restart](../reference/commands/restart/) — command reference
-- [lynxpm apply](../reference/commands/apply/) — declarative apply
+- [unitpm restart](../reference/commands/restart/) — command reference
+- [unitpm apply](../reference/commands/apply/) — declarative apply
 - [Auto-restart on crash](./auto-restart-on-crash/)
 - [Manage multiple Node.js apps on a VPS](./manage-multiple-nodejs-apps-vps/)
 - [How to run a Node.js app as a Linux service](./nodejs-linux-service/)

@@ -1,5 +1,5 @@
 // Minimal HTTP listener with graceful SIGTERM shutdown. Exits 0 on
-// SIGTERM after closing the accept socket, so `lynxpm stop` observes
+// SIGTERM after closing the accept socket, so `unitpm stop` observes
 // a clean exit and the port is immediately re-bindable.
 //
 // Port is read from PORT env (default 0 = random free port) so the

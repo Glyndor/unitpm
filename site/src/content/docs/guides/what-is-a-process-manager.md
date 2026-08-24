@@ -43,11 +43,11 @@ At its core, a process manager is a daemon that:
 The key architectural choice is: **who actually holds the processes?**
 
 - **Self-supervising model** (PM2, Supervisor): the process manager daemon is the direct parent. If the daemon dies, the children die with it.
-- **Systemd-delegating model** (Lynx): the daemon registers processes as systemd transient units. The OS init system holds them. The process manager daemon is just a control plane — kill it and the apps keep running.
+- **Systemd-delegating model** (unitpm): the daemon registers processes as systemd transient units. The OS init system holds them. The process manager daemon is just a control plane — kill it and the apps keep running.
 
 ## Linux process manager comparison
 
-| | Lynx | PM2 | Supervisor |
+| | unitpm | PM2 | Supervisor |
 |--|------|-----|-----------|
 | Runtime | Go binary (no deps) | Node.js | Python |
 | Cold start | 7.8 ms | 366 ms | 252 ms |
@@ -69,27 +69,27 @@ A process manager is better when:
 - You need **declarative YAML** you can commit alongside your code
 - You want the ergonomics of `pm2 start` but without the Node.js runtime overhead
 
-## Getting started with Lynx
+## Getting started with unitpm
 
 ```bash
 # Install
-sudo apt install ./lynxpm_*_amd64.deb
+sudo apt install ./unitpm_*_amd64.deb
 
 # Start a process
-lynxpm start "node server.js" --name api --restart always
+unitpm start "node server.js" --name api --restart always
 
 # List all processes
-lynxpm list
+unitpm list
 
 # Auto-start on boot
-sudo lynxpm startup
+sudo unitpm startup
 ```
 
 ## See also
 
-- [Install Lynx](../start/install/)
+- [Install unitpm](../start/install/)
 - [Quickstart](../start/quickstart/)
-- [Lynx vs PM2](./vs-pm2/) — detailed benchmark comparison
-- [Lynx vs Supervisor](./vs-supervisor/) — detailed benchmark comparison
-- [PM2 vs Supervisor vs Lynx](./pm2-vs-supervisor-vs-lynx/) — three-way comparison
+- [unitpm vs PM2](./vs-pm2/) — detailed benchmark comparison
+- [unitpm vs Supervisor](./vs-supervisor/) — detailed benchmark comparison
+- [PM2 vs Supervisor vs unitpm](./pm2-vs-supervisor-vs-unitpm/) — three-way comparison
 - [systemd-native process manager](./systemd-process-manager/) — why systemd delegation matters

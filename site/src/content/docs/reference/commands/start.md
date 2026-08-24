@@ -1,11 +1,11 @@
 ---
-title: "lynxpm start"
-description: Start a new process under Lynx with restart policy, namespace, resource limits, and sandboxing. Supervision is delegated to systemd for crash resilience.
+title: "unitpm start"
+description: Start a new process under unitpm with restart policy, namespace, resource limits, and sandboxing. Supervision is delegated to systemd for crash resilience.
 head:
   - tag: script
     attrs:
       type: application/ld+json
-    content: '{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Lynx","item":"https://jaro-c.github.io/Lynx/"},{"@type":"ListItem","position":2,"name":"Reference","item":"https://jaro-c.github.io/Lynx/reference/architecture/"},{"@type":"ListItem","position":3,"name":"lynxpm start","item":"https://jaro-c.github.io/Lynx/reference/commands/start/"}]}'
+    content: '{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"unitpm","item":"https://jaro-c.github.io/unitpm/"},{"@type":"ListItem","position":2,"name":"Reference","item":"https://jaro-c.github.io/unitpm/reference/architecture/"},{"@type":"ListItem","position":3,"name":"unitpm start","item":"https://jaro-c.github.io/unitpm/reference/commands/start/"}]}'
 sidebar:
   label: start
 ---
@@ -13,12 +13,12 @@ sidebar:
 ## 📖 Synopsis
 
 ```bash
-lynxpm start <command|file> [flags] [-- <args...>]
+unitpm start <command|file> [flags] [-- <args...>]
 ```
 
 ## Description
 
-Start a new process managed by Lynx. This command creates a new application specification and starts the process via the daemon.
+Start a new process managed by unitpm. This command creates a new application specification and starts the process via the daemon.
 
 ## ⚙️ Flags
 
@@ -64,24 +64,24 @@ see [`docs/RUNTIMES.md`](../RUNTIMES.md).
 
 Start a Node.js script:
 ```bash
-lynxpm start main.js
+unitpm start main.js
 ```
 
 Start with DynamicUser isolation (secure):
 ```bash
-lynxpm start main.js --isolation dynamic
+unitpm start main.js --isolation dynamic
 ```
 
 Start a scheduled task (runs every hour):
 ```bash
-lynxpm start cleanup.sh --schedule "@hourly" --restart never
+unitpm start cleanup.sh --schedule "@hourly" --restart never
 ```
 
 ## 📋 Example Output
 
 Success:
 ```
-Spec saved to /home/user/.config/lynx/apps/my-api.json
+Spec saved to /home/user/.config/unitpm/apps/my-api.json
 Started my-api
   ID: e73a9f1b
   PID: 12345
@@ -121,7 +121,7 @@ Error: ERR_BAD_REQUEST: invalid cwd: stat /invalid/path: no such file or directo
 ### Isolation
 | Mode | Description |
 |------|-------------|
-| `self` | Run as the current user (same as `lynxd`). Default. |
+| `self` | Run as the current user (same as `unitpmd`). Default. |
 | `dynamic` | Run as a transient, isolated user via `systemd-run`. Uses `DynamicUser=yes` with hardening (`NoNewPrivileges`, `PrivateTmp`, `ProtectSystem=strict`, `ProtectHome=yes`). |
 
 ## Framework recipes
@@ -134,14 +134,14 @@ runtime-specific invocations (Bun, Deno, venv/uv, compiled Go/Rust,
 ## Scaling
 
 `--scale N` (alias `--instances N`) spawns N independent processes. Each
-one gets a unique ID and name, plus `LYNX_INSTANCE=0..N-1` in its env.
-Lynx **does not** load-balance — put a reverse proxy (nginx/Caddy/HAProxy)
+one gets a unique ID and name, plus `UNITPM_INSTANCE=0..N-1` in its env.
+unitpm **does not** load-balance — put a reverse proxy (nginx/Caddy/HAProxy)
 in front of the instances, or use `SO_REUSEPORT` if your runtime supports
 it.
 
 ```js
 // server.js — give each instance its own port
-const port = 3000 + Number(process.env.LYNX_INSTANCE ?? 0);
+const port = 3000 + Number(process.env.UNITPM_INSTANCE ?? 0);
 ```
 
 Worked examples (Nginx upstream, `--scale` with Next.js standalone,
@@ -149,20 +149,20 @@ live scale up/down) in [`TUTORIALS.md`](../TUTORIALS.md).
 
 ## Notes
 
-- **Auto-naming**: omit `--name` and Lynx derives `<basename>-<shortid>`,
+- **Auto-naming**: omit `--name` and unitpm derives `<basename>-<shortid>`,
   or `<basename>-<index>-<shortid>` when `--scale > 1`.
-- **Manual restarts reset the counter**: `lynxpm restart <id>` clears the
+- **Manual restarts reset the counter**: `unitpm restart <id>` clears the
   restart count and backoff timer. `--max-restarts` only caps the crash
   loop, not manual operator actions.
 - **Visibility**: in system mode, processes are visible to anyone in the
-  `lynxadm` group. In user mode (`lynxd &`), each user has a private
+  `unitpm` group. In user mode (`unitpmd &`), each user has a private
   daemon — no cross-user visibility.
 
 ## Environment variables
 
 - **User mode** — the process inherits the full environment of the user
-  running `lynxpm start`.
-- **System mode** — the daemon is run by the `lynx` system user and
+  running `unitpm start`.
+- **System mode** — the daemon is run by the `glyndor-unitpm` system user and
   does **not** forward its caller's env (prevents leaking `AWS_*` /
   `DATABASE_URL` / etc.). Whitelisted: `PATH`, `HOME`, `USER`,
   `LOGNAME`, `SHELL`, `PWD`, `LANG`, `LC_*`, `TERM`, `TZ`, `TMPDIR`,
@@ -172,7 +172,7 @@ live scale up/down) in [`TUTORIALS.md`](../TUTORIALS.md).
 
 - **Secrets stay off disk**: values loaded via `--env-file` are injected
   into the process env but **not** written into the AppSpec JSON in
-  `~/.config/lynx/apps/`. No plaintext credentials on-disk in the spec.
+  `~/.config/unitpm/apps/`. No plaintext credentials on-disk in the spec.
 - **`--shell` is gated**: accepted in user mode only. System mode
   refuses it — shell evaluation of an attacker-controlled string against
   the daemon's privileges is the exact footgun the hardening model
@@ -185,7 +185,7 @@ live scale up/down) in [`TUTORIALS.md`](../TUTORIALS.md).
   | `dynamic` | system only | Strongest. `systemd-run` wraps the process: transient UID/GID, `ProtectSystem=strict`, `PrivateTmp`, `ProtectHome=yes`, `NoNewPrivileges`. Secrets pass via `LoadCredential` — `/proc/<pid>/environ` shows nothing. Recommended for network-facing prod services. |
   | `sandbox` | user + system | User-namespace + landlock. Blocks writes outside `cwd` + `/tmp`. No root or polkit needed. |
 
-  In `--isolation dynamic --env-file …` Lynx stages the file at
-  `/var/lib/lynx-pm/creds/<id>/env` (`0600`, daemon-owned) and exposes
+  In `--isolation dynamic --env-file …` unitpm stages the file at
+  `/var/lib/unitpm/creds/<id>/env` (`0600`, daemon-owned) and exposes
   it via systemd credentials — a small internal wrapper reads the
   credential and `exec`s your command.

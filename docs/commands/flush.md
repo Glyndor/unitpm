@@ -1,11 +1,11 @@
-# 🦁 `lynxpm flush`
+# 🦁 `unitpm flush`
 
 > *Truncate the stdout/stderr log files for a process.*
 
 ## 📖 Synopsis
 
 ```bash
-lynxpm flush [--namespace <ns>] [--json] <id|name|ns:*|*>...
+unitpm flush [--namespace <ns>] [--json] <id|name|ns:*|*>...
 ```
 
 ## Description
@@ -18,7 +18,7 @@ same number at `.results[].extra.bytes_freed`.
 Bulk selectors:
 
 - `<ns>:*` — every process in that namespace. Quote the glob so the shell
-  does not expand it: `lynxpm flush 'prod:*'`.
+  does not expand it: `unitpm flush 'prod:*'`.
 - `*` or `*:*` — every managed process.
 - `--namespace <ns>` — same as `<ns>:*` but no shell quoting needed.
   Cannot be combined with positional targets.
@@ -35,23 +35,23 @@ Bulk selectors:
 
 Flush logs for one process:
 ```bash
-lynxpm flush my-api
+unitpm flush my-api
 ```
 
 Flush logs for multiple:
 ```bash
-lynxpm flush api-1 api-2
+unitpm flush api-1 api-2
 ```
 
 Flush every process in the `prod` namespace:
 ```bash
-lynxpm flush 'prod:*'           # selector form (quote the glob)
-lynxpm flush --namespace prod   # flag form (script-friendly)
+unitpm flush 'prod:*'           # selector form (quote the glob)
+unitpm flush --namespace prod   # flag form (script-friendly)
 ```
 
 Total bytes reclaimed across a batch:
 ```bash
-lynxpm flush api-1 api-2 --json | jq '[.results[].extra.bytes_freed] | add'
+unitpm flush api-1 api-2 --json | jq '[.results[].extra.bytes_freed] | add'
 ```
 
 ## Exit codes

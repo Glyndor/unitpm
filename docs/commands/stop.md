@@ -1,11 +1,11 @@
-# 🦁 `lynxpm stop`
+# 🦁 `unitpm stop`
 
 > *Stop one or more running processes.*
 
 ## 📖 Synopsis
 
 ```bash
-lynxpm stop [--namespace <ns>] [--json] <id|name|ns:*|*>...
+unitpm stop [--namespace <ns>] [--json] <id|name|ns:*|*>...
 ```
 
 ## Description
@@ -18,7 +18,7 @@ already stopped renders as `! Already stopped: …` and is recorded as
 Bulk selectors:
 
 - `<ns>:*` — every process in that namespace. Quote the glob so the shell
-  does not expand it: `lynxpm stop 'prod:*'`.
+  does not expand it: `unitpm stop 'prod:*'`.
 - `*` or `*:*` — every managed process.
 - `--namespace <ns>` — same as `<ns>:*` but no shell quoting needed.
   Cannot be combined with positional targets.
@@ -36,23 +36,23 @@ Bulk selectors:
 
 Stop a process by name:
 ```bash
-lynxpm stop my-app
+unitpm stop my-app
 ```
 
 Stop multiple processes by ID:
 ```bash
-lynxpm stop 1234 5678
+unitpm stop 1234 5678
 ```
 
 Stop every process in the `prod` namespace:
 ```bash
-lynxpm stop 'prod:*'           # selector form (quote the glob)
-lynxpm stop --namespace prod   # flag form (script-friendly)
+unitpm stop 'prod:*'           # selector form (quote the glob)
+unitpm stop --namespace prod   # flag form (script-friendly)
 ```
 
 Stop many and capture per-target status:
 ```bash
-lynxpm stop api worker-1 worker-2 --json | jq '.results[] | {id, status}'
+unitpm stop api worker-1 worker-2 --json | jq '.results[] | {id, status}'
 ```
 
 ## Exit codes

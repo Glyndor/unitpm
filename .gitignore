@@ -82,7 +82,7 @@ obj-*/
 # =====================
 /unitpm
 /unitpmd
-lynxpm_*
+unitpm_*
 gosec*
 *.debhelper
 

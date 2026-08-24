@@ -1,11 +1,11 @@
 ---
-title: "lynxpm restart"
-description: Restart one or more Lynx-managed processes. Supports individual names, bulk restart by namespace (--namespace prod), and glob selectors such as 'prod:*'.
+title: "unitpm restart"
+description: Restart one or more unitpm-managed processes. Supports individual names, bulk restart by namespace (--namespace prod), and glob selectors such as 'prod:*'.
 head:
   - tag: script
     attrs:
       type: application/ld+json
-    content: '{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Lynx","item":"https://jaro-c.github.io/Lynx/"},{"@type":"ListItem","position":2,"name":"Reference","item":"https://jaro-c.github.io/Lynx/reference/architecture/"},{"@type":"ListItem","position":3,"name":"lynxpm restart","item":"https://jaro-c.github.io/Lynx/reference/commands/restart/"}]}'
+    content: '{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"unitpm","item":"https://jaro-c.github.io/unitpm/"},{"@type":"ListItem","position":2,"name":"Reference","item":"https://jaro-c.github.io/unitpm/reference/architecture/"},{"@type":"ListItem","position":3,"name":"unitpm restart","item":"https://jaro-c.github.io/unitpm/reference/commands/restart/"}]}'
 sidebar:
   label: restart
 ---
@@ -13,7 +13,7 @@ sidebar:
 ## 📖 Synopsis
 
 ```bash
-lynxpm restart [--namespace <ns>] [--json] <id|name|ns:*|*>...
+unitpm restart [--namespace <ns>] [--json] <id|name|ns:*|*>...
 ```
 
 ## Description
@@ -24,7 +24,7 @@ starting the process again with the same configuration.
 Bulk selectors:
 
 - `<ns>:*` — every process in that namespace. Quote the glob so the shell
-  does not expand it: `lynxpm restart 'prod:*'`.
+  does not expand it: `unitpm restart 'prod:*'`.
 - `*` or `*:*` — every managed process.
 - `--namespace <ns>` — same as `<ns>:*` but no shell quoting needed.
   Cannot be combined with positional targets.
@@ -42,18 +42,18 @@ Bulk selectors:
 
 Restart a process:
 ```bash
-lynxpm restart my-app
+unitpm restart my-app
 ```
 
 Restart every process in the `prod` namespace:
 ```bash
-lynxpm restart 'prod:*'           # selector form (quote the glob)
-lynxpm restart --namespace prod   # flag form (script-friendly)
+unitpm restart 'prod:*'           # selector form (quote the glob)
+unitpm restart --namespace prod   # flag form (script-friendly)
 ```
 
 Restart many, capture outcomes as JSON:
 ```bash
-lynxpm restart api worker-1 worker-2 --json | jq '.results[] | {id, status}'
+unitpm restart api worker-1 worker-2 --json | jq '.results[] | {id, status}'
 ```
 
 ## Exit codes

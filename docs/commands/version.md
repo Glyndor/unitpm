@@ -1,16 +1,16 @@
-# 🦁 `lynxpm version`
+# 🦁 `unitpm version`
 
-> *Show Lynx version information for the CLI, Daemon, and IPC Protocol.*
+> *Show unitpm version information for the CLI, Daemon, and IPC Protocol.*
 
 ## 📖 Synopsis
 
 ```bash
-lynxpm version [flags]
+unitpm version [flags]
 ```
 
 ## Description
 
-Show Lynx version information for the CLI, Daemon, and IPC Protocol.
+Show unitpm version information for the CLI, Daemon, and IPC Protocol.
 
 ## ⚙️ Flags
 
@@ -23,18 +23,18 @@ Show Lynx version information for the CLI, Daemon, and IPC Protocol.
 
 Show version:
 ```bash
-lynxpm version
+unitpm version
 ```
 
 ## 📋 Example Output
 
 ```
-Lynx CLI
+unitpm CLI
   Version : v0.1.0
   Commit  : a1b2c3d
   Built   : 2025-01-01T12:00:00Z
 
-Lynx Daemon
+unitpm Daemon
   Version : v0.1.0
   Commit  : a1b2c3d
   Built   : 2025-01-01T12:00:00Z

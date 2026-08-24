@@ -1,6 +1,6 @@
 ---
 title: Install
-description: Install Lynx process manager on Debian, Ubuntu, or any systemd Linux. Prebuilt .deb for amd64 and arm64, static binary download, or build from Go source.
+description: Install unitpm process manager on Debian, Ubuntu, or any systemd Linux. Prebuilt .deb for amd64 and arm64, static binary download, or build from Go source.
 ---
 
 Pick the path that matches your target machine.
@@ -9,18 +9,18 @@ Pick the path that matches your target machine.
 
 The `.deb` is built, signed, and tested in CI against Debian bookworm,
 Debian trixie, Ubuntu 22.04, and Ubuntu 24.04. It installs the
-`lynxpm` CLI, the `lynxd` daemon, a system-mode `systemd` unit, and
-polkit rules for the `lynxadm` group.
+`unitpm` CLI, the `unitpmd` daemon, a system-mode `systemd` unit, and
+polkit rules for the `unitpm` group.
 
 ```bash
-# Grab the latest .deb from https://github.com/Jaro-c/Lynx/releases
-sudo apt install ./lynxpm_*_amd64.deb
-sudo usermod -aG lynxadm "$USER" && newgrp lynxadm
-sudo systemctl enable --now lynxd
-sudo lynxpm install-tools   # optional: expose bun/node/go/… to the daemon
+# Grab the latest .deb from https://github.com/Jaro-c/unitpm/releases
+sudo apt install ./unitpm_*_amd64.deb
+sudo usermod -aG unitpm "$USER" && newgrp unitpm
+sudo systemctl enable --now unitpmd
+sudo unitpm install-tools   # optional: expose bun/node/go/… to the daemon
 ```
 
-You're done. `lynxpm --version` should print `0.13.0` or newer.
+You're done. `unitpm --version` should print `0.13.0` or newer.
 
 ## Prebuilt binary (any Linux)
 
@@ -31,24 +31,24 @@ SBOM + SLSA provenance attestation.
 
 ```bash
 # amd64
-gh release download --repo Jaro-c/Lynx --pattern 'lynxpm_linux_amd64'
-install -m 0755 lynxpm_linux_amd64 ~/.local/bin/lynxpm
+gh release download --repo Jaro-c/unitpm --pattern 'unitpm_linux_amd64'
+install -m 0755 unitpm_linux_amd64 ~/.local/bin/unitpm
 
 # arm64
-gh release download --repo Jaro-c/Lynx --pattern 'lynxpm_linux_arm64'
-install -m 0755 lynxpm_linux_arm64 ~/.local/bin/lynxpm
+gh release download --repo Jaro-c/unitpm --pattern 'unitpm_linux_arm64'
+install -m 0755 unitpm_linux_arm64 ~/.local/bin/unitpm
 ```
 
 Then start a user-mode daemon:
 
 ```bash
-lynxd &
+unitpmd &
 ```
 
 Or wire it as a `systemd --user` unit:
 
 ```bash
-sudo lynxpm startup   # installs the unit, enables + starts it
+sudo unitpm startup   # installs the unit, enables + starts it
 ```
 
 ## Build from source
@@ -56,10 +56,10 @@ sudo lynxpm startup   # installs the unit, enables + starts it
 Requires Go 1.26+.
 
 ```bash
-git clone https://github.com/Jaro-c/Lynx
-cd Lynx
-go build -o lynxpm ./cmd/lynxpm
-go build -o lynxd  ./cmd/lynxd
+git clone https://github.com/Jaro-c/unitpm
+cd unitpm
+go build -o unitpm ./cmd/unitpm
+go build -o unitpmd  ./cmd/unitpmd
 ```
 
 ## Verify the release signature (optional)
@@ -68,7 +68,7 @@ Every release ships with a detached signature over the binary. The
 public key lives in `SECURITY.md` on the repo.
 
 ```bash
-gh release download --repo Jaro-c/Lynx --pattern 'lynxpm_linux_amd64*'
+gh release download --repo Jaro-c/unitpm --pattern 'unitpm_linux_amd64*'
 # verify signature with the key in SECURITY.md
 ```
 

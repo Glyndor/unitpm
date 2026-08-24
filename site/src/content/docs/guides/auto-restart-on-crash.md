@@ -1,9 +1,9 @@
 ---
 title: How to auto-restart a service on crash in Linux
-description: Configure automatic process restart on crash in Linux using Lynx, systemd, or PM2. Set restart policies, exponential backoff, and crash loop protection.
+description: Configure automatic process restart on crash in Linux using unitpm, systemd, or PM2. Set restart policies, exponential backoff, and crash loop protection.
 ---
 
-When a Linux service crashes, you have two choices: restart it manually, or configure automatic restart before the crash ever happens. This guide covers how to set up **auto-restart on crash in Linux** using Lynx process manager, with comparisons to plain systemd and PM2.
+When a Linux service crashes, you have two choices: restart it manually, or configure automatic restart before the crash ever happens. This guide covers how to set up **auto-restart on crash in Linux** using unitpm process manager, with comparisons to plain systemd and PM2.
 
 ## Restart policies
 
@@ -17,39 +17,39 @@ Most process managers support at least three restart policies:
 
 Choose `on-failure` for most services — it avoids restart loops when a process exits cleanly (e.g., a one-shot migration script). Use `always` only for processes that should never stop.
 
-## Auto-restart with Lynx
+## Auto-restart with unitpm
 
 ### Basic restart on crash
 
 ```bash
-lynxpm start "node server.js" --name api --restart on-failure
+unitpm start "node server.js" --name api --restart on-failure
 ```
 
 ### Always restart (including clean exits)
 
 ```bash
-lynxpm start "node server.js" --name api --restart always
+unitpm start "node server.js" --name api --restart always
 ```
 
 ### Check restart count
 
 ```bash
-lynxpm show api
+unitpm show api
 # Shows: Restarts: 3, Status: running
 ```
 
 ### Reset the restart counter
 
 ```bash
-lynxpm reset api
+unitpm reset api
 ```
 
 ## Exponential backoff
 
-Blind restart loops — where a crashing process is restarted immediately, crashes again, and is restarted again — can amplify problems. Lynx uses exponential backoff by default:
+Blind restart loops — where a crashing process is restarted immediately, crashes again, and is restarted again — can amplify problems. unitpm uses exponential backoff by default:
 
 ```bash
-lynxpm start "node server.js" --name api \
+unitpm start "node server.js" --name api \
   --restart on-failure \
   --backoff expo
 ```
@@ -59,7 +59,7 @@ With `--backoff expo`, wait time between restarts doubles on each crash: 1s, 2s,
 ### Limit total restart attempts
 
 ```bash
-lynxpm start "python worker.py" --name worker \
+unitpm start "python worker.py" --name worker \
   --restart on-failure \
   --max-restarts 10
 ```
@@ -68,10 +68,10 @@ After 10 restarts, the process moves to `failed` state and stops restarting. Set
 
 ### Stop on specific exit codes
 
-Some applications use exit codes to signal intentional shutdown. Tell Lynx not to restart on those:
+Some applications use exit codes to signal intentional shutdown. Tell unitpm not to restart on those:
 
 ```bash
-lynxpm start "./app" --name app \
+unitpm start "./app" --name app \
   --restart always \
   --stop-on-exit 0,143,15
 ```
@@ -103,18 +103,18 @@ sudo systemctl daemon-reload
 sudo systemctl enable --now myapp
 ```
 
-Lynx generates equivalent unit configuration automatically — you don't need to write the unit file.
+unitpm generates equivalent unit configuration automatically — you don't need to write the unit file.
 
 ## Detect and respond to crash loops
 
 A crash loop is a process that crashes, restarts, crashes, restarts — repeatedly. Signs:
 
 ```bash
-lynxpm show api
+unitpm show api
 # Restarts: 47
 # Uptime:   0s
 
-lynxpm logs api --lines 50
+unitpm logs api --lines 50
 # [ERR] Cannot connect to database: connection refused
 ```
 
@@ -126,15 +126,15 @@ Common causes:
 Fix the root cause, then clear the counter:
 
 ```bash
-lynxpm reset api
+unitpm reset api
 ```
 
 ## Configure a stop timeout
 
-If a process ignores SIGTERM, Lynx sends SIGKILL after a timeout. Control it:
+If a process ignores SIGTERM, unitpm sends SIGKILL after a timeout. Control it:
 
 ```bash
-lynxpm start "./app" --name app --stop-timeout 30000
+unitpm start "./app" --name app --stop-timeout 30000
 # 30 seconds before SIGKILL
 ```
 
@@ -144,16 +144,16 @@ This matters during rolling restarts — you want the process to finish in-fligh
 
 ```bash
 # Watch status in real time
-lynxpm monit
+unitpm monit
 
 # Follow logs to see crash output
-lynxpm logs api --follow --stderr
+unitpm logs api --follow --stderr
 ```
 
 ## See also
 
-- [lynxpm start](../reference/commands/start/) — full flag reference
-- [lynxpm reset](../reference/commands/reset/) — clear restart counter
-- [lynxpm monit](../reference/commands/monit/) — live dashboard
+- [unitpm start](../reference/commands/start/) — full flag reference
+- [unitpm reset](../reference/commands/reset/) — clear restart counter
+- [unitpm monit](../reference/commands/monit/) — live dashboard
 - [Quickstart](../start/quickstart/)
 - [Zero-downtime deployment on Linux](./zero-downtime-deployment-linux/)

@@ -1,9 +1,9 @@
 ---
 title: How to run a Node.js app as a Linux service
-description: Run a Node.js application as a persistent Linux service with auto-restart, log management, and boot persistence. Using Lynx process manager, plain systemd, and PM2.
+description: Run a Node.js application as a persistent Linux service with auto-restart, log management, and boot persistence. Using unitpm process manager, plain systemd, and PM2.
 ---
 
-Running a Node.js application as a **Linux service** means it starts on boot, restarts on crash, writes logs to disk, and stays running when you disconnect from SSH. This guide covers three approaches: Lynx process manager (recommended), plain systemd unit files, and PM2.
+Running a Node.js application as a **Linux service** means it starts on boot, restarts on crash, writes logs to disk, and stays running when you disconnect from SSH. This guide covers three approaches: unitpm process manager (recommended), plain systemd unit files, and PM2.
 
 ## Prerequisites
 
@@ -11,23 +11,23 @@ Running a Node.js application as a **Linux service** means it starts on boot, re
 - Node.js installed and in PATH
 - Your app accessible at a known path (e.g., `/srv/api/server.js`)
 
-## Option 1: Lynx (recommended)
+## Option 1: unitpm (recommended)
 
-Lynx is a systemd-native process manager — it registers your app as a systemd transient unit, so Node.js survives even if the Lynx daemon restarts.
+unitpm is a systemd-native process manager — it registers your app as a systemd transient unit, so Node.js survives even if the unitpm daemon restarts.
 
-### Install Lynx
+### Install unitpm
 
 ```bash
 # Download latest .deb from GitHub releases
-sudo apt install ./lynxpm_*_amd64.deb
-sudo usermod -aG lynxadm "$USER" && newgrp lynxadm
-sudo systemctl enable --now lynxd
+sudo apt install ./unitpm_*_amd64.deb
+sudo usermod -aG unitpm "$USER" && newgrp unitpm
+sudo systemctl enable --now unitpmd
 ```
 
 ### Start your Node.js app
 
 ```bash
-lynxpm start "node /srv/api/server.js" \
+unitpm start "node /srv/api/server.js" \
   --name api \
   --restart always \
   --cwd /srv/api
@@ -37,7 +37,7 @@ lynxpm start "node /srv/api/server.js" \
 
 ```bash
 # Using an .env file (recommended)
-lynxpm start "node server.js" \
+unitpm start "node server.js" \
   --name api \
   --restart always \
   --cwd /srv/api \
@@ -47,7 +47,7 @@ lynxpm start "node server.js" \
 ### Set resource limits
 
 ```bash
-lynxpm start "node server.js" \
+unitpm start "node server.js" \
   --name api \
   --restart always \
   --cwd /srv/api \
@@ -59,34 +59,34 @@ lynxpm start "node server.js" \
 ### Verify it's running
 
 ```bash
-lynxpm list
+unitpm list
 # ┌──────────┬──────┬──────────┬─────────┬─────────┐
 # │ id       │ name │ namespace│ status  │ pid     │
 # ├──────────┼──────┼──────────┼─────────┼─────────┤
 # │ ▸ 019dbd │ api  │ default  │ running │ 2336612 │
 # └──────────┴──────┴──────────┴─────────┴─────────┘
 
-lynxpm logs api --follow
+unitpm logs api --follow
 ```
 
 ### Enable on boot
 
 ```bash
-sudo lynxpm startup
+sudo unitpm startup
 ```
 
-Lynx installs a systemd service that starts `lynxd` on boot and restores all registered processes automatically.
+unitpm installs a systemd service that starts `unitpmd` on boot and restores all registered processes automatically.
 
 ### Declare it as code
 
-Export the current configuration to a `Lynxfile.yml` you can commit:
+Export the current configuration to a `unitpm.yml` you can commit:
 
 ```bash
-lynxpm export api > Lynxfile.yml
+unitpm export api > unitpm.yml
 ```
 
 ```yaml
-# Lynxfile.yml
+# unitpm.yml
 version: 1
 processes:
   api:
@@ -101,7 +101,7 @@ processes:
 Re-apply on any server:
 
 ```bash
-lynxpm apply Lynxfile.yml
+unitpm apply unitpm.yml
 ```
 
 ## Option 2: Plain systemd unit file
@@ -152,22 +152,22 @@ pm2 save
 pm2 startup
 ```
 
-**Key limitation**: PM2 requires Node.js on the server permanently, uses 66 MB idle RAM, and your app dies if PM2 crashes or is restarted. With Lynx, Node.js is only required for your app — not the process manager itself.
+**Key limitation**: PM2 requires Node.js on the server permanently, uses 66 MB idle RAM, and your app dies if PM2 crashes or is restarted. With unitpm, Node.js is only required for your app — not the process manager itself.
 
 ## Running multiple Node.js apps
 
-With Lynx, use namespaces to group related services:
+With unitpm, use namespaces to group related services:
 
 ```bash
-lynxpm start "node api.js"     --name api     --namespace prod --restart always
-lynxpm start "node worker.js"  --name worker  --namespace prod --restart always
-lynxpm start "node scheduler.js" --name cron  --namespace prod --restart always
+unitpm start "node api.js"     --name api     --namespace prod --restart always
+unitpm start "node worker.js"  --name worker  --namespace prod --restart always
+unitpm start "node scheduler.js" --name cron  --namespace prod --restart always
 
 # Restart the entire tier
-lynxpm restart --namespace prod
+unitpm restart --namespace prod
 
 # Stop for maintenance
-lynxpm stop --namespace prod
+unitpm stop --namespace prod
 ```
 
 ## Using Bun or other Node.js runtimes
@@ -175,26 +175,26 @@ lynxpm stop --namespace prod
 Swap `node` for `bun`, `deno`, or any other runtime:
 
 ```bash
-lynxpm start "bun run server.ts" --name api --restart always --cwd /srv/api
-lynxpm start "deno run --allow-net server.ts" --name api --restart always
+unitpm start "bun run server.ts" --name api --restart always --cwd /srv/api
+unitpm start "deno run --allow-net server.ts" --name api --restart always
 ```
 
 ## Logs and debugging
 
 ```bash
 # Live output
-lynxpm logs api --follow
+unitpm logs api --follow
 
 # Last 100 lines of stderr only
-lynxpm logs api --stderr --lines 100
+unitpm logs api --stderr --lines 100
 
 # Truncate if disk is full
-lynxpm flush api
+unitpm flush api
 ```
 
 ## See also
 
-- [Install Lynx](../start/install/)
+- [Install unitpm](../start/install/)
 - [Runtimes guide](./runtimes/) — Node.js, Bun, Deno specifics
 - [How to manage multiple Node.js apps on a VPS](./manage-multiple-nodejs-apps-vps/)
 - [How to set environment variables for a Linux service](./linux-service-environment-variables/)

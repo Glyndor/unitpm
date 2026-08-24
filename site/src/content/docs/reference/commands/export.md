@@ -1,11 +1,11 @@
 ---
-title: "lynxpm export"
-description: Export running Lynx processes to a Lynxfile YAML document. Capture the exact spec of all apps in a namespace for reproducible, version-controlled deploys.
+title: "unitpm export"
+description: Export running unitpm processes to a unitpm.yml YAML document. Capture the exact spec of all apps in a namespace for reproducible, version-controlled deploys.
 head:
   - tag: script
     attrs:
       type: application/ld+json
-    content: '{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Lynx","item":"https://jaro-c.github.io/Lynx/"},{"@type":"ListItem","position":2,"name":"Reference","item":"https://jaro-c.github.io/Lynx/reference/architecture/"},{"@type":"ListItem","position":3,"name":"lynxpm export","item":"https://jaro-c.github.io/Lynx/reference/commands/export/"}]}'
+    content: '{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"unitpm","item":"https://jaro-c.github.io/unitpm/"},{"@type":"ListItem","position":2,"name":"Reference","item":"https://jaro-c.github.io/unitpm/reference/architecture/"},{"@type":"ListItem","position":3,"name":"unitpm export","item":"https://jaro-c.github.io/unitpm/reference/commands/export/"}]}'
 sidebar:
   label: export
 ---
@@ -13,12 +13,12 @@ sidebar:
 ## 📖 Synopsis
 
 ```bash
-lynxpm export --namespace <name>
+unitpm export --namespace <name>
 ```
 
 ## Description
 
-Export all applications in a namespace to a Lynxfile YAML document printed to stdout. Useful for migrating or backing up configurations.
+Export all applications in a namespace to a unitpm.yml YAML document printed to stdout. Useful for migrating or backing up configurations.
 
 ## ⚙️ Flags
 
@@ -31,10 +31,10 @@ Export all applications in a namespace to a Lynxfile YAML document printed to st
 
 Export the `default` namespace:
 ```bash
-lynxpm export --namespace default > Lynxfile.yml
+unitpm export --namespace default > unitpm.yml
 ```
 
 ## Notes
 
 - Only applications whose specs belong to the selected namespace are exported.
-- The resulting file matches the format accepted by `lynxpm apply`.
+- The resulting file matches the format accepted by `unitpm apply`.

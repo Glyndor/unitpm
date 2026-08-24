@@ -1,6 +1,6 @@
 // Binary entry point for the `unitpm` CLI.
 //
-// Mirrors `cmd/lynxpm/main.go`: hand argv off to the dispatcher and exit
+// hand argv off to the dispatcher and exit
 // with its code. The dispatcher lives in `internal::cli::root` and is
 // covered by the same test suite that ports the Go `Execute` cases.
 //
@@ -16,7 +16,7 @@ use std::process::ExitCode;
 use unitpm::cli::root::{self, TransportDispatcherClient};
 
 fn main() -> ExitCode {
-	// Mirrors `cmd/lynxpm/main.go`: pass `argv[1:]` to the dispatcher
+	// pass `argv[1:]` to the dispatcher
 	// and exit with its code. The dispatcher handles help, unknown
 	// commands, and the global `--quiet`/`-q` flag.
 	let mut argv = std::env::args();

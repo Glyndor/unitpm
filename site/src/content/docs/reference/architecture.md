@@ -1,17 +1,17 @@
 ---
 title: Architecture
-description: Lynx process manager architecture — lynxpm CLI and lynxd daemon over a Unix socket, systemd transient unit generation, IPC protocol, and restore-on-boot flow.
+description: unitpm process manager architecture — unitpm CLI and unitpmd daemon over a Unix socket, systemd transient unit generation, IPC protocol, and restore-on-boot flow.
 ---
 
 
-High-level guide to how Lynx is put together. Intended for contributors.
+High-level guide to how unitpm is put together. Intended for contributors.
 
 ## Top-Level Layout
 
 ```
 cmd/
-  lynxpm/         CLI entry point (client)
-  lynxd/          Daemon entry point (server)
+  unitpm/         CLI entry point (client)
+  unitpmd/          Daemon entry point (server)
 internal/
   cli/            All CLI command implementations (18 user-facing + 2 internal wrappers)
     commands/     One directory per command
@@ -37,9 +37,9 @@ internal/
   ipc/
     protocol/     Wire types: AppSpec, StartRequest, responses, errors
     transport/    Unix-socket client, server, framing, identity
-  spec/           On-disk spec persistence (XDG_CONFIG_HOME/lynx/apps)
+  spec/           On-disk spec persistence (XDG_CONFIG_HOME/unitpm/apps)
   env/            .env file parser (whitelist, escape handling)
-  lynxfile/       Lynxfile.yml declarative format parser
+  unitpm.yml/       unitpm.yml declarative format parser
   metrics/        Per-process /proc + cgroup collectors
   paths/          XDG-aware path resolution (log dirs, socket, config)
   git/            Git HEAD probe for list view
@@ -59,7 +59,7 @@ Two binaries, one long-lived daemon:
 
 ```
 ┌──────────┐   Unix socket (JSON-RPC)   ┌──────────┐
-│  lynxpm  │ ──────────────────────────▶│  lynxd   │
+│  unitpm  │ ──────────────────────────▶│  unitpmd   │
 │  (CLI)   │ ◀──────────────────────────│  (daemon)│
 └──────────┘                            └────┬─────┘
                                              │ fork+exec / systemd-run
@@ -79,7 +79,7 @@ beyond the short-lived socket connection.
 - **Identity**: `SO_PEERCRED` on every connection; UID/GID/PID captured.
 - **Versioning**: every request carries `protocol_version`; mismatch yields
   a `PROTOCOL_MISMATCH` `RemoteError` that the CLI surfaces explicitly via
-  `lynxpm version`.
+  `unitpm version`.
 - **Encoding**: JSON via `bytedance/sonic` (decoding-heavy workload benefits
   from sonic over `encoding/json`).
 
@@ -87,10 +87,10 @@ Socket location:
 
 | Mode         | Path                                       | Perms  |
 |--------------|--------------------------------------------|--------|
-| System       | `/run/lynxd/lynx.sock`                     | `0660` |
-| User         | `$XDG_RUNTIME_DIR/lynx-<uid>/lynx.sock`    | `0600` |
+| System       | `/run/unitpmd/unitpm.sock`                     | `0660` |
+| User         | `$XDG_RUNTIME_DIR/unitpm-<uid>/unitpm.sock`    | `0600` |
 
-## Command Flow — `lynxpm start`
+## Command Flow — `unitpm start`
 
 ```
 CLI                                     Daemon
@@ -100,7 +100,7 @@ ParseAppSpec(args)
   → AppSpec
 
 spec.GenerateID()           — UUID v7, time-ordered
-spec.SaveSpec(id, appSpec)  — writes ~/.config/lynx/apps/<id>.json (0600)
+spec.SaveSpec(id, appSpec)  — writes ~/.config/unitpm/apps/<id>.json (0600)
 
 client.Call("start", req) ────────────▶ handlers.Start(req)
                                           validate(spec)
@@ -163,7 +163,7 @@ Set via `--isolation`:
 
 | Mode      | Implementation                          | Privilege model                       |
 |-----------|-----------------------------------------|---------------------------------------|
-| `self`    | Plain `exec.Cmd`                        | Runs as daemon user (`lynx` or user)  |
+| `self`    | Plain `exec.Cmd`                        | Runs as daemon user (`glyndor-unitpm` or user)  |
 | `dynamic` | `systemd-run DynamicUser=yes` transient | Synthetic UID/GID per process         |
 | `sandbox` | user ns + landlock + rlimit + NO_NEW_PRIVS | Unprivileged, no sudo required        |
 
@@ -173,13 +173,13 @@ user-mode deployments — see `SECURITY.md` "Known Limitations".
 
 ## Spec Persistence
 
-Specs live in `$XDG_CONFIG_HOME/lynx/apps/<id>.json` (default
-`~/.config/lynx/apps/`). File mode `0600`, directory mode `0700`.
+Specs live in `$XDG_CONFIG_HOME/unitpm/apps/<id>.json` (default
+`~/.config/unitpm/apps/`). File mode `0600`, directory mode `0700`.
 
-- Written by `lynxpm start` before the daemon call.
-- Written by `lynxpm apply` (one file per app in the Lynxfile).
+- Written by `unitpm start` before the daemon call.
+- Written by `unitpm apply` (one file per app in the unitpm.yml).
 - Loaded by the daemon on startup to restore managed processes.
-- Deleted by `lynxpm delete` or when the daemon rejects a spec on start.
+- Deleted by `unitpm delete` or when the daemon rejects a spec on start.
 
 ## Metrics Collection
 
@@ -220,7 +220,7 @@ The CLI maps these to exit codes in `internal/cli/errs`.
 
 ## Testing Strategy
 
-- **Pure helpers**: direct unit tests (`env`, `lynxfile`, `protocol`,
+- **Pure helpers**: direct unit tests (`env`, `unitpm.yml`, `protocol`,
   `version`, `paths`, `metrics formatters`).
 - **IPC-bound commands**: an inline `mockClient` that implements
   `transport.IPCClient` — round-trips JSON through a captured response.
@@ -238,10 +238,10 @@ test-file comments.
 debian/changelog bump → git tag vX.Y.Z → git push --tags
                      → .github/workflows/release.yml builds,
                        signs (ed25519), attests (SLSA), and
-                       publishes: lynxpm_linux_{amd64,arm64},
-                       lynxpm_<ver>_amd64.deb, SBOM, sigs.
+                       publishes: unitpm_linux_{amd64,arm64},
+                       unitpm_<ver>_amd64.deb, SBOM, sigs.
 ```
 
-The `updater` package checks GitHub releases on demand (`lynxpm update`) and
+The `updater` package checks GitHub releases on demand (`unitpm update`) and
 prefers guiding users to `apt install ./file.deb` when `IsManagedByPackageSystem()`
 returns true.

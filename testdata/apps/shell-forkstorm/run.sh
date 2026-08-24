@@ -2,7 +2,7 @@
 # Forks 10 long-running `sleep` workers in its own process group and
 # waits for them, so the supervised PID's /proc-ppid tree has depth >= 2
 # and width 10. Regression guard for gracefulKill's descendant walk:
-# every worker must be reaped by `lynxpm stop`, not just the wrapper.
+# every worker must be reaped by `unitpm stop`, not just the wrapper.
 set -e
 
 echo "forkstorm pid=$$"

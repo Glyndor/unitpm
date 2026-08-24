@@ -1,48 +1,48 @@
 ---
-title: Lynx process manager vs PM2
-description: Lynx process manager vs PM2 — benchmark comparison (47x faster cold start, 4.5x less memory), feature differences, and migration guide for Linux.
+title: unitpm process manager vs PM2
+description: unitpm process manager vs PM2 — benchmark comparison (47x faster cold start, 4.5x less memory), feature differences, and migration guide for Linux.
 ---
 
-Lynx is a systemd-native process manager for Linux written in Go. PM2 is a Node.js-based process manager. This page compares them across performance, architecture, security, and day-to-day usage.
+unitpm is a systemd-native process manager for Linux written in Go. PM2 is a Node.js-based process manager. This page compares them across performance, architecture, security, and day-to-day usage.
 
 ## Performance benchmarks
 
-Numbers from [CI bench](https://github.com/Jaro-c/Lynx/actions/workflows/bench.yml) — Ubuntu 24.04, kernel 6.17, idle daemon supervising 10 noop processes.
+Numbers from [CI bench](https://github.com/Jaro-c/unitpm/actions/workflows/bench.yml) — Ubuntu 24.04, kernel 6.17, idle daemon supervising 10 noop processes.
 
-| Metric | Lynx | PM2 |
+| Metric | unitpm | PM2 |
 |--------|------|-----|
 | Cold start | **7.8 ms** | 366 ms |
 | Idle RSS | **14.7 MB** | 66.7 MB |
 | RSS w/ 10 processes | **22.8 MB** | 69.3 MB |
 | Daemon binary | **7.2 MB** | Node.js + deps |
 
-Lynx starts **47× faster** and uses **4.5× less memory** at idle.
+unitpm starts **47× faster** and uses **4.5× less memory** at idle.
 
 ## Architecture differences
 
 ### Runtime
 
-PM2 is a Node.js application — to run PM2, you need Node.js installed on the host. Lynx is a compiled Go binary with no runtime dependencies. Copy the `.deb` or binary and it runs.
+PM2 is a Node.js application — to run PM2, you need Node.js installed on the host. unitpm is a compiled Go binary with no runtime dependencies. Copy the `.deb` or binary and it runs.
 
 ### Process supervision
 
 PM2 runs its own custom daemon that supervises your processes. If PM2 crashes or is killed, the apps it manages die with it.
 
-Lynx delegates supervision to systemd. Your apps run as systemd transient services. If `lynxd` stops, the apps keep running. Systemd takes care of crash recovery, restarts, and logging — it already does this for the rest of your system.
+unitpm delegates supervision to systemd. Your apps run as systemd transient services. If `unitpmd` stops, the apps keep running. Systemd takes care of crash recovery, restarts, and logging — it already does this for the rest of your system.
 
 ### Crash resilience
 
 ```
 PM2 crash → all managed apps die
-Lynx daemon crash → apps keep running (systemd holds them)
+unitpm daemon crash → apps keep running (systemd holds them)
 ```
 
 ### Config format
 
-PM2 uses `ecosystem.config.js` — a JavaScript file. Lynx uses either the CLI directly or a `Lynxfile.yml`:
+PM2 uses `ecosystem.config.js` — a JavaScript file. unitpm uses either the CLI directly or a `unitpm.yml`:
 
 ```yaml
-# Lynxfile.yml
+# unitpm.yml
 version: 1
 processes:
   api:
@@ -54,11 +54,11 @@ processes:
 
 ## Security
 
-PM2 runs processes under the current user with no additional isolation. Lynx uses systemd's `DynamicUser=yes` plus Linux landlock to restrict filesystem access. Secrets can be passed via systemd credentials — they never appear in `/proc/<pid>/environ` or `ps` output.
+PM2 runs processes under the current user with no additional isolation. unitpm uses systemd's `DynamicUser=yes` plus Linux landlock to restrict filesystem access. Secrets can be passed via systemd credentials — they never appear in `/proc/<pid>/environ` or `ps` output.
 
 ## Feature comparison
 
-| Feature | Lynx | PM2 |
+| Feature | unitpm | PM2 |
 |---------|------|-----|
 | Process supervision | systemd | Custom daemon |
 | Apps outlive the CLI | ✓ | ✗ |
@@ -73,11 +73,11 @@ PM2 runs processes under the current user with no additional isolation. Lynx use
 
 ## When to choose PM2
 
-- You are on macOS or Windows (Lynx is Linux-only)
+- You are on macOS or Windows (unitpm is Linux-only)
 - You need the PM2 ecosystem integrations (Keymetrics, PM2 Plus)
 - You are already deeply invested in a PM2 workflow on a non-systemd system
 
-## When to choose Lynx
+## When to choose unitpm
 
 - You deploy to Linux servers with systemd (Debian, Ubuntu, RHEL, Arch)
 - You want your apps to survive daemon crashes or restarts
@@ -95,15 +95,15 @@ pm2 save
 # Output is ~/.pm2/dump.pm2 (JSON)
 ```
 
-### Recreate with Lynx
+### Recreate with unitpm
 
 ```bash
 # Start equivalent processes
-lynxpm start "node server.js" --name api --restart always
-lynxpm start "node worker.js" --name worker --restart always
+unitpm start "node server.js" --name api --restart always
+unitpm start "node worker.js" --name worker --restart always
 
-# Or write a Lynxfile.yml and apply it
-lynxpm apply Lynxfile.yml
+# Or write a unitpm.yml and apply it
+unitpm apply unitpm.yml
 ```
 
 ### Stop PM2
@@ -114,16 +114,16 @@ pm2 kill
 pm2 unstartup
 ```
 
-### Add Lynx to startup
+### Add unitpm to startup
 
 ```bash
-lynxpm startup install
+unitpm startup install
 ```
 
 ### Verify
 
 ```bash
-lynxpm list
+unitpm list
 # ┌──────────┬────────┬──────────┬─────────┬────────┐
 # │ id       │ name   │ namespace│ status  │ pid    │
 # ├──────────┼────────┼──────────┼─────────┼────────┤
@@ -133,6 +133,6 @@ lynxpm list
 
 ## See also
 
-- [Lynx vs Supervisor](./vs-supervisor/)
-- [Install Lynx](../start/install/)
+- [unitpm vs Supervisor](./vs-supervisor/)
+- [Install unitpm](../start/install/)
 - [Quickstart](../start/quickstart/)

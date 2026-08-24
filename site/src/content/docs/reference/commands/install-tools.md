@@ -1,11 +1,11 @@
 ---
-title: "lynxpm install-tools"
-description: Symlink Node.js, Bun, Go, Python and other runtimes to /usr/local/bin so the Lynx daemon can find them. Required when binaries are absent from the system PATH.
+title: "unitpm install-tools"
+description: Symlink Node.js, Bun, Go, Python and other runtimes to /usr/local/bin so the unitpm daemon can find them. Required when binaries are absent from the system PATH.
 head:
   - tag: script
     attrs:
       type: application/ld+json
-    content: '{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Lynx","item":"https://jaro-c.github.io/Lynx/"},{"@type":"ListItem","position":2,"name":"Reference","item":"https://jaro-c.github.io/Lynx/reference/architecture/"},{"@type":"ListItem","position":3,"name":"lynxpm install-tools","item":"https://jaro-c.github.io/Lynx/reference/commands/install-tools/"}]}'
+    content: '{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"unitpm","item":"https://jaro-c.github.io/unitpm/"},{"@type":"ListItem","position":2,"name":"Reference","item":"https://jaro-c.github.io/unitpm/reference/architecture/"},{"@type":"ListItem","position":3,"name":"unitpm install-tools","item":"https://jaro-c.github.io/unitpm/reference/commands/install-tools/"}]}'
 sidebar:
   label: install-tools
 ---
@@ -13,14 +13,14 @@ sidebar:
 ## 📖 Synopsis
 
 ```bash
-sudo lynxpm install-tools [flags]
+sudo unitpm install-tools [flags]
 ```
 
 ## Description
 
 Automatically symlink common development tools (like `node`, `go`, `bun`, `python`) from the user's environment to `/usr/local/bin`.
 
-This is crucial because the Lynx daemon (when running in system mode) has a restricted `PATH` and might not see tools installed in your user's home directory (e.g., via `nvm`, `brew`, or `go install`). This command bridges that gap safely.
+This is crucial because the unitpm daemon (when running in system mode) has a restricted `PATH` and might not see tools installed in your user's home directory (e.g., via `nvm`, `brew`, or `go install`). This command bridges that gap safely.
 
 ## ⚙️ Flags
 
@@ -33,12 +33,12 @@ This is crucial because the Lynx daemon (when running in system mode) has a rest
 
 Scan and link tools interactively:
 ```bash
-sudo lynxpm install-tools
+sudo unitpm install-tools
 ```
 
 Scan and link tools without confirmation:
 ```bash
-sudo lynxpm install-tools --yes
+sudo unitpm install-tools --yes
 ```
 
 ## How it works
