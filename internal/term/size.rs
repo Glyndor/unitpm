@@ -39,8 +39,14 @@ pub fn get_terminal_width_at(fd: std::os::unix::io::RawFd) -> Option<usize> {
 		ws_ypixel: u16,
 	}
 
-	// TIOCGWINSZ is architecture-portable for our purposes (Linux glibc
-	// exposes it as 0x5413).
+	// The value is 0x5413 on every Linux architecture this ships for, but the
+	// type is not portable: glibc's ioctl takes the request as c_ulong and
+	// musl's takes c_int. The package builds for musl, so the constant has to
+	// follow the target rather than assume glibc, as the previous comment on
+	// this line did.
+	#[cfg(target_env = "musl")]
+	const TIOCGWINSZ: libc::c_int = 0x5413;
+	#[cfg(not(target_env = "musl"))]
 	const TIOCGWINSZ: libc::c_ulong = 0x5413;
 
 	let mut ws = Winsize {

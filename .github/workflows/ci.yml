@@ -130,3 +130,18 @@ jobs:
           test -x "target/$TARGET/release/unitpm"
           test -x "target/$TARGET/release/unitpmd"
           file "target/$TARGET/release/unitpm"
+
+      - name: Type-check the tests for the same target
+        env:
+          TARGET: ${{ matrix.target }}
+        run: |
+          set -euo pipefail
+          # debian/rules runs `cargo test` against this target too, so a test
+          # that only compiles under glibc breaks the package build while the
+          # binary build above stays green. Checking here reports it against
+          # the job named for the architecture instead.
+          if [ "$TARGET" = "aarch64-unknown-linux-musl" ]; then
+            cargo +1.98 zigbuild --release --locked --all-features --all-targets --target "$TARGET"
+          else
+            cargo +1.98 check --release --locked --all-features --all-targets --target "$TARGET"
+          fi
