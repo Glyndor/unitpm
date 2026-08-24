@@ -24,7 +24,7 @@ permissions:
 
 jobs:
   debian:
-    uses: Glyndor/.github/.github/workflows/rust-debian.yml@d4bbc5b6ec0c351ca4cb17d948ceaad818da4078 # v1.18.1
+    uses: Glyndor/.github/.github/workflows/rust-debian.yml@eb930630069c53c0119c89eb7929e2845efdb888 # v1.18.2
     with:
       package-name: unitpm
       # debian/rules builds for musl so the package carries no libc floor,
@@ -33,3 +33,9 @@ jobs:
       # the compiler CI validates with.
       rust-toolchain: "1.98"
       rust-target: x86_64-unknown-linux-musl
+      # The updater speaks HTTPS, so ureq -> rustls -> ring is in the tree
+      # and ring compiles C. Cross-compiling that to musl needs a musl C
+      # toolchain, which the job's fixed tooling list does not carry. It
+      # cannot go in Build-Depends either: dpkg-checkbuilddeps would then
+      # fail for a package this job never installs.
+      apt-packages: musl-tools
