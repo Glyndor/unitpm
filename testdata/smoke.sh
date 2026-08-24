@@ -24,7 +24,7 @@ die() {
 # runtime's lifecycle works end-to-end against the installed .deb.
 run_worker_scenario() {
     unitpm start "$2" --name "$1" --restart never
-    for i in $(seq 1 20); do
+    for _ in $(seq 1 20); do
         unitpm logs "$1" --stdout --lines 10 2>/dev/null | grep -q "$3 pid=" && break
         sleep 0.1
     done
@@ -39,7 +39,7 @@ run_worker_scenario() {
 # equals expected, or fail after ~2s. Covers async scale/delete paths
 # without the flaky `sleep N; assert` pattern.
 wait_count() {
-    for i in $(seq 1 20); do
+    for _ in $(seq 1 20); do
         local c
         c=$(unitpm list --namespace "$2" --json | grep -o "\"namespace\":\"$2\"" | wc -l)
         [ "$c" -eq "$1" ] && return 0
@@ -50,7 +50,7 @@ wait_count() {
 
 # Poll until the daemon socket is responsive (bootstrap from the caller
 # happens in parallel; the CLI gets EAGAIN until the server loop runs).
-for i in $(seq 1 50); do
+for _ in $(seq 1 50); do
     unitpm list --json >/dev/null 2>&1 && break
     sleep 0.1
 done
@@ -112,7 +112,7 @@ echo "=== scenario: max-restarts cap ==="
 unitpm start "python3 $APPS_DIR/python-crashloop/crash.py" \
     --name crashloop --restart on-failure --max-restarts 2 --restart-delay 100
 # 2 attempts × (1s run + 0.1s delay) ≈ 3s budget; give it 8s to settle.
-for i in $(seq 1 40); do
+for _ in $(seq 1 40); do
     STATE=$(unitpm list --json | awk -F'"state":"' '/crashloop/{print $2}' | cut -d'"' -f1 || true)
     [ "$STATE" = "failed" ] && break
     sleep 0.2
@@ -212,7 +212,7 @@ unitpm delete 'scalens:*' --purge >/dev/null
 echo "=== scenario: process tree (monit --json) ==="
 unitpm start "bash -c 'sleep 60 & sleep 60 & wait'" --name tree-smoke --restart never
 TREE_JSON=""
-for i in $(seq 1 20); do
+for _ in $(seq 1 20); do
     TREE_JSON=$(unitpm monit tree-smoke --json 2>/dev/null)
     echo "$TREE_JSON" | grep -q '"depth":1' && break
     sleep 0.5

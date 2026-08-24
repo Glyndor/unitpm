@@ -37,6 +37,8 @@ FILE_EXCLUDES_RE+='|package-lock\.json$'
 FILE_EXCLUDES_RE+=')'
 
 # Substrings that, when present on a flagged line, mark it as intentional.
+# shellcheck disable=SC2016  # the entries below are literal substrings to
+# match against source lines, so nothing in them should expand.
 ALLOW_SUBSTRINGS=(
   # The start command's env test asserts the OLD name is absent from the child's
   # environment. It has to name it to check for it, so these two lines are the
