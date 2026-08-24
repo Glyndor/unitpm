@@ -5,6 +5,9 @@
 //! under `internal/<name>` and ports the same test cases. The Go tree stays
 //! buildable alongside this one until phase 7 deletes the old code.
 
+#[cfg(test)]
+pub(crate) mod test_env;
+
 pub mod cli;
 pub mod daemon;
 pub mod env;

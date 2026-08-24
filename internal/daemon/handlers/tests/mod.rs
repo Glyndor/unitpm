@@ -23,9 +23,7 @@
 
 #![cfg(target_os = "linux")]
 
-use std::sync::{Mutex, MutexGuard};
-
-pub(crate) static ENV_LOCK: Mutex<()> = Mutex::new(());
+use std::sync::MutexGuard;
 
 /// Guards every environment variable the tests reach into. Acquired on
 /// construction; restored on `Drop`. The restoration step is what makes
@@ -38,7 +36,10 @@ pub(crate) struct EnvGuard {
 
 impl EnvGuard {
 	pub(crate) fn new() -> Self {
-		let held = ENV_LOCK.lock().unwrap_or_else(|e| e.into_inner());
+		// The shared lock, not one of this module's own: these tests write
+		// UNITPM_SOCKET, and so do the transport tests. Two locks would have
+		// excluded neither from the other.
+		let held = crate::test_env::lock();
 		let vars = ["XDG_CONFIG_HOME", "XDG_STATE_HOME", "HOME", "UNITPM_SOCKET"];
 		let prev: Vec<(&'static str, Option<String>)> =
 			vars.iter().map(|k| (*k, std::env::var(k).ok())).collect();

@@ -11,11 +11,8 @@
 //! otherwise leak state into whatever test runs next.
 
 use std::os::unix::fs::PermissionsExt;
-use std::sync::Mutex;
 
 use crate::ipc::transport::socket_unix::{get_socket_path, SocketPathError};
-
-static ENV_LOCK: Mutex<()> = Mutex::new(());
 
 struct EnvGuard {
 	_unit: std::sync::MutexGuard<'static, ()>,
@@ -27,7 +24,7 @@ impl EnvGuard {
 	fn new() -> Self {
 		let saved_socket = std::env::var("UNITPM_SOCKET").ok();
 		let saved_xdg = std::env::var("XDG_RUNTIME_DIR").ok();
-		let _unit = ENV_LOCK.lock().unwrap_or_else(|e| e.into_inner());
+		let _unit = crate::test_env::lock();
 		Self {
 			_unit,
 			saved_socket,
