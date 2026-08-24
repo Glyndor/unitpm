@@ -1,10 +1,23 @@
 Source: unitpm
 Section: admin
 Priority: optional
-Maintainer: Jaro-c <jaro-c@users.noreply.github.com>
-Build-Depends: debhelper-compat (= 13), golang-go
+Maintainer: Glyndor <packages@glyndor.net>
+Build-Depends: debhelper-compat (= 13)
+# golang-go was here until the rewrite and nothing builds with Go any more.
+# Cargo and rustc are deliberately not put in its place: debian/rules builds
+# for a musl target and Debian's toolchain ships no musl standard library, so
+# the compiler comes from the rustup toolchain the workflow pins to the same
+# version rust-ci.yml uses. Naming Debian's rustc here would let
+# dpkg-checkbuilddeps pass on a compiler that is not the one doing the work.
+#
+# The cost, so it reads as a decision: `dpkg-buildpackage` on a plain Debian
+# box no longer works from Build-Depends alone, the musl target has to be
+# installed first. Acceptable because this package is built by one workflow
+# for one self-hosted archive, never submitted to the Debian archive.
 Standards-Version: 4.6.2
-Homepage: https://github.com/Jaro-c/unitpm
+Homepage: https://github.com/Glyndor/unitpm
+Vcs-Git: https://github.com/Glyndor/unitpm.git
+Vcs-Browser: https://github.com/Glyndor/unitpm
 Rules-Requires-Root: no
 
 Package: unitpm

@@ -1,0 +1,15 @@
+# cargo-about accepted licences. Kept in step with deny.toml: that file decides
+# what may enter the dependency tree, this one decides what the attribution
+# output may name. A licence in one and not the other is a gap.
+accepted = [
+	"Apache-2.0",
+	"MIT",
+	"Unicode-3.0",
+	"BSD-2-Clause",
+	"BSD-3-Clause",
+	"ISC",
+	"Zlib",
+	# webpki-roots ships Mozilla's CA trust store, which is data rather than
+	# code. Scoped as an exception in deny.toml for the same reason.
+	"CDLA-Permissive-2.0",
+]
