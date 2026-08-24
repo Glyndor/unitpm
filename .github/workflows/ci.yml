@@ -22,7 +22,10 @@ jobs:
       # refactor that moves one region into a red build. Raise it when real
       # coverage rises; never lower it to make a red build green.
       coverage-threshold: 70
-      extra-test-os: '["macos-latest", "windows-latest"]'
+      # No extra-test-os. unitpm is Linux-only by design -- systemd units,
+      # polkit, landlock and a Unix socket, with 58 `target_os = "linux"`
+      # blocks and no stubs behind them. Testing on macOS and Windows spent CI
+      # to fail on platforms README.md line 121 already says are unsupported.
       msrv: "1.96"
 
   line-limit:

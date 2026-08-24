@@ -38,10 +38,6 @@ FILE_EXCLUDES_RE+=')'
 
 # Substrings that, when present on a flagged line, mark it as intentional.
 ALLOW_SUBSTRINGS=(
-  # The guide moved to the new name but its old URL is indexed, so the redirect
-  # has to keep naming it. This is the only place the old name may still appear.
-  "'/guides/pm2-vs-supervisor-vs-lynx/'"
-
   # The start command's env test asserts the OLD name is absent from the child's
   # environment. It has to name it to check for it, so these two lines are the
   # one place in the Rust tree where the old name is the point, not a leftover.

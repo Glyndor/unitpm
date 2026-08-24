@@ -3,9 +3,9 @@
 Systemd-native process manager for Linux — a lean alternative to PM2 and
 Supervisor built directly on `systemd` rather than a custom supervisor daemon.
 
-[![CI](https://github.com/Jaro-c/unitpm/actions/workflows/ci.yml/badge.svg)](https://github.com/Jaro-c/unitpm/actions/workflows/ci.yml)
+[![CI](https://github.com/Glyndor/unitpm/actions/workflows/ci.yml/badge.svg)](https://github.com/Glyndor/unitpm/actions/workflows/ci.yml)
 
-Go 1.26+ · Linux only · License: MIT
+Rust 1.96+ · Linux only · License: MIT
 
 ## Architecture
 
@@ -26,7 +26,7 @@ against PM2 5.4.3 and supervisord 4.2.5, reproducible locally with
 ### Install — `.deb` (recommended)
 
 ```bash
-# Grab the latest .deb from https://github.com/Jaro-c/unitpm/releases
+# Grab the latest .deb from https://github.com/Glyndor/unitpm/releases
 sudo apt install ./unitpm_*_amd64.deb
 sudo usermod -aG unitpm "$USER" && newgrp unitpm
 sudo systemctl enable --now unitpmd
@@ -36,7 +36,7 @@ sudo unitpm install-tools   # optional: expose bun/node/go/… to the daemon
 ### Install — prebuilt binary
 
 ```bash
-gh release download --repo Jaro-c/unitpm --pattern 'unitpm_linux_amd64'
+gh release download --repo Glyndor/unitpm --pattern 'unitpm_linux_amd64'
 install -m 0755 unitpm_linux_amd64 ~/.local/bin/unitpm
 ```
 

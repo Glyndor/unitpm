@@ -3,12 +3,7 @@ import { defineConfig } from 'astro/config';
 import starlight from '@astrojs/starlight';
 
 export default defineConfig({
-	// The guide used to live at the old product name and that URL is indexed;
-	// keep the redirect so external links and search results still resolve.
-	redirects: {
-		'/guides/pm2-vs-supervisor-vs-lynx/': '/unitpm/guides/pm2-vs-supervisor-vs-unitpm/',
-	},
-	site: 'https://jaro-c.github.io',
+	site: 'https://glyndor.github.io',
 	base: '/unitpm',
 	trailingSlash: 'ignore',
 	integrations: [
