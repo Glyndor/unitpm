@@ -69,9 +69,18 @@ where
 	let server = Server::new();
 	setup(&server);
 	server.start().expect("server start");
-	// Give the accept loop a moment to bind. The Go test uses 100ms; we
-	// keep it for parity.
-	std::thread::sleep(std::time::Duration::from_millis(100));
+	// Wait for the socket to exist rather than sleeping a fixed 100ms. The
+	// sleep was inherited from the Go suite; under a loaded runner it is
+	// both too short to be safe and, when it is enough, wasted time.
+	let path = std::env::var("UNITPM_SOCKET").expect("UNITPM_SOCKET set by the caller");
+	let deadline = std::time::Instant::now() + std::time::Duration::from_secs(10);
+	while !std::path::Path::new(&path).exists() {
+		assert!(
+			std::time::Instant::now() < deadline,
+			"the accept loop never bound {path}"
+		);
+		std::thread::sleep(std::time::Duration::from_millis(2));
+	}
 	server
 }
 

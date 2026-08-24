@@ -17,6 +17,10 @@ use super::server_tests::{setup_test_socket, start_server_with, EnvGuard};
 #[test]
 fn ipc_allowlist_uids_allowed() {
 	let _g = EnvGuard::new();
+	// Own socket in an own tempdir. Without this the test inherits
+	// UNITPM_SOCKET from whichever test ran before it, whose tempdir is
+	// already deleted, and the bind fails with ENOENT.
+	let (_dir, _path) = setup_test_socket();
 	let uid = unsafe { libc::geteuid() };
 	std::env::set_var("UNITPM_IPC_ALLOW_UIDS", uid.to_string());
 	let server = start_server_with(|s| {
@@ -40,6 +44,10 @@ fn ipc_allowlist_uids_allowed() {
 #[test]
 fn ipc_allowlist_uids_denied() {
 	let _g = EnvGuard::new();
+	// Own socket in an own tempdir. Without this the test inherits
+	// UNITPM_SOCKET from whichever test ran before it, whose tempdir is
+	// already deleted, and the bind fails with ENOENT.
+	let (_dir, _path) = setup_test_socket();
 	std::env::set_var("UNITPM_IPC_ALLOW_UIDS", "999999");
 	let server = start_server_with(|s| {
 		s.register("ping", |_ctx: RequestContext, _params: RawMessage| {
