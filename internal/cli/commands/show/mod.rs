@@ -230,8 +230,8 @@ pub fn spec() -> CommandSpec {
 		],
 		examples: vec![
 			format!("unitpm {} my-api", cmd::SHOW),
-			format!("unitpm info prod:my-api"),
-			format!("unitpm describe 019d9a04"),
+			"unitpm info prod:my-api".to_string(),
+			"unitpm describe 019d9a04".to_string(),
 			format!("unitpm {} my-api --json | jq '.spec.env'", cmd::SHOW),
 		],
 		hidden: false,

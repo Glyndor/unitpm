@@ -1,3 +1,7 @@
+# shellcheck shell=bash
+#
+# Sourced by the bench scenarios; it has no shebang because it is never
+# executed directly, so shellcheck needs telling which shell to assume.
 # Shared helpers for the supervisor benchmarks.
 # Sourced by scenarios/*.sh and run.sh.
 
