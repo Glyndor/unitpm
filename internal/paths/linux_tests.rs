@@ -103,6 +103,10 @@ fn within_root_table() {
 #[test]
 fn resolve_log_paths_default_paths() {
 	let _guard = env_lock();
+	// Pin the uid: these assert the user-mode paths, and dpkg-buildpackage
+	// runs the suite as root, where the resolver correctly returns the
+	// system paths instead. The guard clears it on the way out.
+	set_euid_for_tests(1000);
 	let tmp = tempfile::tempdir().expect("tempdir");
 	let state = temp_xdg(&tmp);
 	let (stdout, stderr) =
@@ -122,6 +126,10 @@ fn resolve_log_paths_default_paths() {
 #[test]
 fn resolve_log_paths_custom_dir() {
 	let _guard = env_lock();
+	// Pin the uid: these assert the user-mode paths, and dpkg-buildpackage
+	// runs the suite as root, where the resolver correctly returns the
+	// system paths instead. The guard clears it on the way out.
+	set_euid_for_tests(1000);
 	let tmp = tempfile::tempdir().expect("tempdir");
 	let state = temp_xdg(&tmp);
 	let custom = state.join("myapp/logs");
@@ -135,6 +143,10 @@ fn resolve_log_paths_custom_dir() {
 #[test]
 fn resolve_log_paths_custom_filenames() {
 	let _guard = env_lock();
+	// Pin the uid: these assert the user-mode paths, and dpkg-buildpackage
+	// runs the suite as root, where the resolver correctly returns the
+	// system paths instead. The guard clears it on the way out.
+	set_euid_for_tests(1000);
 	let tmp = tempfile::tempdir().expect("tempdir");
 	temp_xdg(&tmp);
 	let (stdout, stderr) = resolve_log_paths("proc-1", "", "out.txt", "err.txt").expect("resolve");
@@ -145,6 +157,10 @@ fn resolve_log_paths_custom_filenames() {
 #[test]
 fn resolve_log_paths_absolute_custom_filename() {
 	let _guard = env_lock();
+	// Pin the uid: these assert the user-mode paths, and dpkg-buildpackage
+	// runs the suite as root, where the resolver correctly returns the
+	// system paths instead. The guard clears it on the way out.
+	set_euid_for_tests(1000);
 	let tmp = tempfile::tempdir().expect("tempdir");
 	let state = temp_xdg(&tmp);
 	let abs = state.join("custom/out.log");
@@ -155,6 +171,10 @@ fn resolve_log_paths_absolute_custom_filename() {
 #[test]
 fn resolve_log_paths_path_too_long() {
 	let _guard = env_lock();
+	// Pin the uid: these assert the user-mode paths, and dpkg-buildpackage
+	// runs the suite as root, where the resolver correctly returns the
+	// system paths instead. The guard clears it on the way out.
+	set_euid_for_tests(1000);
 	let long = "a".repeat(5000);
 	let err = resolve_log_paths("proc-1", &long, "", "");
 	assert!(err.is_err(), "expected error for path too long");
@@ -163,6 +183,10 @@ fn resolve_log_paths_path_too_long() {
 #[test]
 fn resolve_log_paths_dotdot_dir_rejected() {
 	let _guard = env_lock();
+	// Pin the uid: these assert the user-mode paths, and dpkg-buildpackage
+	// runs the suite as root, where the resolver correctly returns the
+	// system paths instead. The guard clears it on the way out.
+	set_euid_for_tests(1000);
 	let tmp = tempfile::tempdir().expect("tempdir");
 	temp_xdg(&tmp);
 	let err = resolve_log_paths("proc-1", "../escape", "", "");
@@ -172,6 +196,10 @@ fn resolve_log_paths_dotdot_dir_rejected() {
 #[test]
 fn get_log_dir_xdg_state_home() {
 	let _guard = env_lock();
+	// Pin the uid: these assert the user-mode paths, and dpkg-buildpackage
+	// runs the suite as root, where the resolver correctly returns the
+	// system paths instead. The guard clears it on the way out.
+	set_euid_for_tests(1000);
 	let tmp = tempfile::tempdir().expect("tempdir");
 	let state = temp_xdg(&tmp);
 	let dir = get_log_dir("").expect("get_log_dir");
@@ -181,6 +209,10 @@ fn get_log_dir_xdg_state_home() {
 #[test]
 fn get_log_dir_fallback_to_home() {
 	let _guard = env_lock();
+	// Pin the uid: these assert the user-mode paths, and dpkg-buildpackage
+	// runs the suite as root, where the resolver correctly returns the
+	// system paths instead. The guard clears it on the way out.
+	set_euid_for_tests(1000);
 	std::env::remove_var("XDG_STATE_HOME");
 	let home = match std::env::var("HOME") {
 		Ok(h) if !h.is_empty() => PathBuf::from(h),
@@ -197,6 +229,10 @@ fn get_log_dir_fallback_to_home() {
 #[test]
 fn get_log_dir_custom_dir() {
 	let _guard = env_lock();
+	// Pin the uid: these assert the user-mode paths, and dpkg-buildpackage
+	// runs the suite as root, where the resolver correctly returns the
+	// system paths instead. The guard clears it on the way out.
+	set_euid_for_tests(1000);
 	let tmp = tempfile::tempdir().expect("tempdir");
 	temp_xdg(&tmp);
 	let custom = tmp.path().join("mydir");
