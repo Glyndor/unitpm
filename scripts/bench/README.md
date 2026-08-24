@@ -1,6 +1,6 @@
 # Supervisor benchmark
 
-Compares **Lynx**, **PM2**, and **supervisord** on supervisor-level metrics. The
+Compares **unitpm**, **PM2**, and **supervisord** on supervisor-level metrics. The
 managed workload is identical for all three (a noop `/bin/sh` script that traps
 SIGTERM and sleeps), so the deltas come from the supervisor itself, not the
 apps it runs.
@@ -14,7 +14,7 @@ apps it runs.
 | **RSS @ N** | Same daemon RSS after `N` noop programs are running. Sampled at three tiers — `N=10` (light), `N=50` (medium), `N=100` (heavy) — against the same daemon, cumulatively (start the delta, settle 2 s, sample). Override `TIERS` to widen the matrix manually. |
 
 What this **does not** measure: throughput, log rotation, hot-reload, restart
-latency on crash. The last one is intentional: Lynx delegates restart-on-crash
+latency on crash. The last one is intentional: unitpm delegates restart-on-crash
 to systemd, while PM2/supervisord poll from user-space — measuring them all
 together would mix architectures, not products. A separate systemd-managed
 bench is in scope but not yet wired up.
@@ -25,11 +25,11 @@ The numbers are only meaningful with pinned versions on a known kernel. Use the
 Docker image:
 
 ```bash
-docker build -f scripts/bench/Dockerfile -t lynx-bench .
-docker run --rm lynx-bench > out.md
+docker build -f scripts/bench/Dockerfile -t unitpm-bench .
+docker run --rm unitpm-bench > out.md
 ```
 
-Bare-metal run (assumes `lynxd`, `lynxpm`, `pm2`, `supervisord` already on
+Bare-metal run (assumes `unitpmd`, `unitpm`, `pm2`, `supervisord` already on
 PATH):
 
 ```bash
@@ -39,8 +39,8 @@ bash scripts/bench/run.sh
 Subset run:
 
 ```bash
-bash scripts/bench/run.sh lynx          # lynx only
-bash scripts/bench/run.sh lynx pm2      # skip supervisord
+bash scripts/bench/run.sh unitpm          # unitpm only
+bash scripts/bench/run.sh unitpm pm2      # skip supervisord
 ```
 
 Output:
@@ -53,7 +53,7 @@ Output:
 Bumped as a single PR when refreshing the bench. See
 [`Dockerfile`](./Dockerfile) build args:
 
-- Go (used to build Lynx)
+- Go (used to build unitpm)
 - Node + PM2
 - supervisord (Python)
 
@@ -70,18 +70,18 @@ hand-typed estimates.
   in practice; it is not a stress test. RSS rarely scales linearly because
   much of the daemon footprint is one-time runtime cost. Set `TIERS="10 100
   500"` (or similar) to push harder — `pm2 start` is ~1 s per call, so the
-  heavy tail is gated by PM2, not by Lynx.
-- **Lynx scenario passes `--log-timestamp none`** to match the default
+  heavy tail is gated by PM2, not by unitpm.
+- **unitpm scenario passes `--log-timestamp none`** to match the default
   behavior of PM2 and supervisord, neither of which prefixes log lines with
-  timestamps out of the box. Without this flag Lynx would be paying for a
+  timestamps out of the box. Without this flag unitpm would be paying for a
   user-space pipe + `io.Copy` goroutine + bufio buffer per stream that the
   other supervisors do not, which is a UX choice rather than a fair
-  apples-to-apples cost. Real Lynx users who want timestamps simply omit
+  apples-to-apples cost. Real unitpm users who want timestamps simply omit
   the flag and pay the (modest) overhead.
 - **PM2's God Daemon is shared per user.** Stopping PM2 between scenarios
   (`pm2 kill`) ensures we measure a fresh daemon, but the JIT warm-up of V8
   may still affect cold start vs a steady-state daemon.
-- **supervisord configures programs ahead of time**, while Lynx and PM2 add
+- **supervisord configures programs ahead of time**, while unitpm and PM2 add
   them at runtime. The bench keeps them all in `autostart=false` until the
   measurement step so cold start is comparable.
 - **Idle RSS for Go binaries underestimates the real virtual footprint.** Go's

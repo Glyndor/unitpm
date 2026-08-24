@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
 # Run all supervisor scenarios, merge results into a single JSON document, and
 # render a markdown table. Usage:
-#   bash scripts/bench/run.sh                # run lynx, pm2, supervisor
-#   bash scripts/bench/run.sh lynx pm2       # subset
+#   bash scripts/bench/run.sh                # run unitpm, pm2, supervisor
+#   bash scripts/bench/run.sh unitpm pm2       # subset
 #
 # Requires: jq, python3, supervisor binaries on PATH.
-# For Lynx: builds lynxd/lynxpm into bin/ if not already present.
+# For unitpm: builds unitpmd/unitpm into bin/ if not already present.
 
 set -euo pipefail
 HERE=$(cd "$(dirname "$0")" && pwd)
@@ -13,18 +13,18 @@ ROOT=$(cd "$HERE/../.." && pwd)
 OUT="$ROOT/scripts/bench/out"
 mkdir -p "$OUT"
 
-# Build Lynx if needed.
-if [[ ! -x "$ROOT/bin/lynxd" || ! -x "$ROOT/bin/lynxpm" ]]; then
-	(cd "$ROOT" && go build -ldflags='-s -w' -o bin/lynxd ./cmd/lynxd)
-	(cd "$ROOT" && go build -ldflags='-s -w' -o bin/lynxpm ./cmd/lynxpm)
+# Build unitpm if needed.
+if [[ ! -x "$ROOT/bin/unitpmd" || ! -x "$ROOT/bin/unitpm" ]]; then
+	(cd "$ROOT" && go build -ldflags='-s -w' -o bin/unitpmd ./cmd/unitpmd)
+	(cd "$ROOT" && go build -ldflags='-s -w' -o bin/unitpm ./cmd/unitpm)
 fi
 
-export LYNX_DAEMON="$ROOT/bin/lynxd"
-export LYNX_CLI="$ROOT/bin/lynxpm"
+export LYNX_DAEMON="$ROOT/bin/unitpmd"
+export LYNX_CLI="$ROOT/bin/unitpm"
 
 scenarios=("$@")
 if [[ ${#scenarios[@]} -eq 0 ]]; then
-	scenarios=(lynx pm2 supervisor)
+	scenarios=(unitpm pm2 supervisor)
 fi
 
 results=()

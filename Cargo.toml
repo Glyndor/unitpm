@@ -16,7 +16,7 @@ path = "internal/lib.rs"
 
 # Phase 7a: the two binaries. `unitpm` is the CLI; `unitpmd` is the IPC
 # daemon. They live under `cmd/` to mirror the prior Go layout
-# (`cmd/lynxpm/`, `cmd/lynxd/`) so the Debian package, systemd unit, and
+# (`cmd/unitpm/`, `cmd/unitpmd/`) so the Debian package, systemd unit, and
 # release scripts can target the same paths the previous tree used.
 [[bin]]
 name = "unitpm"

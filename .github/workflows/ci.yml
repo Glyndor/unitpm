@@ -85,11 +85,11 @@ jobs:
           go-version-file: go.mod
           cache: true
 
-      - name: Build lynxpm
+      - name: Build unitpm
         env:
           GOOS: linux
           GOARCH: ${{ matrix.goarch }}
-        run: go build -trimpath -ldflags="-s -w" -o /dev/null ./cmd/lynxpm
+        run: go build -trimpath -ldflags="-s -w" -o /dev/null ./cmd/unitpm
 
       - name: Build all packages
         env:

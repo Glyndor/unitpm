@@ -1,5 +1,5 @@
 {
-  "name": "lynx-bench-pm2",
+  "name": "unitpm-bench-pm2",
   "version": "1.0.0",
   "private": true,
   "description": "Pinned pm2 install for bench Dockerfile",

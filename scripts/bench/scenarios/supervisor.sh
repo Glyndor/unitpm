@@ -19,7 +19,7 @@ cleanup() {
 
 # Generate a config with MAX_TIER noop programs preconfigured. supervisord
 # doesn't support adding programs at runtime via supervisorctl in the same
-# way pm2/lynx do — so we configure all of them upfront and start the tiers
+# way pm2/unitpm do — so we configure all of them upfront and start the tiers
 # cumulatively via `supervisorctl start`. That bakes the config-parse cost
 # of the largest tier into supervisord's cold-start metric, which is how it
 # is actually deployed in practice.

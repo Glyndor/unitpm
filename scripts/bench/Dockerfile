@@ -1,6 +1,6 @@
 # Reproducible bench environment.
-# Build:  docker build -f scripts/bench/Dockerfile -t lynx-bench .
-# Run:    docker run --rm lynx-bench
+# Build:  docker build -f scripts/bench/Dockerfile -t unitpm-bench .
+# Run:    docker run --rm unitpm-bench
 #
 # All third-party fetches are pinned by digest/hash. Refresh = one PR.
 
@@ -54,7 +54,7 @@ RUN pip install --no-cache-dir --break-system-packages --require-hashes \
 WORKDIR /src
 COPY . /src
 
-RUN go build -ldflags='-s -w' -o bin/lynxd ./cmd/lynxd \
-	&& go build -ldflags='-s -w' -o bin/lynxpm ./cmd/lynxpm
+RUN go build -ldflags='-s -w' -o bin/unitpmd ./cmd/unitpmd \
+	&& go build -ldflags='-s -w' -o bin/unitpm ./cmd/unitpm
 
 CMD ["bash", "scripts/bench/run.sh"]

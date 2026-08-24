@@ -55,12 +55,12 @@ jobs:
         run: |
           dpkg-buildpackage -us -uc -b -d
           mkdir -p debs
-          cp ../lynxpm_*.deb debs/
+          cp ../unitpm_*.deb debs/
 
       - name: Upload .deb artifact
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          name: lynxpm-deb
+          name: unitpm-deb
           path: debs/*.deb
           retention-days: 7
 
@@ -87,7 +87,7 @@ jobs:
     steps:
       - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
-          name: lynxpm-deb
+          name: unitpm-deb
           path: debs
 
       - name: Install lintian
@@ -120,7 +120,7 @@ jobs:
 
       - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
-          name: lynxpm-deb
+          name: unitpm-deb
           path: debs
 
       - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
@@ -142,7 +142,7 @@ jobs:
           apt-get install -y --no-install-recommends \
             adduser ca-certificates systemd polkitd
 
-      - name: Install lynxpm from .deb
+      - name: Install unitpm from .deb
         env:
           DEBIAN_FRONTEND: noninteractive
         run: apt-get install -y ./debs/*.deb
@@ -150,15 +150,15 @@ jobs:
       - name: Smoke — CLI + filesystem layout
         run: |
           set -eux
-          command -v lynxpm
-          command -v lynxd
-          lynxpm --version
-          lynxpm --help >/dev/null
-          [ -f /usr/lib/systemd/system/lynxd.service ] || [ -f /lib/systemd/system/lynxd.service ]
-          getent passwd lynx
-          getent group lynxadm
-          [ -d /var/lib/lynx-pm ]
-          [ -d /var/log/lynx-pm ]
+          command -v unitpm
+          command -v unitpmd
+          unitpm --version
+          unitpm --help >/dev/null
+          [ -f /usr/lib/systemd/system/unitpmd.service ] || [ -f /lib/systemd/system/unitpmd.service ]
+          getent passwd unitpm
+          getent group unitpm
+          [ -d /var/lib/glyndor-unitpm ]
+          [ -d /var/log/glyndor-unitpm ]
 
       - name: Smoke — testdata/smoke.sh against installed .deb
         # Delegates to the repo's smoke script so the scenarios stay in
@@ -196,26 +196,26 @@ jobs:
           export HOME=/home/testuser
           cd "$GITHUB_WORKSPACE"
 
-          lynxd >/tmp/lynxd.log 2>&1 &
+          unitpmd >/tmp/unitpmd.log 2>&1 &
           DAEMON_PID=\$!
           trap 'kill "\$DAEMON_PID" 2>/dev/null || true' EXIT
 
           bash testdata/smoke.sh
           SMOKE
 
-      - name: Dump lynxd log on failure
+      - name: Dump unitpmd log on failure
         if: failure()
-        run: cat /tmp/lynxd.log 2>/dev/null || true
+        run: cat /tmp/unitpmd.log 2>/dev/null || true
 
       - name: Purge — leaves no files behind (sanity)
         run: |
           set -eux
-          apt-get purge -y lynxpm
+          apt-get purge -y unitpm
           # Binary and unit file must be gone after purge.
-          ! command -v lynxpm
-          ! command -v lynxd
-          [ ! -f /usr/lib/systemd/system/lynxd.service ]
-          [ ! -f /lib/systemd/system/lynxd.service ]
+          ! command -v unitpm
+          ! command -v unitpmd
+          [ ! -f /usr/lib/systemd/system/unitpmd.service ]
+          [ ! -f /lib/systemd/system/unitpmd.service ]
 
   piuparts:
     name: Piuparts (install/upgrade/purge)
@@ -230,7 +230,7 @@ jobs:
     steps:
       - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
-          name: lynxpm-deb
+          name: unitpm-deb
           path: debs
 
       - name: Install piuparts
@@ -260,7 +260,7 @@ jobs:
 
       - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
-          name: lynxpm-deb
+          name: unitpm-deb
           path: debs
 
       - name: Install autopkgtest

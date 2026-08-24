@@ -209,8 +209,7 @@ pub fn spec() -> CommandSpec {
 		name: "export".to_string(),
 		aliases: Vec::new(),
 		usage: "unitpm export --namespace <name>".to_string(),
-		description: "Export current applications in a namespace to unitpm.yml format"
-			.to_string(),
+		description: "Export current applications in a namespace to unitpm.yml format".to_string(),
 		options: vec![crate::cli::help::Option {
 			short: "-h".to_string(),
 			long: "--help".to_string(),

@@ -34,4 +34,4 @@ lint:
 # Clean build artifacts
 clean:
 	rm -f coverage.out
-	rm -f lynxpm lynxd
+	rm -f unitpm unitpmd

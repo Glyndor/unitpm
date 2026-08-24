@@ -1,17 +1,17 @@
-Source: lynxpm
+Source: unitpm
 Section: admin
 Priority: optional
 Maintainer: Jaro-c <jaro-c@users.noreply.github.com>
 Build-Depends: debhelper-compat (= 13), golang-go
 Standards-Version: 4.6.2
-Homepage: https://github.com/Jaro-c/Lynx
+Homepage: https://github.com/Jaro-c/unitpm
 Rules-Requires-Root: no
 
-Package: lynxpm
+Package: unitpm
 Architecture: any
 Depends: ${shlibs:Depends}, ${misc:Depends}, systemd, adduser
 Description: Secure, systemd-native process manager for Linux
- Lynx is a blazingly fast, modern, and secure process manager for Linux.
+ unitpm is a blazingly fast, modern, and secure process manager for Linux.
  It uses systemd as the supervisor engine and provides a CLI plus a
  user/system daemon for starting, stopping, scaling, and isolating
  applications (with optional DynamicUser or landlock sandboxing).

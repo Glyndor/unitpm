@@ -1,4 +1,4 @@
-/var/log/lynx-pm/*/*.log {
+/var/log/glyndor/unitpm/*/*.log {
     weekly
     size 50M
     rotate 12

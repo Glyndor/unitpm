@@ -4,23 +4,23 @@ export VERSION := $(shell dpkg-parsechangelog -S Version | cut -d- -f1)
 export COMMIT := $(shell git rev-parse --short HEAD 2>/dev/null || echo unknown)
 export LC_ALL := C
 export BUILD_DATE := $(shell date -u +'%Y-%m-%dT%H:%M:%SZ')
-export LDFLAGS := -s -w -X 'github.com/Jaro-c/Lynx/internal/version.Version=v$(VERSION)' -X 'github.com/Jaro-c/Lynx/internal/version.Commit=$(COMMIT)' -X 'github.com/Jaro-c/Lynx/internal/version.BuildDate=$(BUILD_DATE)'
+export LDFLAGS := -s -w -X 'github.com/Jaro-c/unitpm/internal/version.Version=v$(VERSION)' -X 'github.com/Jaro-c/unitpm/internal/version.Commit=$(COMMIT)' -X 'github.com/Jaro-c/unitpm/internal/version.BuildDate=$(BUILD_DATE)'
 
 %:
 	dh $@
 
 override_dh_auto_build:
-	go build -v -trimpath -buildvcs=false -ldflags="$(LDFLAGS)" -o lynxpm ./cmd/lynxpm
-	go build -v -trimpath -buildvcs=false -ldflags="$(LDFLAGS)" -o lynxd ./cmd/lynxd
+	go build -v -trimpath -buildvcs=false -ldflags="$(LDFLAGS)" -o unitpm ./cmd/unitpm
+	go build -v -trimpath -buildvcs=false -ldflags="$(LDFLAGS)" -o unitpmd ./cmd/unitpmd
 
 override_dh_auto_test:
 	go test -v ./...
 
-# Install debian/lynxpm.lynxd.service as /lib/systemd/system/lynxd.service.
-# Without --name=lynxd, dh_installsystemd would look for debian/lynxpm.service
+# Install debian/unitpm.unitpmd.service as /lib/systemd/system/unitpmd.service.
+# Without --name=unitpmd, dh_installsystemd would look for debian/unitpm.service
 # (package-named) and skip the unit file entirely.
 override_dh_installsystemd:
-	dh_installsystemd --name=lynxd
+	dh_installsystemd --name=unitpmd
 
 override_dh_dwz:
 	# Skip dwz compression
