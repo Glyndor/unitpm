@@ -36,3 +36,97 @@ jobs:
 
   shell-ci:
     uses: Glyndor/.github/.github/workflows/shell-ci.yml@d4bbc5b6ec0c351ca4cb17d948ceaad818da4078 # v1.18.1
+
+  # The four jobs below exist to satisfy the protect-main ruleset, which still
+  # requires the status names the Go CI emitted: Lint, Test, Build (amd64) and
+  # Build (arm64). Reusable workflows publish their checks as "<caller job> /
+  # <reusable job>", so `rust / Test` can never satisfy a rule asking for
+  # `Test`. They live here rather than in debian-tests.yml because that
+  # workflow is path-filtered: a required check that does not run on every pull
+  # request blocks the merge for ever on any PR that misses its paths.
+  #
+  # Lint and Test reflect the rust job. The two builds compile for real -- a
+  # check that reports success without doing the work is worse than no check,
+  # and nothing in CI verified the arm64 target before this, even though the
+  # release publishes an arm64 binary.
+
+  Lint:
+    needs: [rust]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Reflect the rust result
+        env:
+          RESULT: ${{ needs.rust.result }}
+        run: |
+          set -euo pipefail
+          echo "rust = $RESULT"
+          [ "$RESULT" = "success" ] || exit 1
+
+  Test:
+    needs: [rust]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Reflect the rust result
+        env:
+          RESULT: ${{ needs.rust.result }}
+        run: |
+          set -euo pipefail
+          echo "rust = $RESULT"
+          [ "$RESULT" = "success" ] || exit 1
+
+  Build:
+    name: Build (${{ matrix.arch }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: amd64
+            target: x86_64-unknown-linux-musl
+          - arch: arm64
+            target: aarch64-unknown-linux-musl
+    steps:
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+
+      - name: Install the toolchain and target
+        env:
+          TARGET: ${{ matrix.target }}
+        run: |
+          set -euo pipefail
+          # Same version debian/rules and rust-ci.yml build with, so the binary
+          # this job proves compiles is the one the package ships.
+          rustup toolchain install 1.98 --profile minimal --no-self-update
+          rustup target add --toolchain 1.98 "$TARGET"
+
+      - name: Install the musl cross linker
+        env:
+          TARGET: ${{ matrix.target }}
+        run: |
+          set -euo pipefail
+          # `ring` compiles C and assembly, so a musl target needs a real cross
+          # compiler; the Rust std alone is not enough. zig ships one for every
+          # musl arch in a single pinned download, which beats fetching an
+          # unpinned toolchain from musl.cc.
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends musl-tools
+          if [ "$TARGET" = "aarch64-unknown-linux-musl" ]; then
+            cargo install cargo-zigbuild --locked --version 0.20.1
+            pip install --user ziglang==0.13.0
+          fi
+
+      - name: Build
+        env:
+          TARGET: ${{ matrix.target }}
+        run: |
+          set -euo pipefail
+          if [ "$TARGET" = "aarch64-unknown-linux-musl" ]; then
+            cargo +1.98 zigbuild --release --locked --all-features --target "$TARGET"
+          else
+            cargo +1.98 build --release --locked --all-features --target "$TARGET"
+          fi
+          # A build that produced no binary is not a build.
+          test -x "target/$TARGET/release/unitpm"
+          test -x "target/$TARGET/release/unitpmd"
+          file "target/$TARGET/release/unitpm"
