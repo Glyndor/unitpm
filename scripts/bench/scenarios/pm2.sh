@@ -5,6 +5,9 @@
 
 set -euo pipefail
 HERE=$(cd "$(dirname "$0")" && pwd)
+# shellcheck source=scripts/bench/lib.sh
+# shellcheck disable=SC1091  # the reusable does not run shellcheck -x, so it
+# cannot follow the path even with the directive above.
 source "${HERE}/../lib.sh"
 
 WORK=$(mktemp -d)

@@ -12,10 +12,14 @@
 //! see [`parser::SpecParser::new`] for what each one is, and check
 //! against the Go parser when in doubt.
 
+mod dryrun;
 mod exec;
+mod finalize;
 mod lexer;
 mod memory;
 mod parser;
+mod spec_cmd;
+mod time;
 
 #[cfg(test)]
 mod tests;
@@ -26,8 +30,6 @@ use std::io::{self, Write};
 use serde::Serialize;
 
 use crate::cli::commands::list;
-use crate::cli::help::{CommandSpec, Option as HelpOption};
-use crate::cli::table::{self, KvRow};
 use crate::ipc::protocol::{Request, StartRequest, StartResponseData};
 use crate::ipc::transport::{Client, IPCClient};
 use crate::spec;
@@ -36,6 +38,10 @@ use crate::types::DEFAULT_NAMESPACE;
 
 pub use memory::parse_memory_size;
 pub use parser::{parse_app_spec, SpecParser};
+pub use spec_cmd::spec;
+
+use self::dryrun::print_dry_run;
+use self::time::now_rfc3339;
 
 /// One spawned instance, surfaced in both the `--json` batch report
 /// and the post-action list highlight set.
@@ -275,124 +281,6 @@ fn finalize_start_inline<O: Write, C: StartOps + list::IpcOps>(
 	}
 }
 
-fn now_rfc3339() -> String {
-	// The Go code uses time.Now().Format(time.RFC3339). We construct
-	// the wire format inline rather than drag chrono through the
-	// dependency chain; the suite already has rfc3339 helpers that
-	// round-trip, but for our purposes we just need the moment.
-	use std::time::{SystemTime, UNIX_EPOCH};
-	let secs = SystemTime::now()
-		.duration_since(UNIX_EPOCH)
-		.map(|d| d.as_secs() as i64)
-		.unwrap_or(0);
-	let (year, month, day, hour, min, sec) = unix_to_ymdhms(secs);
-	format!(
-		"{:04}-{:02}-{:02}T{:02}:{:02}:{:02}Z",
-		year, month, day, hour, min, sec
-	)
-}
-
-/// Convert Unix seconds to (year, month, day, hour, min, sec) in UTC.
-/// Tiny implementation to keep the start command free of chrono
-/// dependencies. Seconds since epoch, Gregorian calendar, UTC.
-fn unix_to_ymdhms(secs: i64) -> (i32, u32, u32, u32, u32, u32) {
-	let days = secs.div_euclid(86_400);
-	let mut secs_of_day = secs.rem_euclid(86_400) as u32;
-	let hour = secs_of_day / 3600;
-	secs_of_day %= 3600;
-	let minute = secs_of_day / 60;
-	let second = secs_of_day % 60;
-
-	// Days since 1970-01-01 → year/month/day. Algorithm from Howard
-	// Hinnant's `civil_from_days`.
-	let z = days + 719_468;
-	let era = if z >= 0 { z } else { z - 146_096 } / 146_097;
-	let doe = (z - era * 146_097) as u64;
-	let yoe = (doe - doe / 1460 + doe / 36_524 - doe / 146_096) / 365;
-	let y = yoe as i64 + era * 400;
-	let doy = doe - (365 * yoe + yoe / 4 - yoe / 100);
-	let mp = (5 * doy + 2) / 153;
-	let d = doy - (153 * mp + 2) / 5 + 1;
-	let m = if mp < 10 { mp + 3 } else { mp - 9 };
-	let year = (if m <= 2 { y + 1 } else { y }) as i32;
-
-	(year, m as u32, d as u32, hour, minute, second)
-}
-
-fn print_dry_run(
-	out: &mut impl Write,
-	spec: &crate::ipc::protocol::AppSpec,
-	scale: i32,
-	json_out: bool,
-) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-	if json_out {
-		let shape = serde_json::json!({ "spec": spec, "scale": scale });
-		let bytes = serde_json::to_vec(&shape)
-			.map_err(|e| -> Box<dyn std::error::Error + Send + Sync> { Box::new(e) })?;
-		out.write_all(&bytes)?;
-		writeln!(out)?;
-		return Ok(());
-	}
-
-	let _ = writeln!(
-		out,
-		"{} Dry run — would start {} instance(s)\n",
-		term::cyan(format_args!("{}", "i")),
-		scale
-	);
-
-	let mut rows: Vec<KvRow> = Vec::new();
-	rows.push([
-		"command".to_string(),
-		spec.exec.command.clone().unwrap_or_default(),
-	]);
-	if let Some(args) = &spec.exec.args {
-		if !args.is_empty() {
-			rows.push(["args".to_string(), args.join(" ")]);
-		}
-	}
-	if !spec.exec.entry.as_deref().unwrap_or("").is_empty() {
-		let entry = spec.exec.entry.clone().unwrap_or_default();
-		let runtime = spec.exec.runtime.clone().unwrap_or_default();
-		rows.push(["entry".to_string(), format!("{entry} ({runtime})")]);
-	}
-	rows.push(["cwd".to_string(), spec.cwd.clone().unwrap_or_default()]);
-	rows.push([
-		"namespace".to_string(),
-		spec.namespace.clone().unwrap_or_default(),
-	]);
-	rows.push(["name".to_string(), spec.name.clone()]);
-	if let Some(run_as) = &spec.run_as {
-		if run_as.mode != "self" {
-			rows.push(["isolation".to_string(), run_as.mode.clone()]);
-		}
-	}
-	if let Some(cron) = &spec.cron {
-		rows.push(["schedule".to_string(), cron.clone()]);
-	}
-	if let Some(restart) = &spec.restart {
-		rows.push([
-			"restart".to_string(),
-			format!(
-				"policy={} max={} backoff={}",
-				restart.policy,
-				restart.max_retries.unwrap_or(0),
-				restart.backoff_type.clone().unwrap_or_default()
-			),
-		]);
-	}
-	if let Some(env_file) = &spec.env_file {
-		rows.push(["env-file".to_string(), env_file.clone()]);
-	}
-
-	let stdout = io::stdout();
-	let mut lock = stdout.lock();
-	let _ = table::kv(&mut lock, "Spec", &rows);
-	// Note: the Go code prints to stdout directly; tests catch it via
-	// `captureStdout`. Out-of-scope for unit tests.
-	Ok(())
-}
-
 fn print_success_response(out: &mut impl Write, name: &str, proc_id: &str, pid: i32, status: &str) {
 	let _ = writeln!(
 		out,
@@ -417,185 +305,9 @@ fn args_contain_help(args: &[String]) -> bool {
 
 // --- spec / help -----------------------------------------------------------
 
-/// Command spec for the registry.
-pub fn spec() -> CommandSpec {
-	CommandSpec {
-		name: "start".into(),
-		aliases: Vec::new(),
-		usage: "unitpm start <command|file> [flags]".into(),
-		description: "Start a new process.".into(),
-		options: vec![
-			HelpOption {
-				short: String::new(),
-				long: "--name <name>".into(),
-				description: "Assign a name to the process".into(),
-			},
-			HelpOption {
-				short: String::new(),
-				long: "--namespace <name>".into(),
-				description: "Assign a namespace to the process".into(),
-			},
-			HelpOption {
-				short: String::new(),
-				long: "--cwd <dir>".into(),
-				description: "Working directory".into(),
-			},
-			HelpOption {
-				short: String::new(),
-				long: "--shell".into(),
-				description: "Execute command in shell".into(),
-			},
-			HelpOption {
-				short: String::new(),
-				long: "--schedule <cron>".into(),
-				description: "Cron schedule for restart (alias --cron)".into(),
-			},
-			HelpOption {
-				short: String::new(),
-				long: "--restart <policy>".into(),
-				description: "Restart policy (never, on-failure, always)".into(),
-			},
-			HelpOption {
-				short: String::new(),
-				long: "--max-restarts <N>".into(),
-				description: "Max restarts (default 10)".into(),
-			},
-			HelpOption {
-				short: String::new(),
-				long: "--restart-delay <ms>".into(),
-				description: "Restart delay in ms (default 2000)".into(),
-			},
-			HelpOption {
-				short: String::new(),
-				long: "--backoff <type>".into(),
-				description: "Backoff strategy (none, linear, expo)".into(),
-			},
-			HelpOption {
-				short: String::new(),
-				long: "--stop-on-exit <codes>".into(),
-				description: "Exit codes to stop on (comma-separated)".into(),
-			},
-			HelpOption {
-				short: String::new(),
-				long: "--log-dir <path>".into(),
-				description: "Directory for logs".into(),
-			},
-			HelpOption {
-				short: String::new(),
-				long: "--stdout <file>".into(),
-				description: "Stdout file (relative to log-dir)".into(),
-			},
-			HelpOption {
-				short: String::new(),
-				long: "--stderr <file>".into(),
-				description: "Stderr file (relative to log-dir)".into(),
-			},
-			HelpOption {
-				short: String::new(),
-				long: "--log-format <fmt>".into(),
-				description: "Log format (plain, json)".into(),
-			},
-			HelpOption {
-				short: String::new(),
-				long: "--log-timestamp <fmt>".into(),
-				description: "Log timestamp (rfc3339, unix, none)".into(),
-			},
-			HelpOption {
-				short: String::new(),
-				long: "--runtime <rt>".into(),
-				description: "Runtime for entry file (e.g., node, python)".into(),
-			},
-			HelpOption {
-				short: String::new(),
-				long: "--env-file <file>".into(),
-				description: "Path to environment file".into(),
-			},
-			HelpOption {
-				short: String::new(),
-				long: "--isolation <mode>".into(),
-				description: "Isolation mode (self, dynamic, sandbox)".into(),
-			},
-			HelpOption {
-				short: String::new(),
-				long: "--scale <N>".into(),
-				description: "Number of instances to start".into(),
-			},
-			HelpOption {
-				short: String::new(),
-				long: "--stop-signal <name>".into(),
-				description:
-					"Signal sent on stop (SIGTERM, SIGINT, SIGHUP, SIGQUIT, SIGUSR1, SIGUSR2)"
-						.into(),
-			},
-			HelpOption {
-				short: String::new(),
-				long: "--stop-timeout <ms>".into(),
-				description: "Grace period before SIGKILL (default 10000, range 1000-300000)"
-					.into(),
-			},
-			HelpOption {
-				short: String::new(),
-				long: "--memory-max <size>".into(),
-				description: "Hard memory ceiling: 512M, 2G, or bytes".into(),
-			},
-			HelpOption {
-				short: String::new(),
-				long: "--cpu-max <percent>".into(),
-				description: "CPU cap as percent of one core (100 = 1 core, 200 = 2 cores)".into(),
-			},
-			HelpOption {
-				short: String::new(),
-				long: "--tasks-max <N>".into(),
-				description: "Maximum number of tasks (threads + subprocesses)".into(),
-			},
-			HelpOption {
-				short: String::new(),
-				long: "--watch".into(),
-				description: "Restart on file changes in cwd".into(),
-			},
-			HelpOption {
-				short: String::new(),
-				long: "--watch-ignore <globs>".into(),
-				description: "Extra ignore patterns (comma-separated)".into(),
-			},
-			HelpOption {
-				short: "-n".into(),
-				long: "--dry-run".into(),
-				description: "Print the resolved spec without starting anything".into(),
-			},
-			HelpOption {
-				short: String::new(),
-				long: "--json".into(),
-				description: "Emit the start result as JSON on stdout".into(),
-			},
-			HelpOption {
-				short: "-q".into(),
-				long: "--quiet".into(),
-				description: "Suppress success messages (errors still printed)".into(),
-			},
-			HelpOption {
-				short: String::new(),
-				long: "--no-list".into(),
-				description: "Skip the process list printed after the action".into(),
-			},
-		],
-		examples: vec![
-			"unitpm start \"node server.js\" --name api".into(),
-			"unitpm start app.py --runtime python3 --restart on-failure".into(),
-			"unitpm start \"uv run main.py\" --name worker --cwd /srv/app".into(),
-			"unitpm start \"bun run dev\" --name web --env-file .env".into(),
-			"unitpm start ./target/release/api --name api --restart always".into(),
-			"unitpm start worker.js --name w --scale 3".into(),
-			"unitpm start server.js --isolation sandbox --cwd /srv/app".into(),
-			"# Runtime recipes:  docs/RUNTIMES.md".into(),
-		],
-		hidden: false,
-	}
-}
-
 /// Render the command-specific help to `out`.
 pub fn print_help_to<W: Write>(w: &mut W) -> io::Result<()> {
-	let spec = spec();
+	let spec = spec_cmd::spec();
 	crate::cli::help::render_command_help(w, &spec)
 }
 

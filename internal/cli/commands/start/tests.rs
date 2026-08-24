@@ -2,7 +2,7 @@
 //! `internal/cli/commands/start/{cmd_test,parser_test}.go`.
 
 use std::sync::atomic::{AtomicU32, Ordering};
-use std::sync::{Arc, Mutex, MutexGuard};
+use std::sync::{Arc, Mutex};
 
 use crate::cli::commands::list::IpcOps as ListIpcOps;
 use crate::cli::commands::start::{parse_app_spec, run, StartOps, StartedInstance};
@@ -13,11 +13,9 @@ use crate::ipc::protocol::{
 /// Process-global `XDG_CONFIG_HOME` is consulted by `spec.save_spec_protocol`
 /// to find its target directory. `cargo test` parallelises by default and
 /// a Go-style test using `t.Setenv` would race with that. Use the same
-/// pattern as `spec::tests`: a mutex on entry, restore in `Drop`.
-static SPEC_LOCK: Mutex<()> = Mutex::new(());
-
+/// pattern as `spec::tests`: take the shared lock on entry, restore in `Drop`.
 struct SpecEnvGuard {
-	_lock: MutexGuard<'static, ()>,
+	_lock: crate::test_env::Guard,
 	prev: Option<String>,
 }
 
@@ -33,7 +31,7 @@ impl Drop for SpecEnvGuard {
 fn lock_spec_env() -> SpecEnvGuard {
 	let prev = std::env::var("XDG_CONFIG_HOME").ok();
 	SpecEnvGuard {
-		_lock: SPEC_LOCK.lock().unwrap_or_else(|e| e.into_inner()),
+		_lock: crate::test_env::lock(),
 		prev,
 	}
 }

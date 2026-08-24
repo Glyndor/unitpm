@@ -5,15 +5,8 @@
 //! "command parts" and producing a [`protocol::AppSpec`] ready for the
 //! daemon's `start` IPC call.
 
-use std::path::Path;
-
 use crate::cli::errs::UsageError;
-use crate::ipc::protocol::{
-	AppExec, AppLogs, AppResources, AppRestart, AppSpec, AppStop, AppWatch, RunAsPolicy,
-};
-use crate::types::DEFAULT_NAMESPACE;
-
-use super::memory::parse_memory_size;
+use crate::ipc::protocol::AppSpec;
 
 /// Parse argv into an [`AppSpec`] and the `--scale` value. Stripped of
 /// the top-level flags handled by the dispatcher (`--dry-run`,
@@ -27,42 +20,42 @@ pub fn parse_app_spec(args: &[String]) -> Result<(AppSpec, i32), UsageError> {
 /// parsing pass; the actual spec construction lives in the
 /// [`SpecParser::finalize`] helper.
 pub struct SpecParser {
-	args: Vec<String>,
-	pos: usize,
+	pub(super) args: Vec<String>,
+	pub(super) pos: usize,
 
-	name: String,
-	namespace: String,
-	cwd: String,
-	stdio: String,
-	run_as: String,
-	cmd_parts: Vec<String>,
-	cron: String,
-	runtime: String,
-	env_file: String,
-	shell: bool,
-	restart_policy: String,
-	max_restarts: i32,
-	restart_delay: i32,
-	backoff: String,
-	stop_on_exit: Vec<i32>,
-	log_dir: String,
-	stdout_path: String,
-	stderr_path: String,
-	log_format: String,
-	log_timestamp: String,
+	pub(super) name: String,
+	pub(super) namespace: String,
+	pub(super) cwd: String,
+	pub(super) stdio: String,
+	pub(super) run_as: String,
+	pub(super) cmd_parts: Vec<String>,
+	pub(super) cron: String,
+	pub(super) runtime: String,
+	pub(super) env_file: String,
+	pub(super) shell: bool,
+	pub(super) restart_policy: String,
+	pub(super) max_restarts: i32,
+	pub(super) restart_delay: i32,
+	pub(super) backoff: String,
+	pub(super) stop_on_exit: Vec<i32>,
+	pub(super) log_dir: String,
+	pub(super) stdout_path: String,
+	pub(super) stderr_path: String,
+	pub(super) log_format: String,
+	pub(super) log_timestamp: String,
 
-	stop_signal: String,
-	stop_timeout_ms: i32,
+	pub(super) stop_signal: String,
+	pub(super) stop_timeout_ms: i32,
 
-	memory_max: String,
-	cpu_max_pct: i32,
-	tasks_max: i32,
+	pub(super) memory_max: String,
+	pub(super) cpu_max_pct: i32,
+	pub(super) tasks_max: i32,
 
-	watch: bool,
-	watch_ignore: String,
+	pub(super) watch: bool,
+	pub(super) watch_ignore: String,
 
-	parsing_flags: bool,
-	scale: i32,
+	pub(super) parsing_flags: bool,
+	pub(super) scale: i32,
 }
 
 impl SpecParser {
@@ -356,175 +349,6 @@ impl SpecParser {
 		}
 		*target = out;
 		Ok(())
-	}
-
-	/// Build the actual [`AppSpec`] from the parsed fields. Pulled out
-	/// so tests can drive it directly.
-	pub fn finalize_spec(&self) -> Result<AppSpec, UsageError> {
-		if self.cmd_parts.is_empty() {
-			return Err(UsageError::new("missing command or entry file"));
-		}
-
-		let cwd = if self.cwd.is_empty() {
-			std::env::current_dir()
-				.map_err(|e| UsageError::new(format!("failed to get current directory: {e}")))?
-		} else {
-			std::path::PathBuf::from(&self.cwd)
-		};
-		let cwd = std::path::absolute(&cwd).map_err(|e| {
-			UsageError::new(format!("failed to resolve absolute path for cwd: {e}"))
-		})?;
-		let cwd_str = cwd.to_string_lossy().to_string();
-
-		let ns = if self.namespace.is_empty() {
-			DEFAULT_NAMESPACE.to_string()
-		} else {
-			self.namespace.clone()
-		};
-
-		let mut spec = AppSpec {
-			version: 1,
-			id: String::new(),
-			name: self.name.clone(),
-			namespace: Some(ns),
-			cwd: Some(cwd_str),
-			cron: if self.cron.is_empty() {
-				None
-			} else {
-				Some(self.cron.clone())
-			},
-			logs: Some(Box::new(AppLogs {
-				mode: self.stdio.clone(),
-				dir: if self.log_dir.is_empty() {
-					None
-				} else {
-					Some(self.log_dir.clone())
-				},
-				stdout: if self.stdout_path.is_empty() {
-					None
-				} else {
-					Some(self.stdout_path.clone())
-				},
-				stderr: if self.stderr_path.is_empty() {
-					None
-				} else {
-					Some(self.stderr_path.clone())
-				},
-				format: if self.log_format.is_empty() {
-					None
-				} else {
-					Some(self.log_format.clone())
-				},
-				timestamp: if self.log_timestamp.is_empty() {
-					None
-				} else {
-					Some(self.log_timestamp.clone())
-				},
-			})),
-			restart: Some(Box::new(AppRestart {
-				policy: self.restart_policy.clone(),
-				max_retries: Some(self.max_restarts),
-				backoff_ms: Some(self.restart_delay),
-				backoff_type: Some(self.backoff.clone()),
-				stop_on_exit: Some(self.stop_on_exit.clone()),
-			})),
-			run_as: Some(Box::new(RunAsPolicy {
-				mode: self.run_as.clone(),
-			})),
-			env: Some(std::collections::BTreeMap::new()),
-			env_file: if self.env_file.is_empty() {
-				None
-			} else {
-				Some(self.env_file.clone())
-			},
-			stop: None,
-			resources: None,
-			watch: None,
-			created_at: None,
-			disabled: false,
-			exec: AppExec {
-				kind: String::new(),
-				command: None,
-				args: None,
-				entry: None,
-				runtime: None,
-				shell: self.shell,
-			},
-		};
-
-		if !self.stop_signal.is_empty() || self.stop_timeout_ms != 0 {
-			spec.stop = Some(Box::new(AppStop {
-				signal: if self.stop_signal.is_empty() {
-					None
-				} else {
-					Some(self.stop_signal.clone())
-				},
-				timeout_ms: if self.stop_timeout_ms == 0 {
-					None
-				} else {
-					Some(self.stop_timeout_ms)
-				},
-			}));
-		}
-
-		if self.watch {
-			let mut ignore: Vec<String> = Vec::new();
-			if !self.watch_ignore.is_empty() {
-				for pat in self.watch_ignore.split(',') {
-					let trimmed = pat.trim();
-					if trimmed.is_empty() {
-						continue;
-					}
-					if trimmed.contains("..") || Path::new(trimmed).is_absolute() {
-						return Err(UsageError::new(format!(
-							"invalid ignore pattern {trimmed:?}: must be relative, no '..'"
-						)));
-					}
-					ignore.push(trimmed.to_string());
-				}
-				if ignore.len() > 100 {
-					return Err(UsageError::new("too many ignore patterns (max 100)"));
-				}
-			}
-			spec.watch = Some(Box::new(AppWatch {
-				enabled: true,
-				ignore: if ignore.is_empty() {
-					None
-				} else {
-					Some(ignore)
-				},
-			}));
-		}
-
-		if !self.memory_max.is_empty() || self.cpu_max_pct != 0 || self.tasks_max != 0 {
-			let mem_bytes = parse_memory_size(&self.memory_max).map_err(UsageError::new)?;
-			spec.resources = Some(Box::new(AppResources {
-				memory_max_bytes: if mem_bytes == 0 {
-					None
-				} else {
-					Some(mem_bytes)
-				},
-				cpu_max_percent: if self.cpu_max_pct == 0 {
-					None
-				} else {
-					Some(self.cpu_max_pct)
-				},
-				tasks_max: if self.tasks_max == 0 {
-					None
-				} else {
-					Some(self.tasks_max)
-				},
-			}));
-		}
-
-		crate::cli::commands::start::exec::resolve_exec(
-			&self.cmd_parts,
-			&self.runtime,
-			self.shell,
-			&mut spec.exec,
-		);
-
-		Ok(spec)
 	}
 }
 

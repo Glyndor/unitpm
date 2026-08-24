@@ -1,6 +1,6 @@
 // Package main is a compiled Go worker that honours ctx-based graceful
 // shutdown. Stdlib-only so it builds on any Go toolchain without
-// go.mod gymnastics. Used by the Debian smoke to prove that `lynxpm`
+// go.mod gymnastics. Used by the Debian smoke to prove that `unitpm`
 // supervises statically-linked binaries identically to interpreted
 // apps (shell/node/python).
 package main

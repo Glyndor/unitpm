@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://jaro-c.github.io/Lynx/sitemap-index.xml
+Sitemap: https://jaro-c.github.io/unitpm/sitemap-index.xml

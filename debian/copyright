@@ -1,6 +1,6 @@
 Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
-Upstream-Name: lynxpm
-Source: https://github.com/Jaro-c/Lynx
+Upstream-Name: unitpm
+Source: https://github.com/Jaro-c/unitpm
 
 Files: *
 Copyright: 2026 Glyndor

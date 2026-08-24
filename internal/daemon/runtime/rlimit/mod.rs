@@ -10,7 +10,7 @@
 //! shape, the order of `setrlimit` calls, and the error wrapping are kept
 //! identical so that the test fixtures port one-to-one.
 
-use libc::{self, c_uint};
+use libc;
 use serde::Serialize;
 
 /// Caps applied by the sandbox. A field of zero means "leave the cap alone".
@@ -59,7 +59,17 @@ pub fn apply(limits: &Limits) -> Result<(), RlimitError> {
 	Ok(())
 }
 
-fn set_one(which: c_uint, value: u64) -> std::io::Result<()> {
+/// glibc types the `RLIMIT_*` constants and `setrlimit`'s first argument as
+/// `__rlimit_resource_t`, an unsigned int; musl types both as `c_int`. The
+/// package is built for musl so the binary carries no libc floor, which means
+/// this has to follow the target instead of assuming glibc. Hard-coding the
+/// glibc type meant the crate did not compile for the target it ships from.
+#[cfg(target_env = "musl")]
+type RlimitResource = libc::c_int;
+#[cfg(not(target_env = "musl"))]
+type RlimitResource = libc::__rlimit_resource_t;
+
+fn set_one(which: RlimitResource, value: u64) -> std::io::Result<()> {
 	// SAFETY: `rlim_t` is a pair of `u64` values on Linux. The struct
 	// mirrors the layout the kernel expects and is initialised before the
 	// pointer is handed to the syscall.

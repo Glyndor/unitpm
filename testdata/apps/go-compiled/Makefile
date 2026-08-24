@@ -1,5 +1,5 @@
 # CGO off so the binary is statically linked and works on any distro
-# that ships no matching glibc; matches the Lynx release binaries'
+# that ships no matching glibc; matches the unitpm release binaries'
 # build flags.
 .PHONY: build clean
 

@@ -1,10 +1,10 @@
 ---
 title: Security
-description: Lynx security model — DynamicUser + landlock isolation, systemd credentials for secrets, release signing, SLSA provenance, and vulnerability disclosure.
+description: unitpm security model — DynamicUser + landlock isolation, systemd credentials for secrets, release signing, SLSA provenance, and vulnerability disclosure.
 ---
 
 
-Lynx is designed around the principle that a **process manager should not add attack surface**. Every managed process runs with the minimum privilege required. Secrets never appear in environment variable lists. The daemon itself runs as an unprivileged system user.
+unitpm is designed around the principle that a **process manager should not add attack surface**. Every managed process runs with the minimum privilege required. Secrets never appear in environment variable lists. The daemon itself runs as an unprivileged system user.
 
 The security model rests on three Linux kernel primitives: **systemd DynamicUser** for per-process user isolation, **landlock LSM** for filesystem access restrictions, and **systemd credentials** for secret injection without exposing values to `ps` or `/proc/<pid>/environ`.
 
@@ -24,11 +24,11 @@ Please **do not** open a public GitHub issue for security reports.
 
 Send a private report via GitHub's Private Vulnerability Reporting:
 
-  https://github.com/Jaro-c/Lynx/security/advisories/new
+  https://github.com/Jaro-c/unitpm/security/advisories/new
 
 Include:
 
-- Affected version (`lynxpm version --json`)
+- Affected version (`unitpm version --json`)
 - Reproduction steps
 - Impact assessment
 - Any proposed mitigation
@@ -39,14 +39,14 @@ windows are typically 30–90 days depending on severity.
 ## Threat Model
 
 ### In scope
-- Daemon IPC surface (`lynx.sock`)
+- Daemon IPC surface (`unitpm.sock`)
 - Spec validation (process name, namespace, cwd, env, exec command)
 - Process spawn flow (`exec.Cmd`, systemd integration, `DynamicUser`)
 - Credential handling (`LoadCredential`, env file injection)
 - Log file permissions and rotation
 
 ### Out of scope
-- Compromise of the host kernel, systemd, or the `lynx` / user account itself
+- Compromise of the host kernel, systemd, or the `glyndor-unitpm` / user account itself
 - Physical access
 - Denial of service via legitimate resource exhaustion (e.g. user intentionally spawning 10k processes under their own uid)
 - Vulnerabilities in managed applications themselves
@@ -57,8 +57,8 @@ windows are typically 30–90 days depending on severity.
 
 | Mode          | Socket                                     | Perms  | Who can connect                |
 |---------------|--------------------------------------------|--------|--------------------------------|
-| System mode   | `/run/lynxd/lynx.sock`                     | `0660` | `root` + `lynxadm` group       |
-| User mode     | `$XDG_RUNTIME_DIR/lynx-<uid>/lynx.sock`    | `0600` | Only the owner                 |
+| System mode   | `/run/unitpmd/unitpm.sock`                     | `0660` | `root` + `unitpm` group       |
+| User mode     | `$XDG_RUNTIME_DIR/unitpm-<uid>/unitpm.sock`    | `0600` | Only the owner                 |
 
 Peer identity verified via `SO_PEERCRED` on every connection. UID/GID/PID
 of the caller are logged with every destructive action.
@@ -82,12 +82,12 @@ All specs are validated in the daemon *after* IPC, never trusting the CLI:
 - `ProtectSystem=strict`, `ProtectHome=read-only`, `PrivateTmp=yes`,
   `NoNewPrivileges=yes` applied to the transient unit.
 - Secrets injected via `LoadCredential=` — never appear in `/proc/<pid>/environ`.
-- Polkit rule restricts the `lynx` user to units whose names start with `lynx-`;
+- Polkit rule restricts the `glyndor-unitpm` user to units whose names start with `unitpm-app-`;
   it cannot stop or start `sshd`, `docker`, etc.
 
 **System mode with `--isolation self`** (default):
-- Process inherits the `lynx` system user's privileges.
-- No synthetic user; suitable for apps that must read files owned by `lynx`.
+- Process inherits the `glyndor-unitpm` system user's privileges.
+- No synthetic user; suitable for apps that must read files owned by `glyndor-unitpm`.
 
 **User mode**:
 - `--isolation dynamic` is **not available**: the user's systemd instance
@@ -107,31 +107,31 @@ All specs are validated in the daemon *after* IPC, never trusting the CLI:
 
 ### Daemon Hardening
 
-`lynxd.service` applies (see `debian/lynxpm.lynxd.service`):
+`unitpmd.service` applies (see `debian/unitpm.unitpmd.service`):
 
 - `NoNewPrivileges=yes`
 - `ProtectSystem=strict`
 - `ProtectHome=read-only`
 - `PrivateTmp=yes`
-- `ReadWritePaths=/var/lib/lynx-pm /var/log/lynx-pm /run/lynxd`
-- `User=lynx`, `Group=lynx` (no root)
+- `ReadWritePaths=/var/lib/unitpm /var/log/unitpm /run/unitpmd`
+- `User=glyndor-unitpm`, `Group=unitpm` (no root)
 - Restart on failure
 
 ### Build Integrity
 
 - Binaries are built with `-trimpath` to strip build-machine paths.
 - Version, commit, and build date are injected via `-ldflags` — verifiable
-  with `lynxpm version --json`.
+  with `unitpm version --json`.
 - Releases are built via `scripts/build_deb.sh` from a clean checkout.
 
 ## Mitigations Shipped
 
 1. **IPC rate limiting (v0.4.11).** Per-UID token-bucket (200 burst,
    100 req/s by default). Requests over limit receive `ERR_RATE_LIMIT`.
-   Configurable via `LYNX_IPC_RATE_BURST` / `LYNX_IPC_RATE_PER_SEC`.
+   Configurable via `UNITPM_IPC_RATE_BURST` / `UNITPM_IPC_RATE_PER_SEC`.
 2. **Audit log (v0.4.11).** Every destructive action (start/stop/delete/
    reload/restart/reset/flush/scale) writes a JSON-line to
-   `/var/log/lynx-pm/audit.log` (system mode, 0600). Includes caller
+   `/var/log/unitpm/audit.log` (system mode, 0600). Includes caller
    UID/GID/PID, target ID+name+namespace, success/error, UTC timestamp.
 
 ## Known Limitations
@@ -145,9 +145,9 @@ Contributions welcome.
    mounts and AppArmor policies on modern Ubuntu. `ps`, `top`, etc. still
    read the host `/proc` and see host processes. Filesystem access and UID
    isolation are unaffected (landlock + user namespace remain fully enforced).
-3. **No signature verification** of the `lynxd` binary on startup.
+3. **No signature verification** of the `unitpmd` binary on startup.
 
 ## Security Contacts
 
 - GitHub Private Vulnerability Reporting:
-  <https://github.com/Jaro-c/Lynx/security/advisories/new>
+  <https://github.com/Jaro-c/unitpm/security/advisories/new>

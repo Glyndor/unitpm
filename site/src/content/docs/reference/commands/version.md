@@ -1,11 +1,11 @@
 ---
-title: "lynxpm version"
-description: Show version numbers for the Lynx CLI (lynxpm), daemon (lynxd), and IPC protocol. Pass --json for machine-readable output suitable for scripts and CI.
+title: "unitpm version"
+description: Show version numbers for the unitpm CLI (unitpm), daemon (unitpmd), and IPC protocol. Pass --json for machine-readable output suitable for scripts and CI.
 head:
   - tag: script
     attrs:
       type: application/ld+json
-    content: '{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Lynx","item":"https://jaro-c.github.io/Lynx/"},{"@type":"ListItem","position":2,"name":"Reference","item":"https://jaro-c.github.io/Lynx/reference/architecture/"},{"@type":"ListItem","position":3,"name":"lynxpm version","item":"https://jaro-c.github.io/Lynx/reference/commands/version/"}]}'
+    content: '{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"unitpm","item":"https://jaro-c.github.io/unitpm/"},{"@type":"ListItem","position":2,"name":"Reference","item":"https://jaro-c.github.io/unitpm/reference/architecture/"},{"@type":"ListItem","position":3,"name":"unitpm version","item":"https://jaro-c.github.io/unitpm/reference/commands/version/"}]}'
 sidebar:
   label: version
 ---
@@ -13,12 +13,12 @@ sidebar:
 ## 📖 Synopsis
 
 ```bash
-lynxpm version [flags]
+unitpm version [flags]
 ```
 
 ## Description
 
-Show Lynx version information for the CLI, Daemon, and IPC Protocol.
+Show unitpm version information for the CLI, Daemon, and IPC Protocol.
 
 ## ⚙️ Flags
 
@@ -31,18 +31,18 @@ Show Lynx version information for the CLI, Daemon, and IPC Protocol.
 
 Show version:
 ```bash
-lynxpm version
+unitpm version
 ```
 
 ## 📋 Example Output
 
 ```
-Lynx CLI
+unitpm CLI
   Version : v0.1.0
   Commit  : a1b2c3d
   Built   : 2025-01-01T12:00:00Z
 
-Lynx Daemon
+unitpm Daemon
   Version : v0.1.0
   Commit  : a1b2c3d
   Built   : 2025-01-01T12:00:00Z

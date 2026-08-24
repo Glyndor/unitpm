@@ -17,12 +17,12 @@ Real-world recipes. Copy-paste and adapt.
 | ⏰ Cron / scheduled | [Cron / scheduled tasks](#-cron--scheduled-tasks) | 1 min |
 | 🔒 Production hardening | [Secure isolation (production)](#-secure-isolation-production) | 3 min |
 | 🚀 Full deploy walkthrough | [Full production deploy (step by step)](#-full-production-deploy-step-by-step) | 10 min |
-| 📜 Lynxfile (declarative) | [Lynxfile.yml — declarative multi-app deploy](#-lynxfileyml--declarative-multi-app-deploy) | 5 min |
+| 📜 unitpm.yml (declarative) | [unitpm.yml — declarative multi-app deploy](#-unitpmyml--declarative-multi-app-deploy) | 5 min |
 | 📊 Monitor & debug | [Monitoring and debugging](#-monitoring-and-debugging) | 1 min |
 | 💡 Daily-use tips | [Tips](#-tips) | - |
 
-> 💡 **Tip**: all examples work identically in user mode (`lynxd &`) and
-> system mode (`sudo systemctl start lynxd`). The only difference in prod:
+> 💡 **Tip**: all examples work identically in user mode (`unitpmd &`) and
+> system mode (`sudo systemctl start unitpmd`). The only difference in prod:
 > swap `--isolation self` for `--isolation dynamic`.
 
 ---
@@ -33,8 +33,8 @@ Real-world recipes. Copy-paste and adapt.
 
 ```bash
 # Inside your Next.js project directory
-lynxpm start "npm run dev" --name nextjs-dev --cwd /srv/myapp --shell
-lynxpm logs nextjs-dev --follow
+unitpm start "npm run dev" --name nextjs-dev --cwd /srv/myapp --shell
+unitpm logs nextjs-dev --follow
 ```
 
 **What you see:**
@@ -53,7 +53,7 @@ Started nextjs-dev
 cd /srv/myapp && npm run build
 
 # 2. Start the standalone server
-lynxpm start "node .next/standalone/server.js" \
+unitpm start "node .next/standalone/server.js" \
     --name nextjs-prod \
     --cwd /srv/myapp \
     --restart always \
@@ -61,7 +61,7 @@ lynxpm start "node .next/standalone/server.js" \
     --memory-max 512M
 
 # 3. Verify
-lynxpm show nextjs-prod
+unitpm show nextjs-prod
 ```
 
 ### Production + multiple instances (cluster-like)
@@ -70,8 +70,8 @@ Next.js standalone doesn't support Node cluster natively. Use `--scale`
 instead — each instance listens on a different port:
 
 ```bash
-# Start 3 instances; each reads LYNX_INSTANCE to pick a port
-lynxpm start "node .next/standalone/server.js" \
+# Start 3 instances; each reads UNITPM_INSTANCE to pick a port
+unitpm start "node .next/standalone/server.js" \
     --name nextjs \
     --cwd /srv/myapp \
     --scale 3 \
@@ -79,7 +79,7 @@ lynxpm start "node .next/standalone/server.js" \
     --env-file .env.production
 
 # In your server.js or next.config.js:
-#   const port = 3000 + Number(process.env.LYNX_INSTANCE || 0);
+#   const port = 3000 + Number(process.env.UNITPM_INSTANCE || 0);
 ```
 
 Then put Nginx or Caddy in front:
@@ -99,8 +99,8 @@ server {
 ### Scale up / down on the fly
 
 ```bash
-lynxpm scale nextjs 5    # add 2 more instances
-lynxpm scale nextjs 2    # drop back to 2
+unitpm scale nextjs 5    # add 2 more instances
+unitpm scale nextjs 2    # drop back to 2
 ```
 
 **Output:**
@@ -110,8 +110,8 @@ Scaled nextjs: 3 → 5
   + nextjs-5
 ```
 
-> ⚠️ **Warning**: Each instance must bind a unique port. Read `LYNX_INSTANCE`
-> (0-based) and compute `port = 3000 + LYNX_INSTANCE`.
+> ⚠️ **Warning**: Each instance must bind a unique port. Read `UNITPM_INSTANCE`
+> (0-based) and compute `port = 3000 + UNITPM_INSTANCE`.
 
 ---
 
@@ -119,10 +119,10 @@ Scaled nextjs: 3 → 5
 
 ```bash
 # Simple
-lynxpm start "node server.js" --name api --cwd /srv/api --restart always
+unitpm start "node server.js" --name api --cwd /srv/api --restart always
 
 # With env file
-lynxpm start "node server.js" \
+unitpm start "node server.js" \
     --name api \
     --cwd /srv/api \
     --env-file .env \
@@ -130,8 +130,8 @@ lynxpm start "node server.js" \
     --memory-max 256M
 
 # Cluster (4 workers)
-lynxpm start "node server.js" --name api --scale 4 --cwd /srv/api
-# Your app reads process.env.LYNX_INSTANCE to bind to port 3000+N
+unitpm start "node server.js" --name api --scale 4 --cwd /srv/api
+# Your app reads process.env.UNITPM_INSTANCE to bind to port 3000+N
 ```
 
 ### Graceful shutdown (Express)
@@ -139,7 +139,7 @@ lynxpm start "node server.js" --name api --scale 4 --cwd /srv/api
 Express needs SIGINT to close connections cleanly:
 
 ```bash
-lynxpm start "node server.js" \
+unitpm start "node server.js" \
     --name api \
     --stop-signal SIGINT \
     --stop-timeout 30000 \
@@ -160,10 +160,10 @@ process.on('SIGINT', () => {
 
 ```bash
 # Dev
-lynxpm start "bun run dev" --name bun-dev --cwd /srv/app
+unitpm start "bun run dev" --name bun-dev --cwd /srv/app
 
 # Production
-lynxpm start "bun run src/index.ts" \
+unitpm start "bun run src/index.ts" \
     --name bun-prod \
     --cwd /srv/app \
     --restart always \
@@ -178,13 +178,13 @@ lynxpm start "bun run src/index.ts" \
 
 ```bash
 # Development (with reload)
-lynxpm start "uvicorn main:app --reload --host 0.0.0.0 --port 8000" \
+unitpm start "uvicorn main:app --reload --host 0.0.0.0 --port 8000" \
     --name fastapi-dev \
     --cwd /srv/api \
     --shell
 
 # Production (with uv)
-lynxpm start "uv run uvicorn main:app --host 0.0.0.0 --port 8000 --workers 4" \
+unitpm start "uv run uvicorn main:app --host 0.0.0.0 --port 8000 --workers 4" \
     --name fastapi-prod \
     --cwd /srv/api \
     --restart always \
@@ -192,7 +192,7 @@ lynxpm start "uv run uvicorn main:app --host 0.0.0.0 --port 8000 --workers 4" \
     --env-file .env
 
 # Production with venv (direct path)
-lynxpm start "/srv/api/.venv/bin/uvicorn main:app --host 0.0.0.0 --port 8000" \
+unitpm start "/srv/api/.venv/bin/uvicorn main:app --host 0.0.0.0 --port 8000" \
     --name fastapi-prod \
     --cwd /srv/api \
     --restart always
@@ -204,7 +204,7 @@ lynxpm start "/srv/api/.venv/bin/uvicorn main:app --host 0.0.0.0 --port 8000" \
 
 ```bash
 # Via uv
-lynxpm start "uv run gunicorn myproject.wsgi:application --bind 0.0.0.0:8000 --workers 4" \
+unitpm start "uv run gunicorn myproject.wsgi:application --bind 0.0.0.0:8000 --workers 4" \
     --name django \
     --cwd /srv/django \
     --restart always \
@@ -213,7 +213,7 @@ lynxpm start "uv run gunicorn myproject.wsgi:application --bind 0.0.0.0:8000 --w
     --stop-timeout 30000
 
 # Via venv
-lynxpm start "/srv/django/.venv/bin/gunicorn myproject.wsgi:application -b 0.0.0.0:8000" \
+unitpm start "/srv/django/.venv/bin/gunicorn myproject.wsgi:application -b 0.0.0.0:8000" \
     --name django \
     --cwd /srv/django \
     --restart always
@@ -226,7 +226,7 @@ lynxpm start "/srv/django/.venv/bin/gunicorn myproject.wsgi:application -b 0.0.0
 ```bash
 # Compiled binary (recommended for production)
 cd /srv/api && go build -o bin/api ./cmd/api
-lynxpm start ./bin/api \
+unitpm start ./bin/api \
     --name go-api \
     --cwd /srv/api \
     --restart always \
@@ -235,7 +235,7 @@ lynxpm start ./bin/api \
     --stop-timeout 15000
 
 # Development (go run)
-lynxpm start "go run ./cmd/api" --name go-dev --cwd /srv/api
+unitpm start "go run ./cmd/api" --name go-dev --cwd /srv/api
 ```
 
 Go servers typically handle SIGINT for graceful shutdown:
@@ -253,7 +253,7 @@ srv.Shutdown(ctx)
 ```bash
 # Build and run
 cd /srv/api && cargo build --release
-lynxpm start ./target/release/api \
+unitpm start ./target/release/api \
     --name rust-api \
     --cwd /srv/api \
     --restart always \
@@ -266,13 +266,13 @@ lynxpm start ./target/release/api \
 
 ```bash
 # Caddy (auto-HTTPS)
-lynxpm start "caddy run --config /srv/site/Caddyfile" \
+unitpm start "caddy run --config /srv/site/Caddyfile" \
     --name caddy \
     --restart always \
     --stop-signal SIGINT
 
 # Python simple server (quick sharing)
-lynxpm start "python3 -m http.server 8080" \
+unitpm start "python3 -m http.server 8080" \
     --name static \
     --cwd /srv/site
 ```
@@ -283,13 +283,13 @@ lynxpm start "python3 -m http.server 8080" \
 
 ```bash
 # Run a backup script every 6 hours
-lynxpm start "/srv/scripts/backup.sh" \
+unitpm start "/srv/scripts/backup.sh" \
     --name backup \
     --schedule "0 */6 * * *" \
     --restart never
 
 # Run a health probe every 10 seconds (sidecar pattern)
-lynxpm start "curl -sSf http://localhost:3000/healthz || exit 1" \
+unitpm start "curl -sSf http://localhost:3000/healthz || exit 1" \
     --name probe \
     --schedule "@every 10s" \
     --restart on-failure \
@@ -306,7 +306,7 @@ Each process runs as a unique synthetic user. Secrets never appear in
 `/proc/<pid>/environ`.
 
 ```bash
-lynxpm start "node server.js" \
+unitpm start "node server.js" \
     --name api \
     --cwd /srv/api \
     --isolation dynamic \
@@ -323,7 +323,7 @@ Runs inside user namespace + landlock. Can't write to `/home`, `/etc`,
 `/usr`. Can write to cwd + `/tmp`.
 
 ```bash
-lynxpm start "node server.js" \
+unitpm start "node server.js" \
     --name api \
     --cwd /srv/api \
     --isolation sandbox \
@@ -337,12 +337,12 @@ lynxpm start "node server.js" \
 A complete workflow for deploying a Node.js API:
 
 ```bash
-# 1. Install Lynx
-sudo apt install ./lynxpm_*_amd64.deb
-sudo usermod -aG lynxadm $USER && newgrp lynxadm
+# 1. Install unitpm
+sudo apt install ./unitpm_*_amd64.deb
+sudo usermod -aG unitpm $USER && newgrp unitpm
 
 # 2. Make dev tools visible to the daemon
-lynxpm install-tools
+unitpm install-tools
 
 # 3. Prepare app directory
 sudo mkdir -p /srv/api && sudo chown $USER:$USER /srv/api
@@ -357,7 +357,7 @@ NODE_ENV=production
 EOF
 
 # 5. Start with all hardening
-lynxpm start "node dist/server.js" \
+unitpm start "node dist/server.js" \
     --name api \
     --namespace prod \
     --cwd /srv/api \
@@ -369,17 +369,17 @@ lynxpm start "node dist/server.js" \
     --stop-timeout 30000
 
 # 6. Scale to 3 workers
-lynxpm scale prod:api 3
+unitpm scale prod:api 3
 
 # 7. Verify
-lynxpm list --namespace prod
-lynxpm logs prod:api --follow
+unitpm list --namespace prod
+unitpm logs prod:api --follow
 
 # 8. Enable boot persistence
-sudo lynxpm startup
+sudo unitpm startup
 ```
 
-**What `lynxpm list --namespace prod` shows after step 6:**
+**What `unitpm list --namespace prod` shows after step 6:**
 ```
 ┌──────────┬───────┬───────────┬─────────┬────────┬───────┬─────────┬─────┬────────┐
 │ id       │ name  │ namespace │ version │ mode   │ pid   │ status  │ cpu │ mem    │
@@ -390,18 +390,18 @@ sudo lynxpm startup
 └──────────┴───────┴───────────┴─────────┴────────┴───────┴─────────┴─────┴────────┘
 ```
 
-> 💡 **Tip**: `sudo lynxpm startup` wires the `lynxd.service` into
-> systemd so apps restart after reboot. All specs in `~/.config/lynx/apps/`
+> 💡 **Tip**: `sudo unitpm startup` wires the `unitpmd.service` into
+> systemd so apps restart after reboot. All specs in `~/.config/unitpm/apps/`
 > are restored automatically at boot.
 
 ---
 
-## 📜 Lynxfile.yml — declarative multi-app deploy
+## 📜 unitpm.yml — declarative multi-app deploy
 
 Instead of individual `start` commands, declare everything in a file:
 
 ```yaml
-# Lynxfile.yml
+# unitpm.yml
 version: "1"
 namespace: prod
 apps:
@@ -429,16 +429,16 @@ apps:
 ```
 
 ```bash
-lynxpm apply Lynxfile.yml
-lynxpm list --namespace prod
+unitpm apply unitpm.yml
+unitpm list --namespace prod
 ```
 
 Update later:
 
 ```bash
-# Edit Lynxfile.yml, then:
-lynxpm delete --namespace prod   # wipe the whole namespace in one shot
-lynxpm apply Lynxfile.yml
+# Edit unitpm.yml, then:
+unitpm delete --namespace prod   # wipe the whole namespace in one shot
+unitpm apply unitpm.yml
 ```
 
 ---
@@ -447,23 +447,23 @@ lynxpm apply Lynxfile.yml
 
 ```bash
 # Live dashboard (refreshes every 2s, Ctrl+C to exit)
-lynxpm monit
+unitpm monit
 
 # JSON output for scripting
-lynxpm list --json | jq '.[] | select(.state == "running") | {name, pid, memory}'
+unitpm list --json | jq '.[] | select(.state == "running") | {name, pid, memory}'
 
 # Check restart history
-lynxpm show api
+unitpm show api
 
 # Reset counter after fixing a bug
-lynxpm reset api
+unitpm reset api
 
 # View logs
-lynxpm logs api --follow           # both stdout+stderr
-lynxpm logs api --stdout --lines 50  # only stdout, last 50 lines
+unitpm logs api --follow           # both stdout+stderr
+unitpm logs api --stdout --lines 50  # only stdout, last 50 lines
 
 # Flush old logs
-lynxpm flush api
+unitpm flush api
 ```
 
 ---
@@ -472,17 +472,17 @@ lynxpm flush api
 
 1. **Name your processes.** `--name api` is easier to type than a UUID.
 2. **Use namespaces.** `--namespace prod` + `--namespace staging` keeps
-   things clean. Filter with `lynxpm list --namespace prod`.
-3. **Use `namespace:name` syntax.** `lynxpm show prod:api`, `lynxpm stop
+   things clean. Filter with `unitpm list --namespace prod`.
+3. **Use `namespace:name` syntax.** `unitpm show prod:api`, `unitpm stop
    staging:worker`.
 4. **Bulk lifecycle ops by namespace.** Every lifecycle command (`stop`,
    `restart`, `reload`, `reset`, `delete`, `flush`) accepts `--namespace
    <ns>` or the `<ns>:*` selector to target a whole namespace at once.
    Use `'*'` (quoted) to hit every managed process. Examples:
    ```bash
-   lynxpm restart --namespace prod    # roll the prod tier
-   lynxpm flush 'staging:*'           # truncate logs across staging
-   lynxpm delete --namespace prod --purge   # wipe + drop logs
+   unitpm restart --namespace prod    # roll the prod tier
+   unitpm flush 'staging:*'           # truncate logs across staging
+   unitpm delete --namespace prod --purge   # wipe + drop logs
    ```
 5. **Always set `--restart always` in production.** Default `on-failure`
    doesn't restart on clean exit.
@@ -491,11 +491,11 @@ lynxpm flush api
    process.
 7. **Use `--stop-signal SIGINT` for Node.js/Python.** These runtimes
    handle SIGINT more gracefully than SIGTERM by default.
-8. **Use `--dry-run` when unsure.** `lynxpm start "complex command" --dry-run`
+8. **Use `--dry-run` when unsure.** `unitpm start "complex command" --dry-run`
    prints the resolved spec without touching the daemon.
-9. **Use `--quiet` in scripts.** `lynxpm start ... -q && echo ok` keeps
+9. **Use `--quiet` in scripts.** `unitpm start ... -q && echo ok` keeps
    CI output clean.
-10. **Export + apply for backups.** `lynxpm export --namespace prod > backup.yml`
-    saves your running config. Restore with `lynxpm apply backup.yml`.
+10. **Export + apply for backups.** `unitpm export --namespace prod > backup.yml`
+    saves your running config. Restore with `unitpm apply backup.yml`.
 11. **Shell completion saves keystrokes.**
-    `lynxpm completion bash > ~/.local/share/bash-completion/completions/lynxpm`
+    `unitpm completion bash > ~/.local/share/bash-completion/completions/unitpm`

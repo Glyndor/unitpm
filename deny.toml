@@ -1,0 +1,35 @@
+# cargo-deny policy. Copied from Glyndor/klyradb, which passes the same gate,
+# rather than invented: the org standard is permissive licences only, and a
+# policy written from scratch would differ from its siblings for no reason.
+
+[licenses]
+# Permissive licenses only — every dependency must resolve to one of these.
+allow = [
+	"Apache-2.0",
+	"MIT",
+	"Unicode-3.0",
+	"BSD-2-Clause",
+	"BSD-3-Clause",
+	"ISC",
+	"Zlib",
+]
+confidence-threshold = 0.8
+
+# webpki-roots ships Mozilla's CA trust store, so its licence covers a data set,
+# not code: CDLA-Permissive-2.0 imposes no condition on anything we link against
+# it. Scoped to the crate rather than added to `allow`, so a future dependency
+# arriving under the same licence still has to be looked at on its own merits.
+[[licenses.exceptions]]
+name = "webpki-roots"
+allow = ["CDLA-Permissive-2.0"]
+
+[bans]
+multiple-versions = "warn"
+wildcards = "deny"
+
+[advisories]
+yanked = "deny"
+
+[sources]
+unknown-registry = "deny"
+unknown-git = "deny"

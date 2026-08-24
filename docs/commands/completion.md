@@ -1,11 +1,11 @@
-# 🦁 `lynxpm completion`
+# 🦁 `unitpm completion`
 
 > *Emit a shell completion script for bash, zsh, or fish.*
 
 ## 📖 Synopsis
 
 ```bash
-lynxpm completion <bash|zsh|fish>
+unitpm completion <bash|zsh|fish>
 ```
 
 ## Description
@@ -14,7 +14,7 @@ Generates a ready-to-source completion script. The script completes the
 top-level command names (including aliases like `ls`, `ps`, `rm`) and, for
 commands that target running processes (`stop`, `restart`, `reload`,
 `flush`, `delete`, `show`, `logs`), the names of the currently managed
-processes via a call to `lynxpm list`.
+processes via a call to `unitpm list`.
 
 Internal wrapper commands (`_exec-env`, `_exec-sandbox`) are excluded from
 the completion table.
@@ -30,7 +30,7 @@ the completion table.
 ### Bash
 
 ```bash
-lynxpm completion bash > ~/.local/share/bash-completion/completions/lynxpm
+unitpm completion bash > ~/.local/share/bash-completion/completions/unitpm
 ```
 
 Re-open your shell or `source` the file.
@@ -38,7 +38,7 @@ Re-open your shell or `source` the file.
 ### Zsh
 
 ```bash
-lynxpm completion zsh > "${fpath[1]}/_lynxpm"
+unitpm completion zsh > "${fpath[1]}/_unitpm"
 ```
 
 Make sure `compinit` is called from your `.zshrc`.
@@ -46,14 +46,14 @@ Make sure `compinit` is called from your `.zshrc`.
 ### Fish
 
 ```bash
-lynxpm completion fish > ~/.config/fish/completions/lynxpm.fish
+unitpm completion fish > ~/.config/fish/completions/unitpm.fish
 ```
 
 Fish picks it up on the next shell start.
 
 ## Notes
 
-- Dynamic process-name completion shells out to `lynxpm list` at completion
+- Dynamic process-name completion shells out to `unitpm list` at completion
   time. If the daemon is down you get only command-name completion.
-- The scripts are regenerated each time you run `lynxpm completion` — rerun
+- The scripts are regenerated each time you run `unitpm completion` — rerun
   after upgrades so new aliases show up.

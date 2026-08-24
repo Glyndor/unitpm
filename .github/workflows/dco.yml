@@ -1,0 +1,15 @@
+name: DCO
+
+# Its own workflow, and pull_request only, because the reusable derives the
+# commit range from github.event.pull_request. A caller that also runs on
+# push hands it an empty range, and it fails closed rather than reporting a
+# success it cannot justify.
+on:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  dco:
+    uses: Glyndor/.github/.github/workflows/dco.yml@d4bbc5b6ec0c351ca4cb17d948ceaad818da4078 # v1.18.1

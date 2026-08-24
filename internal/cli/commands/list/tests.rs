@@ -1,331 +1,21 @@
-//! Tests for the `list` command — 26 cases mirroring the Go suites in
-//! `internal/cli/commands/list/{cmd_test,notify_test,export_test}.go`.
+//! End-to-end tests for the `list` command's runtime path.
 //!
-//! `mod.rs` declares this submodule as `#[cfg(test)] mod tests` so it
-//! can access the private `print_update_banner` helper.
+//! The argument-parsing tests live in `parser_tests.rs`, and the MockClient
+//! and its sample fixtures in `mock_client.rs`. The tests here cover the
+//! surface that drives an actual IPC round trip against a canned response:
+//! `run`, `--json`, the render highlight, `fetch_and_render` and
+//! `wait_update_and_notify`.
 
-use std::sync::atomic::{AtomicU32, Ordering};
-use std::sync::{Arc, Mutex};
+use std::collections::HashSet;
 use std::time::Instant;
 
 use crate::cli::commands::list::{
-	fetch_and_render, filter_processes, parse_sort_spec, render_to, run, short_id_len,
-	wait_update_and_notify, IpcError, IpcOps, RenderOptions,
+	fetch_and_render, render_to, run, wait_update_and_notify, RenderOptions,
 };
-use crate::cli::format;
 use crate::types::{ProcessInfo, ProcessState};
 use crate::updater;
 
-// --- Mock IPC client --------------------------------------------------------
-
-#[derive(Clone, Default)]
-struct MockClient {
-	procs: Vec<ProcessInfo>,
-	err: Option<String>,
-	calls: Arc<Mutex<Vec<String>>>,
-	fail_count: Arc<AtomicU32>,
-}
-
-impl MockClient {
-	fn new(procs: Vec<ProcessInfo>) -> Self {
-		Self {
-			procs,
-			..Default::default()
-		}
-	}
-
-	fn err(msg: &str) -> Self {
-		Self {
-			err: Some(msg.to_string()),
-			..Default::default()
-		}
-	}
-
-	fn list_calls(&self) -> Vec<String> {
-		self.calls.lock().unwrap().clone()
-	}
-}
-
-impl IpcOps for MockClient {
-	fn call_list(&mut self) -> Result<Vec<ProcessInfo>, IpcError> {
-		self.calls.lock().unwrap().push("list".to_string());
-		self.fail_count.fetch_add(1, Ordering::Relaxed);
-		if let Some(e) = &self.err {
-			return Err(IpcError(e.clone()));
-		}
-		Ok(self.procs.clone())
-	}
-}
-
-fn sample_procs() -> Vec<ProcessInfo> {
-	vec![
-		ProcessInfo {
-			id: "aaaaaaaa-0000-0000-0000-000000000000".into(),
-			name: "z-app".into(),
-			namespace: "prod".into(),
-			version: "1".into(),
-			mode: "fork".into(),
-			pid: 1234,
-			uptime: 5000,
-			restarts: 0,
-			state: ProcessState::Running,
-			cpu: 1.5,
-			memory: 1024 * 1024,
-			user: "deploy".into(),
-			watch: true,
-			git_branch: Some("main".into()),
-			git_commit: Some("abc".into()),
-			git_dirty: true,
-			created_at: Some("2024-01-02T00:00:00Z".into()),
-		},
-		ProcessInfo {
-			id: "bbbbbbbb-0000-0000-0000-000000000000".into(),
-			name: "a-app".into(),
-			namespace: "staging".into(),
-			version: "2".into(),
-			mode: "fork".into(),
-			pid: 0,
-			uptime: 0,
-			restarts: 2,
-			state: ProcessState::Stopped,
-			cpu: 0.0,
-			memory: 0,
-			user: String::new(),
-			watch: false,
-			git_branch: None,
-			git_commit: None,
-			git_dirty: false,
-			created_at: Some("2024-01-01T00:00:00Z".into()),
-		},
-	]
-}
-
-fn empty_procs() -> Vec<ProcessInfo> {
-	Vec::new()
-}
-
-fn sample_blank() -> ProcessInfo {
-	ProcessInfo {
-		id: String::new(),
-		name: String::new(),
-		namespace: String::new(),
-		version: String::new(),
-		mode: String::new(),
-		pid: 0,
-		uptime: 0,
-		restarts: 0,
-		state: ProcessState::Running,
-		cpu: 0.0,
-		memory: 0,
-		user: String::new(),
-		watch: false,
-		git_branch: None,
-		git_commit: None,
-		git_dirty: false,
-		created_at: None,
-	}
-}
-
-// --- parse_sort_spec (8 cases) ---------------------------------------------
-
-#[test]
-fn parse_sort_spec_empty_returns_empty_vec() {
-	let got = parse_sort_spec("").expect("empty");
-	assert!(got.is_empty());
-}
-
-#[test]
-fn parse_sort_spec_single_field_defaults_asc() {
-	let got = parse_sort_spec("name").expect("single");
-	assert_eq!(
-		got,
-		vec![crate::cli::commands::list::SortField {
-			field: "name".into(),
-			asc: true
-		}]
-	);
-}
-
-#[test]
-fn parse_sort_spec_desc_direction() {
-	let got = parse_sort_spec("name:desc").expect("desc");
-	assert_eq!(
-		got,
-		vec![crate::cli::commands::list::SortField {
-			field: "name".into(),
-			asc: false
-		}]
-	);
-}
-
-#[test]
-fn parse_sort_spec_multi_field_with_whitespace() {
-	let got = parse_sort_spec("namespace:asc, name:desc").expect("multi");
-	assert_eq!(
-		got,
-		vec![
-			crate::cli::commands::list::SortField {
-				field: "namespace".into(),
-				asc: true
-			},
-			crate::cli::commands::list::SortField {
-				field: "name".into(),
-				asc: false
-			},
-		]
-	);
-}
-
-#[test]
-fn parse_sort_spec_invalid_field_errors() {
-	assert!(parse_sort_spec("invalid").is_err());
-}
-
-#[test]
-fn parse_sort_spec_invalid_direction_errors() {
-	assert!(parse_sort_spec("name:invalid").is_err());
-}
-
-#[test]
-fn parse_sort_spec_id_is_valid_field() {
-	let got = parse_sort_spec("id:asc").expect("id");
-	assert_eq!(
-		got,
-		vec![crate::cli::commands::list::SortField {
-			field: "id".into(),
-			asc: true
-		}]
-	);
-}
-
-#[test]
-fn parse_sort_spec_created_at_is_valid_field() {
-	let got = parse_sort_spec("createdAt:desc").expect("createdAt");
-	assert_eq!(
-		got,
-		vec![crate::cli::commands::list::SortField {
-			field: "createdAt".into(),
-			asc: false
-		}]
-	);
-}
-
-// --- format helpers (2 cases) ---------------------------------------------
-
-#[test]
-fn format_uptime_matches_go_thresholds() {
-	let cases: &[(i64, &str)] = &[
-		(0, "-"),
-		(-1, "-"),
-		(500, "0s"),
-		(1000, "1s"),
-		(61000, "1m 1s"),
-		(3600000, "1h"),
-		(3660000, "1h 1m"),
-		(86400000, "1d"),
-		(86400000 + 3600000, "1d 1h"),
-	];
-	for (ms, want) in cases {
-		let got = format::uptime(*ms);
-		let got = crate::cli::format::strip_ansi(&got);
-		assert_eq!(got, *want, "uptime({ms}) = {got:?}");
-	}
-}
-
-#[test]
-fn format_bytes_matches_go_thresholds() {
-	let cases: &[(i64, &str)] = &[
-		(0, "0 B"),
-		(512, "512 B"),
-		(1024, "1.0 KB"),
-		(1024 * 1024, "1.0 MB"),
-		(1024_i64 * 1024 * 1024, "1.0 GB"),
-	];
-	for (b, want) in cases {
-		let got = format::bytes(*b);
-		assert_eq!(got, *want, "bytes({b}) = {got:?}");
-	}
-}
-
-// --- short_id_len ----------------------------------------------------------
-
-#[test]
-fn short_id_len_empty_or_single_is_eight() {
-	assert_eq!(short_id_len(&[]), 8);
-	let one = vec![ProcessInfo {
-		id: "abc12345".into(),
-		..sample_blank()
-	}];
-	assert_eq!(short_id_len(&one), 8);
-}
-
-#[test]
-fn short_id_len_returns_eight_when_distinct_at_eight() {
-	let procs = vec![
-		ProcessInfo {
-			id: "aaaaaaaa-0000-0000-0000-000000000000".into(),
-			..sample_blank()
-		},
-		ProcessInfo {
-			id: "bbbbbbbb-0000-0000-0000-000000000000".into(),
-			..sample_blank()
-		},
-	];
-	assert_eq!(short_id_len(&procs), 8);
-}
-
-#[test]
-fn short_id_len_grows_past_collision_at_eight() {
-	let procs = vec![
-		ProcessInfo {
-			id: "abcdefgh-aaa0-0000-0000-000000000000".into(),
-			..sample_blank()
-		},
-		ProcessInfo {
-			id: "abcdefgh-bbb0-0000-0000-000000000000".into(),
-			..sample_blank()
-		},
-	];
-	let l = short_id_len(&procs);
-	assert!(l >= 9, "expected >=9, got {l}");
-}
-
-// --- filter_processes ------------------------------------------------------
-
-#[test]
-fn filter_processes_empty_returns_all() {
-	let procs = sample_procs();
-	assert_eq!(filter_processes(&procs, "").len(), 2);
-}
-
-#[test]
-fn filter_processes_matches_namespace() {
-	let procs = sample_procs();
-	let got = filter_processes(&procs, "prod");
-	assert_eq!(got.len(), 1);
-	assert_eq!(got[0].id, "aaaaaaaa-0000-0000-0000-000000000000");
-}
-
-#[test]
-fn filter_processes_default_matches_empty_namespace() {
-	let mut procs = sample_procs();
-	procs.push(ProcessInfo {
-		id: "ccc".into(),
-		namespace: String::new(),
-		..sample_blank()
-	});
-	let got = filter_processes(&procs, "default");
-	assert_eq!(got.len(), 1);
-	assert_eq!(got[0].id, "ccc");
-}
-
-#[test]
-fn filter_processes_no_match_returns_empty() {
-	let procs = sample_procs();
-	assert!(filter_processes(&procs, "ghost").is_empty());
-}
-
-// --- run (mock client) -----------------------------------------------------
+use super::mock_client::{empty_procs, sample_blank, sample_procs, MockClient};
 
 #[test]
 fn run_help_writes_no_error() {
@@ -475,7 +165,7 @@ fn render_highlight_by_id_marks_target_row() {
 			..sample_blank()
 		},
 	];
-	let mut highlight = std::collections::HashSet::new();
+	let mut highlight = HashSet::new();
 	highlight.insert("aaaaaaaa-0000-0000-0000-000000000000".to_string());
 	let opts = RenderOptions {
 		highlight,
@@ -504,7 +194,7 @@ fn render_highlight_by_name_marks_target_row() {
 		state: ProcessState::Running,
 		..sample_blank()
 	}];
-	let mut highlight = std::collections::HashSet::new();
+	let mut highlight = HashSet::new();
 	highlight.insert("api".to_string());
 	let opts = RenderOptions {
 		highlight,
@@ -539,7 +229,7 @@ fn render_without_highlight_emits_no_marker() {
 fn fetch_and_render_swallows_ipc_error() {
 	let mut out = Vec::new();
 	let mut client = MockClient::err("daemon offline");
-	let mut highlight = std::collections::HashSet::new();
+	let mut highlight = HashSet::new();
 	highlight.insert("x".into());
 	fetch_and_render(&mut client, highlight, &mut out);
 	assert!(
@@ -553,7 +243,7 @@ fn fetch_and_render_swallows_ipc_error() {
 fn fetch_and_render_empty_list_does_not_panic() {
 	let mut out = Vec::new();
 	let mut client = MockClient::new(empty_procs());
-	let highlight = std::collections::HashSet::new();
+	let highlight = HashSet::new();
 	fetch_and_render(&mut client, highlight, &mut out);
 	// Empty list renders headers/borders only; we do not assert on
 	// content beyond "did not panic".

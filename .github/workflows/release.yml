@@ -8,6 +8,25 @@ on:
 permissions: read-all
 
 jobs:
+  # The Rust cutover deleted the Go tree this workflow builds with, and the
+  # signing helper it calls (`scripts/sign.go`) went with it. Rewriting the
+  # release path — cross-compiled binaries, Ed25519 signing, SLSA provenance
+  # and SBOMs, all in Rust — is tracked separately.
+  #
+  # This guard exists so that failure happens here, loudly, in five seconds,
+  # rather than a third of the way through a tagged release. A release is
+  # immutable org-wide: the expensive place to discover a broken workflow is
+  # after the tag exists.
+  blocked:
+    name: release path not ported
+    runs-on: ubuntu-latest
+    steps:
+      - run: |
+          echo "::error::The release workflow still builds with Go, which this"
+          echo "::error::repository no longer contains. It must be rewritten"
+          echo "::error::for Rust before a tag is pushed. See the tracking issue."
+          exit 1
+
   release:
     runs-on: ubuntu-latest
     permissions:
@@ -31,33 +50,33 @@ jobs:
           COMMIT="$(git rev-parse --short HEAD)"
           BUILD_DATE="$(date -u +'%Y-%m-%dT%H:%M:%SZ')"
           LDFLAGS="-s -w \
-            -X 'github.com/Jaro-c/Lynx/internal/version.Version=${VERSION}' \
-            -X 'github.com/Jaro-c/Lynx/internal/version.Commit=${COMMIT}' \
-            -X 'github.com/Jaro-c/Lynx/internal/version.BuildDate=${BUILD_DATE}'"
+            -X 'github.com/Jaro-c/unitpm/internal/version.Version=${VERSION}' \
+            -X 'github.com/Jaro-c/unitpm/internal/version.Commit=${COMMIT}' \
+            -X 'github.com/Jaro-c/unitpm/internal/version.BuildDate=${BUILD_DATE}'"
 
-          GOOS=linux GOARCH=amd64 go build -trimpath -ldflags="${LDFLAGS}" -o lynxpm_linux_amd64 ./cmd/lynxpm
-          GOOS=linux GOARCH=arm64 go build -trimpath -ldflags="${LDFLAGS}" -o lynxpm_linux_arm64 ./cmd/lynxpm
+          GOOS=linux GOARCH=amd64 go build -trimpath -ldflags="${LDFLAGS}" -o unitpm_linux_amd64 ./cmd/unitpm
+          GOOS=linux GOARCH=arm64 go build -trimpath -ldflags="${LDFLAGS}" -o unitpm_linux_arm64 ./cmd/unitpm
 
       - name: Build Debian package
         run: |
           sudo apt-get update && sudo apt-get install -y --no-install-recommends debhelper build-essential
           dpkg-buildpackage -us -uc -b -d
-          cp ../lynxpm_*.deb .
+          cp ../unitpm_*.deb .
 
       - name: Sign binaries
         env:
           RELEASE_SIGNING_KEY: ${{ secrets.GLYNDOR_RELEASE_ED25519_KEY }}
         run: |
-          go run scripts/sign.go lynxpm_linux_amd64
-          go run scripts/sign.go lynxpm_linux_arm64
+          go run scripts/sign.go unitpm_linux_amd64
+          go run scripts/sign.go unitpm_linux_arm64
 
       - name: Generate SLSA build provenance
         uses: actions/attest-build-provenance@a2bbfa25375fe432b6a289bc6b6cd05ecd0c4c32 # v4.1.0
         with:
           subject-path: |
-            lynxpm_linux_amd64
-            lynxpm_linux_arm64
-            lynxpm_*.deb
+            unitpm_linux_amd64
+            unitpm_linux_arm64
+            unitpm_*.deb
 
       # The SBOM step is deliberately absent, and this release will ship
       # without one until it comes back through the shared reusable.
@@ -82,7 +101,7 @@ jobs:
           # Extract notes for current version from debian/changelog
           VERSION_NUM="${GITHUB_REF_NAME#v}"
           awk -v ver="$VERSION_NUM" '
-            /^lynxpm \(/ {
+            /^unitpm \(/ {
               if (found) exit
               if ($0 ~ "\\(" ver "-") { found=1; next }
             }
@@ -95,10 +114,10 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           gh release create "${GITHUB_REF_NAME}" \
-            --title "Lynx ${GITHUB_REF_NAME}" \
+            --title "unitpm ${GITHUB_REF_NAME}" \
             --notes-file release_notes.txt \
-            lynxpm_linux_amd64 \
-            lynxpm_linux_amd64.sig \
-            lynxpm_linux_arm64 \
-            lynxpm_linux_arm64.sig \
-            lynxpm_*.deb
+            unitpm_linux_amd64 \
+            unitpm_linux_amd64.sig \
+            unitpm_linux_arm64 \
+            unitpm_linux_arm64.sig \
+            unitpm_*.deb

@@ -120,10 +120,10 @@ test_configure_creates_user_when_missing() {
     mkmock kill
 
     sh "$POSTINST" configure || return 1
-    assert_called "addgroup --system lynxadm" "lynxadm group creation" || return 1
-    assert_called "adduser --system" "lynx user creation" || return 1
-    assert_called "adduser lynx lynxadm" "membership" || return 1
-    assert_called "chown lynx:lynx" "ownership" || return 1
+    assert_called "addgroup --system unitpm" "unitpm group creation" || return 1
+    assert_called "adduser --system" "glyndor-unitpm user creation" || return 1
+    assert_called "adduser glyndor-unitpm unitpm" "membership" || return 1
+    assert_called "chown glyndor-unitpm:glyndor-unitpm" "ownership" || return 1
     assert_called "chmod 0700" "0700 perms" || return 1
 }
 
@@ -139,9 +139,9 @@ test_configure_skips_creation_when_present() {
     mkmock kill
 
     sh "$POSTINST" configure || return 1
-    assert_not_called "addgroup --system lynxadm" "skip group create" || return 1
+    assert_not_called "addgroup --system unitpm" "skip group create" || return 1
     assert_not_called "adduser --system" "skip user create" || return 1
-    assert_called "adduser lynx lynxadm" "membership ensured" || return 1
+    assert_called "adduser glyndor-unitpm unitpm" "membership ensured" || return 1
 }
 
 test_configure_signals_user_daemons() {
@@ -165,13 +165,13 @@ echo 4242
 echo 4243
 EOF
     /bin/chmod +x "$MOCKS/pgrep"
-    # ps says first pid runs as bob (non-lynx), second as lynx (system daemon).
+    # ps says first pid runs as bob (non-glyndor-unitpm), second as glyndor-unitpm (system daemon).
     cat >"$MOCKS/ps" <<'EOF'
 #!/bin/sh
 printf 'ps\t%s\n' "$*" >> "$CALLS_LOG"
 case "$*" in
     *4242*) echo "bob" ;;
-    *4243*) echo "lynx" ;;
+    *4243*) echo "glyndor-unitpm" ;;
 esac
 EOF
     /bin/chmod +x "$MOCKS/ps"
@@ -182,10 +182,10 @@ EOF
     bash_env=$TEST_ROOT/disable-kill.sh
     echo "enable -n kill" >"$bash_env"
     BASH_ENV=$bash_env bash "$POSTINST" configure || return 1
-    # Only the non-lynx user pid should be HUP'd; lynx-owned daemon is left
+    # Only the non-glyndor-unitpm user pid should be HUP'd; glyndor-unitpm-owned daemon is left
     # for systemd's restart hook.
-    assert_called "kill -HUP 4242" "HUP non-lynx daemon" || return 1
-    assert_not_called "kill -HUP 4243" "skip lynx-owned daemon" || return 1
+    assert_called "kill -HUP 4242" "HUP non-glyndor-unitpm daemon" || return 1
+    assert_not_called "kill -HUP 4243" "skip glyndor-unitpm-owned daemon" || return 1
 }
 
 test_postinst_noop_for_other_actions() {
@@ -214,7 +214,7 @@ test_prerm_runs_clean() {
 echo "TAP version 13"
 run_test "configure: creates user/group when missing" test_configure_creates_user_when_missing
 run_test "configure: skips creation when present"     test_configure_skips_creation_when_present
-run_test "configure: HUPs only non-lynx user daemons" test_configure_signals_user_daemons
+run_test "configure: HUPs only non-glyndor-unitpm user daemons" test_configure_signals_user_daemons
 run_test "postinst: no-op on non-configure actions"   test_postinst_noop_for_other_actions
 run_test "prerm: runs to completion"                  test_prerm_runs_clean
 

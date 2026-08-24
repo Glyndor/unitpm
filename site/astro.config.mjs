@@ -3,16 +3,16 @@ import { defineConfig } from 'astro/config';
 import starlight from '@astrojs/starlight';
 
 export default defineConfig({
-	site: 'https://jaro-c.github.io',
-	base: '/Lynx',
+	site: 'https://glyndor.github.io',
+	base: '/unitpm',
 	trailingSlash: 'ignore',
 	integrations: [
 		starlight({
-			title: 'Lynx',
+			title: 'unitpm',
 			description:
 				'The secure, systemd-native process manager for Linux. A lean, hardened alternative to PM2 and Supervisor.',
 			logo: {
-				src: './src/assets/lynx.svg',
+				src: './src/assets/unitpm.svg',
 				replacesTitle: false,
 			},
 			favicon: '/favicon.svg',
@@ -20,11 +20,11 @@ export default defineConfig({
 				{
 					icon: 'github',
 					label: 'GitHub',
-					href: 'https://github.com/Jaro-c/Lynx',
+					href: 'https://github.com/Jaro-c/unitpm',
 				},
 			],
 			editLink: {
-				baseUrl: 'https://github.com/Jaro-c/Lynx/edit/main/site/',
+				baseUrl: 'https://github.com/Jaro-c/unitpm/edit/main/site/',
 			},
 			customCss: ['./src/styles/custom.css'],
 			head: [
@@ -32,7 +32,7 @@ export default defineConfig({
 					tag: 'meta',
 					attrs: {
 						property: 'og:image',
-						content: 'https://jaro-c.github.io/Lynx/og.png',
+						content: 'https://jaro-c.github.io/unitpm/og.png',
 					},
 				},
 				{
@@ -46,7 +46,7 @@ export default defineConfig({
 					tag: 'meta',
 					attrs: {
 						name: 'twitter:image',
-						content: 'https://jaro-c.github.io/Lynx/og.png',
+						content: 'https://jaro-c.github.io/unitpm/og.png',
 					},
 				},
 				{
@@ -55,9 +55,9 @@ export default defineConfig({
 					content: JSON.stringify({
 						'@context': 'https://schema.org',
 						'@type': 'Organization',
-						name: 'Lynx',
-						url: 'https://jaro-c.github.io/Lynx/',
-						sameAs: ['https://github.com/Jaro-c/Lynx'],
+						name: 'unitpm',
+						url: 'https://jaro-c.github.io/unitpm/',
+						sameAs: ['https://github.com/Jaro-c/unitpm'],
 					}),
 				},
 			],
@@ -82,9 +82,9 @@ export default defineConfig({
 							collapsed: false,
 							items: [
 								{ label: 'What is a process manager?', slug: 'guides/what-is-a-process-manager' },
-								{ label: 'Lynx vs PM2', slug: 'guides/vs-pm2' },
-								{ label: 'Lynx vs Supervisor', slug: 'guides/vs-supervisor' },
-								{ label: 'PM2 vs Supervisor vs Lynx', slug: 'guides/pm2-vs-supervisor-vs-lynx' },
+								{ label: 'unitpm vs PM2', slug: 'guides/vs-pm2' },
+								{ label: 'unitpm vs Supervisor', slug: 'guides/vs-supervisor' },
+								{ label: 'PM2 vs Supervisor vs unitpm', slug: 'guides/pm2-vs-supervisor-vs-unitpm' },
 							],
 						},
 						{

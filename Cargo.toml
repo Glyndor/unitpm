@@ -1,9 +1,9 @@
 [package]
 name = "unitpm"
-version = "0.0.0"
+version = "0.14.0"
 edition = "2021"
 rust-version = "1.96"
-description = "Linux process manager — systemd-native PM2 alternative (Rust rewrite, phase 1)"
+description = "Linux process manager — systemd-native, a drop-in alternative to PM2"
 license = "MIT"
 publish = false
 
@@ -13,6 +13,18 @@ publish = false
 [lib]
 name = "unitpm"
 path = "internal/lib.rs"
+
+# Phase 7a: the two binaries. `unitpm` is the CLI; `unitpmd` is the IPC
+# daemon. They live under `cmd/` to mirror the prior Go layout
+# (`cmd/unitpm/`, `cmd/unitpmd/`) so the Debian package, systemd unit, and
+# release scripts can target the same paths the previous tree used.
+[[bin]]
+name = "unitpm"
+path = "cmd/unitpm/main.rs"
+
+[[bin]]
+name = "unitpmd"
+path = "cmd/unitpmd/main.rs"
 
 [dependencies]
 serde = { version = "1", features = ["derive"] }

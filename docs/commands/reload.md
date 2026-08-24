@@ -1,11 +1,11 @@
-# 🦁 `lynxpm reload`
+# 🦁 `unitpm reload`
 
 > *Reload a process configuration from its stored spec and restart it.*
 
 ## 📖 Synopsis
 
 ```bash
-lynxpm reload [--namespace <ns>] [--json] <id|name|ns:*|*>...
+unitpm reload [--namespace <ns>] [--json] <id|name|ns:*|*>...
 ```
 
 ## Description
@@ -15,7 +15,7 @@ Reload a process configuration from its stored spec and restart it. Useful after
 Bulk selectors:
 
 - `<ns>:*` — every process in that namespace. Quote the glob so the shell
-  does not expand it: `lynxpm reload 'prod:*'`.
+  does not expand it: `unitpm reload 'prod:*'`.
 - `*` or `*:*` — every managed process.
 - `--namespace <ns>` — same as `<ns>:*` but no shell quoting needed.
   Cannot be combined with positional targets.
@@ -32,23 +32,23 @@ Bulk selectors:
 
 Reload by name:
 ```bash
-lynxpm reload my-api
+unitpm reload my-api
 ```
 
 Reload multiple:
 ```bash
-lynxpm reload api-1 api-2
+unitpm reload api-1 api-2
 ```
 
 Reload every process in the `prod` namespace:
 ```bash
-lynxpm reload 'prod:*'           # selector form (quote the glob)
-lynxpm reload --namespace prod   # flag form (script-friendly)
+unitpm reload 'prod:*'           # selector form (quote the glob)
+unitpm reload --namespace prod   # flag form (script-friendly)
 ```
 
 Reload and inspect the summary:
 ```bash
-lynxpm reload api worker --json | jq '.summary'
+unitpm reload api worker --json | jq '.summary'
 ```
 
 ## Exit codes

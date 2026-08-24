@@ -1,9 +1,9 @@
 ---
 title: How to run a Python worker as a Linux service
-description: Run a Python worker, script, or Celery process as a persistent Linux service with auto-restart, log management, and boot persistence using Lynx process manager and systemd.
+description: Run a Python worker, script, or Celery process as a persistent Linux service with auto-restart, log management, and boot persistence using unitpm process manager and systemd.
 ---
 
-Running a Python script or worker as a **Linux service** means it starts on boot, restarts on crash, and keeps running when you close your SSH session. This guide covers how to daemonize a Python process using Lynx process manager (recommended), plain systemd unit files, and Supervisor.
+Running a Python script or worker as a **Linux service** means it starts on boot, restarts on crash, and keeps running when you close your SSH session. This guide covers how to daemonize a Python process using unitpm process manager (recommended), plain systemd unit files, and Supervisor.
 
 ## Prerequisites
 
@@ -11,22 +11,22 @@ Running a Python script or worker as a **Linux service** means it starts on boot
 - Python 3 and your app's dependencies installed
 - App path known (e.g., `/srv/worker/worker.py`)
 
-## Option 1: Lynx (recommended)
+## Option 1: unitpm (recommended)
 
-Lynx registers your Python process as a systemd transient unit, so it survives Lynx daemon restarts or updates.
+unitpm registers your Python process as a systemd transient unit, so it survives unitpm daemon restarts or updates.
 
-### Install Lynx
+### Install unitpm
 
 ```bash
-sudo apt install ./lynxpm_*_amd64.deb
-sudo usermod -aG lynxadm "$USER" && newgrp lynxadm
-sudo systemctl enable --now lynxd
+sudo apt install ./unitpm_*_amd64.deb
+sudo usermod -aG unitpm "$USER" && newgrp unitpm
+sudo systemctl enable --now unitpmd
 ```
 
 ### Start the worker
 
 ```bash
-lynxpm start "python3 /srv/worker/worker.py" \
+unitpm start "python3 /srv/worker/worker.py" \
   --name worker \
   --restart on-failure \
   --cwd /srv/worker
@@ -37,7 +37,7 @@ lynxpm start "python3 /srv/worker/worker.py" \
 Always specify the full path to the venv interpreter:
 
 ```bash
-lynxpm start "/srv/worker/.venv/bin/python worker.py" \
+unitpm start "/srv/worker/.venv/bin/python worker.py" \
   --name worker \
   --restart on-failure \
   --cwd /srv/worker
@@ -53,7 +53,7 @@ exec python worker.py
 ```
 
 ```bash
-lynxpm start "/srv/worker/start.sh" \
+unitpm start "/srv/worker/start.sh" \
   --name worker \
   --restart on-failure \
   --cwd /srv/worker
@@ -62,7 +62,7 @@ lynxpm start "/srv/worker/start.sh" \
 ### Pass environment variables
 
 ```bash
-lynxpm start "/srv/worker/.venv/bin/python worker.py" \
+unitpm start "/srv/worker/.venv/bin/python worker.py" \
   --name worker \
   --restart on-failure \
   --cwd /srv/worker \
@@ -80,7 +80,7 @@ DATABASE_URL=postgres://user:pass@localhost/app
 ### Set resource limits
 
 ```bash
-lynxpm start "/srv/worker/.venv/bin/python worker.py" \
+unitpm start "/srv/worker/.venv/bin/python worker.py" \
   --name worker \
   --restart on-failure \
   --cwd /srv/worker \
@@ -93,43 +93,43 @@ lynxpm start "/srv/worker/.venv/bin/python worker.py" \
 ### Enable on boot
 
 ```bash
-sudo lynxpm startup
+sudo unitpm startup
 ```
 
 ### Verify
 
 ```bash
-lynxpm list
+unitpm list
 # ┌──────────┬────────┬──────────┬─────────┬─────────┐
 # │ id       │ name   │ namespace│ status  │ pid     │
 # ├──────────┼────────┼──────────┼─────────┼─────────┤
 # │ ▸ 019dbe │ worker │ default  │ running │ 2336800 │
 # └──────────┴────────┴──────────┴─────────┴─────────┘
 
-lynxpm logs worker --follow
+unitpm logs worker --follow
 ```
 
 ## Running Celery workers
 
-Celery is a common Python task queue. Run each worker pool as a separate Lynx process:
+Celery is a common Python task queue. Run each worker pool as a separate unitpm process:
 
 ```bash
 # Default worker pool
-lynxpm start "/srv/app/.venv/bin/celery -A app worker --loglevel=info --concurrency=4" \
+unitpm start "/srv/app/.venv/bin/celery -A app worker --loglevel=info --concurrency=4" \
   --name celery-worker \
   --restart on-failure \
   --cwd /srv/app \
   --env-file /srv/app/.env.production
 
 # Beat scheduler (only one instance)
-lynxpm start "/srv/app/.venv/bin/celery -A app beat --loglevel=info" \
+unitpm start "/srv/app/.venv/bin/celery -A app beat --loglevel=info" \
   --name celery-beat \
   --restart on-failure \
   --cwd /srv/app \
   --env-file /srv/app/.env.production
 
 # Flower monitoring (optional)
-lynxpm start "/srv/app/.venv/bin/celery -A app flower" \
+unitpm start "/srv/app/.venv/bin/celery -A app flower" \
   --name celery-flower \
   --restart on-failure \
   --cwd /srv/app
@@ -138,14 +138,14 @@ lynxpm start "/srv/app/.venv/bin/celery -A app flower" \
 Group them in a namespace for bulk operations:
 
 ```bash
-lynxpm start "/srv/app/.venv/bin/celery -A app worker -c 4" \
+unitpm start "/srv/app/.venv/bin/celery -A app worker -c 4" \
   --name celery-worker \
   --namespace celery \
   --restart on-failure \
   --cwd /srv/app \
   --env-file /srv/app/.env.production
 
-lynxpm start "/srv/app/.venv/bin/celery -A app beat" \
+unitpm start "/srv/app/.venv/bin/celery -A app beat" \
   --name celery-beat \
   --namespace celery \
   --restart on-failure \
@@ -153,13 +153,13 @@ lynxpm start "/srv/app/.venv/bin/celery -A app beat" \
   --env-file /srv/app/.env.production
 
 # Restart all celery processes at once
-lynxpm restart --namespace celery
+unitpm restart --namespace celery
 ```
 
 ## FastAPI / Uvicorn service
 
 ```bash
-lynxpm start "/srv/api/.venv/bin/uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 2" \
+unitpm start "/srv/api/.venv/bin/uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 2" \
   --name fastapi \
   --restart always \
   --cwd /srv/api \
@@ -170,7 +170,7 @@ lynxpm start "/srv/api/.venv/bin/uvicorn app.main:app --host 0.0.0.0 --port 8000
 For Gunicorn with Uvicorn workers:
 
 ```bash
-lynxpm start "/srv/api/.venv/bin/gunicorn app.main:app \
+unitpm start "/srv/api/.venv/bin/gunicorn app.main:app \
   -k uvicorn.workers.UvicornWorker \
   --workers 4 \
   --bind 0.0.0.0:8000 \
@@ -227,14 +227,14 @@ stderr_logfile=/var/log/supervisor/worker-err.log
 environment=LOG_LEVEL="info"
 ```
 
-**Drawback**: If `supervisord` crashes, the worker dies with it. Lynx delegates to systemd so the worker survives Lynx restarts.
+**Drawback**: If `supervisord` crashes, the worker dies with it. unitpm delegates to systemd so the worker survives unitpm restarts.
 
-## Multiple workers with Lynxfile.yml
+## Multiple workers with unitpm.yml
 
 Declare the full stack as code:
 
 ```yaml
-# Lynxfile.yml
+# unitpm.yml
 version: 1
 processes:
   api:
@@ -261,14 +261,14 @@ processes:
 ```
 
 ```bash
-lynxpm apply Lynxfile.yml
+unitpm apply unitpm.yml
 ```
 
 Deploy everywhere identically:
 
 ```bash
 git pull
-lynxpm apply Lynxfile.yml  # only changed processes restart
+unitpm apply unitpm.yml  # only changed processes restart
 ```
 
 ## Common issues
@@ -279,10 +279,10 @@ The system Python doesn't have your dependencies. Use the venv interpreter:
 
 ```bash
 # Wrong
-lynxpm start "python3 worker.py" ...
+unitpm start "python3 worker.py" ...
 
 # Right
-lynxpm start "/srv/worker/.venv/bin/python worker.py" ...
+unitpm start "/srv/worker/.venv/bin/python worker.py" ...
 ```
 
 ### Buffered stdout (logs not appearing)
@@ -290,9 +290,9 @@ lynxpm start "/srv/worker/.venv/bin/python worker.py" ...
 Python buffers stdout by default. Force unbuffered output:
 
 ```bash
-lynxpm start "python3 -u worker.py" --name worker ...
+unitpm start "python3 -u worker.py" --name worker ...
 # Or set env var
-lynxpm start "python3 worker.py" --name worker --env PYTHONUNBUFFERED=1 ...
+unitpm start "python3 worker.py" --name worker --env PYTHONUNBUFFERED=1 ...
 ```
 
 ### Worker exits with 0 (not restarting on clean exit)
@@ -300,13 +300,13 @@ lynxpm start "python3 worker.py" --name worker --env PYTHONUNBUFFERED=1 ...
 Use `--restart always` if the worker should never stop:
 
 ```bash
-lynxpm start "python3 worker.py" --name worker --restart always ...
+unitpm start "python3 worker.py" --name worker --restart always ...
 ```
 
 ## See also
 
-- [lynxpm start](../reference/commands/start/) — full flag reference
+- [unitpm start](../reference/commands/start/) — full flag reference
 - [How to set environment variables for a Linux service](./linux-service-environment-variables/)
 - [Auto-restart on crash](./auto-restart-on-crash/)
 - [Monitor process memory and CPU on Linux](./monitor-process-memory-cpu-linux/)
-- [Lynx vs Supervisor](./vs-supervisor/) — detailed comparison
+- [unitpm vs Supervisor](./vs-supervisor/) — detailed comparison

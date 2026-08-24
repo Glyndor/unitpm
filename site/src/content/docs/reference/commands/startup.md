@@ -1,11 +1,11 @@
 ---
-title: "lynxpm startup"
-description: Install the Lynx daemon as a systemd service that starts on boot and restores all managed processes after a reboot. Supports system and user mode.
+title: "unitpm startup"
+description: Install the unitpm daemon as a systemd service that starts on boot and restores all managed processes after a reboot. Supports system and user mode.
 head:
   - tag: script
     attrs:
       type: application/ld+json
-    content: '{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Lynx","item":"https://jaro-c.github.io/Lynx/"},{"@type":"ListItem","position":2,"name":"Reference","item":"https://jaro-c.github.io/Lynx/reference/architecture/"},{"@type":"ListItem","position":3,"name":"lynxpm startup","item":"https://jaro-c.github.io/Lynx/reference/commands/startup/"}]}'
+    content: '{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"unitpm","item":"https://jaro-c.github.io/unitpm/"},{"@type":"ListItem","position":2,"name":"Reference","item":"https://jaro-c.github.io/unitpm/reference/architecture/"},{"@type":"ListItem","position":3,"name":"unitpm startup","item":"https://jaro-c.github.io/unitpm/reference/commands/startup/"}]}'
 sidebar:
   label: startup
 ---
@@ -13,12 +13,12 @@ sidebar:
 ## 📖 Synopsis
 
 ```bash
-lynxpm startup [flags]
+unitpm startup [flags]
 ```
 
 ## Description
 
-Generate and install the system startup script for Lynx. This command configures `systemd` to start the Lynx daemon automatically on boot.
+Generate and install the system startup script for unitpm. This command configures `systemd` to start the unitpm daemon automatically on boot.
 
 ## ⚙️ Flags
 
@@ -30,25 +30,25 @@ Generate and install the system startup script for Lynx. This command configures
 
 Generate and install systemd unit (requires sudo/root if installing to /etc):
 ```bash
-lynxpm startup
+unitpm startup
 ```
 
 ## 📋 Example Output
 
 Success:
 ```
-Lynx system daemon started. Autostart enabled.
+unitpm system daemon started. Autostart enabled.
 ```
 
 Failure (not root):
 ```
 Admin privileges required. Run:
-  sudo lynxpm startup
+  sudo unitpm startup
 ```
 
 Failure (no systemd):
 ```
-ERR_UNSUPPORTED: Lynx requires Linux with systemd
+ERR_UNSUPPORTED: unitpm requires Linux with systemd
 ```
 
 ## Notes

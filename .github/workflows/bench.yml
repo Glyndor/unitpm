@@ -40,7 +40,7 @@ jobs:
           docker build \
             ${{ inputs.no-cache == true && '--no-cache' || '' }} \
             -f scripts/bench/Dockerfile \
-            -t lynx-bench \
+            -t unitpm-bench \
             .
 
       - name: Run the bench
@@ -48,7 +48,7 @@ jobs:
           mkdir -p out
           docker run --rm \
             -v "$PWD/out:/src/scripts/bench/out" \
-            lynx-bench
+            unitpm-bench
 
       - name: Show results
         run: |

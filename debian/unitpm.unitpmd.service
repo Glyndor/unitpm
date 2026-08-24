@@ -1,0 +1,22 @@
+[Unit]
+Description=unitpm Process Manager Daemon
+After=network.target
+
+[Service]
+Type=simple
+ExecStart=/usr/sbin/unitpmd
+Restart=on-failure
+User=glyndor-unitpm
+Group=glyndor-unitpm
+RuntimeDirectory=unitpmd
+StateDirectory=glyndor/unitpm
+LogsDirectory=glyndor/unitpm
+# Hardening
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectSystem=strict
+ProtectHome=read-only
+ReadWritePaths=/var/lib/glyndor/unitpm /var/log/glyndor/unitpm /run/unitpmd
+
+[Install]
+WantedBy=multi-user.target

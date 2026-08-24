@@ -1,3 +1,6 @@
-lynxpm usr/bin
-lynxd usr/sbin
-debian/lynxpm.polkit.rules usr/share/polkit-1/rules.d
+# The binaries are not listed here. Under Go they were built into the top of
+# the tree and dh_install could find them by name; cargo puts them under
+# target/$(RUST_TARGET)/release, and this file cannot expand a variable. They
+# are installed by override_dh_auto_install in debian/rules instead, which
+# knows the target triple.
+debian/unitpm.polkit.rules usr/share/polkit-1/rules.d

@@ -25,15 +25,15 @@ Direct answers, no detours. Grouped by topic.
 
 | Can I…? | Yes/No | Example |
 |---------|--------|---------|
-| Start and forget | ✅ | `lynxpm start app.js --restart always` |
-| Stop all in a namespace | ✅ | `lynxpm stop --namespace prod` or `lynxpm stop 'prod:*'` |
-| Stop / restart / delete every managed process | ✅ | `lynxpm stop '*'` (quote the glob) |
-| Restart several at once | ✅ | `lynxpm restart a b c` |
-| Reload spec without stopping process | ❌ | `lynxpm reload` does stop+start; no hot-reload of spec |
+| Start and forget | ✅ | `unitpm start app.js --restart always` |
+| Stop all in a namespace | ✅ | `unitpm stop --namespace prod` or `unitpm stop 'prod:*'` |
+| Stop / restart / delete every managed process | ✅ | `unitpm stop '*'` (quote the glob) |
+| Restart several at once | ✅ | `unitpm restart a b c` |
+| Reload spec without stopping process | ❌ | `unitpm reload` does stop+start; no hot-reload of spec |
 | Send custom signal | ❌ | only `--stop-signal` for stop; use `kill -USR1 $(pidof app)` |
-| Scale without restarting | ✅ | `lynxpm scale app 5` (respects running instances) |
-| Scale down to 0 | ✅ | `lynxpm scale app 0` = equivalent delete all |
-| Reset `Restarts` counter | ✅ | `lynxpm reset app` |
+| Scale without restarting | ✅ | `unitpm scale app 5` (respects running instances) |
+| Scale down to 0 | ✅ | `unitpm scale app 0` = equivalent delete all |
+| Reset `Restarts` counter | ✅ | `unitpm reset app` |
 
 ---
 
@@ -47,7 +47,7 @@ Direct answers, no detours. Grouped by topic.
 | Never restart | ✅ | `--restart never` |
 | Stop on exit code X | ✅ | `--stop-on-exit 0,143,15` |
 | Custom stop timeout | ✅ | `--stop-timeout 30000` (30s) |
-| HTTP health check probe | ❌ | removed due to SSRF — use sidecar: `lynxpm start "curl -sSf http://localhost/h \|\| exit 1" --cron '@every 10s' --shell` |
+| HTTP health check probe | ❌ | removed due to SSRF — use sidecar: `unitpm start "curl -sSf http://localhost/h \|\| exit 1" --cron '@every 10s' --shell` |
 | Unix-style cron | ✅ | `--cron "0 */6 * * *"` |
 | Interval cron | ✅ | `--cron "@every 5s"` (min 5s) |
 
@@ -61,7 +61,7 @@ Direct answers, no detours. Grouped by topic.
 | Pass `.env` file | ✅ | `--env-file .env.production` |
 | Relative paths in `--env-file` | ✅ | relative to `--cwd` |
 | `..` in `--env-file` | ❌ | rejected `ERR_BAD_REQUEST` |
-| View env of a live process | ⚠️ | `lynxpm show <name>` shows spec; real env in `/proc/<pid>/environ` |
+| View env of a live process | ⚠️ | `unitpm show <name>` shows spec; real env in `/proc/<pid>/environ` |
 | Secrets without leaking in `ps` | ✅ | `--isolation dynamic` uses `LoadCredential` (systemd) |
 
 ---
@@ -90,7 +90,7 @@ Direct answers, no detours. Grouped by topic.
 | `--cwd` to `/etc` | ❌ | blocked: `/etc /proc /sys /boot /dev /run` |
 | Path traversal `../../etc` | ❌ | canonicalized + rejected |
 | `--shell` in system mode | ❌ | blocked (hardening); user mode yes |
-| View socket perms | `srw-rw---- lynx:lynxadm` (system) / `0600` (user) | |
+| View socket perms | `srw-rw---- glyndor-unitpm:unitpm` (system) / `0600` (user) | |
 
 ---
 
@@ -98,25 +98,25 @@ Direct answers, no detours. Grouped by topic.
 
 | Can I…? | Yes/No | Example |
 |---------|--------|---------|
-| Follow logs | ✅ | `lynxpm logs api --follow` |
-| stdout only | ✅ | `lynxpm logs api --stdout` |
-| stderr only | ✅ | `lynxpm logs api --stderr` |
-| Last N lines | ✅ | `lynxpm logs api --lines 50` |
+| Follow logs | ✅ | `unitpm logs api --follow` |
+| stdout only | ✅ | `unitpm logs api --stdout` |
+| stderr only | ✅ | `unitpm logs api --stderr` |
+| Last N lines | ✅ | `unitpm logs api --lines 50` |
 | JSON-formatted logs | ✅ | `--log-format json` at `start` |
 | Automatic rotation | ✅ | 50 MiB default, 3 backups (tunable env) |
-| Truncate logs | ✅ | `lynxpm flush api` |
+| Truncate logs | ✅ | `unitpm flush api` |
 | Redirect to custom dir | ✅ | `--log-dir /var/log/my-app` |
 | Redirect stdout to stderr | ❌ | both go to separate files |
 
 ---
 
-## 🏗️ Declarative (Lynxfile.yml)
+## 🏗️ Declarative (unitpm.yml)
 
 | Can I…? | Yes/No | Note |
 |---------|--------|------|
 | Multiple apps in one YAML | ✅ | all in the file's namespace |
 | Apply incrementally | ⚠️ | `apply` always creates new; must `delete` before re-applying |
-| Export running state → YAML | ✅ | `lynxpm export --namespace prod > apps.yml` |
+| Export running state → YAML | ✅ | `unitpm export --namespace prod > apps.yml` |
 | Dependencies between apps | ❌ | not implemented; starts independently |
 | Per-app env-file | ✅ | `env_file: .env` in each entry |
 | Lint before apply | ❌ | not exposed (though `apply` validates) |
@@ -129,12 +129,12 @@ Direct answers, no detours. Grouped by topic.
 |---------|--------|---------|
 | Preview without executing | ✅ | `--dry-run` / `-n` |
 | Silence output | ✅ | `--quiet` / `-q` |
-| Parseable JSON output | ✅ | `lynxpm list --json` / `lynxpm version --json` |
-| Shell completion | ✅ | `lynxpm completion bash\|zsh\|fish` |
-| Namespace:name syntax | ✅ | `lynxpm show prod:api` |
-| Resolve by ID prefix | ✅ | `lynxpm show 019d9` (if unique) |
-| Multiple lifecycle commands in 1 cmd | ✅ | `lynxpm stop a b c d` |
-| Bulk by namespace (stop/restart/reload/reset/delete/flush) | ✅ | `lynxpm restart --namespace prod` or `lynxpm restart 'prod:*'` |
+| Parseable JSON output | ✅ | `unitpm list --json` / `unitpm version --json` |
+| Shell completion | ✅ | `unitpm completion bash\|zsh\|fish` |
+| Namespace:name syntax | ✅ | `unitpm show prod:api` |
+| Resolve by ID prefix | ✅ | `unitpm show 019d9` (if unique) |
+| Multiple lifecycle commands in 1 cmd | ✅ | `unitpm stop a b c d` |
+| Bulk by namespace (stop/restart/reload/reset/delete/flush) | ✅ | `unitpm restart --namespace prod` or `unitpm restart 'prod:*'` |
 | HTTP API | ❌ | Unix socket IPC only |
 | Remote daemon via TCP | ❌ | socket is local-only by design |
 
@@ -152,7 +152,7 @@ Direct answers, no detours. Grouped by topic.
 | Java / JVM (Kotlin, Scala) | ✅ |
 | Erlang / Elixir | ✅ |
 | Bash scripts | ✅ |
-| Docker container | ⚠️ | yes via `docker run`, but lynxpm sandbox redundant |
+| Docker container | ⚠️ | yes via `docker run`, but unitpm sandbox redundant |
 | Windows .exe | ❌ | Linux-only |
 | GUI apps (X11/Wayland) | ⚠️ | technically yes, but sandbox blocks access |
 
@@ -164,10 +164,10 @@ See [`RUNTIMES.md`](RUNTIMES.md) for per-runtime recipes.
 
 | Can I…? | Yes/No | How |
 |---------|--------|-----|
-| Auto-start on boot | ✅ | `sudo lynxpm startup` (systemd) |
+| Auto-start on boot | ✅ | `sudo unitpm startup` (systemd) |
 | Restore specs after reboot | ✅ | automatic on daemon start |
-| Backup state | ✅ | copy `~/.config/lynx/apps/*.json` |
-| Migrate between hosts | ✅ | `lynxpm export` → copy YAML → `lynxpm apply` |
+| Backup state | ✅ | copy `~/.config/unitpm/apps/*.json` |
+| Migrate between hosts | ✅ | `unitpm export` → copy YAML → `unitpm apply` |
 | Kill daemon without killing apps | ✅ (dynamic) / ❌ (self) | in `dynamic` apps survive (systemd-managed); in `self` they die |
 
 ---
@@ -177,10 +177,10 @@ See [`RUNTIMES.md`](RUNTIMES.md) for per-runtime recipes.
 | Feature | Alternative |
 |---------|-------------|
 | HTTP health check (`--health-url`) | Sidecar cron with `curl` |
-| `lynxpm attach` / interactive stdin | no `docker exec`-style |
-| Prometheus metrics endpoint | Parse `lynxpm list --json` from your scraper |
+| `unitpm attach` / interactive stdin | no `docker exec`-style |
+| Prometheus metrics endpoint | Parse `unitpm list --json` from your scraper |
 | Watch file mode (`--watch`) | Use nodemon/cargo-watch as sidecar |
-| Deploy via SSH | Use Ansible / Terraform / rsync + `lynxpm apply` |
+| Deploy via SSH | Use Ansible / Terraform / rsync + `unitpm apply` |
 | Modules/plugins | No plugin system |
 | Hot-reload live spec | Do `delete` + `apply` |
 | Mac / Windows | Linux-only (kernel features required) |
@@ -191,12 +191,12 @@ See [`RUNTIMES.md`](RUNTIMES.md) for per-runtime recipes.
 
 | Error | What it means | Fix |
 |-------|---------------|-----|
-| `cannot reach the Lynx daemon` | daemon off | `lynxd &` (user) or `sudo systemctl start lynxd` (system) |
+| `cannot reach the unitpm daemon` | daemon off | `unitpmd &` (user) or `sudo systemctl start unitpmd` (system) |
 | `ERR_RATE_LIMIT` | exceeded 100 req/s | Wait. Drop to normal burst. |
 | `ERR_CONFLICT: ... already exists` | duplicate `ns:name` | different name or namespace |
 | `invalid name format` | name with forbidden char | only `a-zA-Z0-9 ._-:#@!,()+=&` |
-| `cwd is a restricted system directory` | `--cwd /etc` etc | use `/srv`, `/var/lib/lynx-pm`, `/tmp` |
-| `cwd is not accessible to the daemon user` | user mismatch system mode | `--cwd /srv/something` that `lynx` user can read |
+| `cwd is a restricted system directory` | `--cwd /etc` etc | use `/srv`, `/var/lib/unitpm`, `/tmp` |
+| `cwd is not accessible to the daemon user` | user mismatch system mode | `--cwd /srv/something` that `glyndor-unitpm` user can read |
 | `ERR_UNSUPPORTED: run_as=dynamic requires system daemon` | dynamic in user mode | use `sandbox` or run daemon in system-mode |
-| `fork/exec: executable not found` | binary not in daemon PATH | `lynxpm install-tools` |
+| `fork/exec: executable not found` | binary not in daemon PATH | `unitpm install-tools` |
 | `ambiguous argument 'X'` | multiple matches | use full `ns:name` or ID |

@@ -1,3 +1,9 @@
+# shellcheck shell=bash
+# shellcheck disable=SC2034  # the scenarios read these after sourcing this file,
+# which shellcheck cannot see from here.
+#
+# Sourced by the bench scenarios; it has no shebang because it is never
+# executed directly, so shellcheck needs telling which shell to assume.
 # Shared helpers for the supervisor benchmarks.
 # Sourced by scenarios/*.sh and run.sh.
 
@@ -96,7 +102,7 @@ COLD_RUNS=3
 # Procs supervised per tier. Each tier is measured cumulatively against the
 # same daemon (so the scenario only starts the *delta* between tiers — e.g.
 # 10, then +40, then +50). Override TIERS to widen the matrix manually.
-TIERS=(${TIERS:-10 50 100})
+IFS=' ' read -r -a TIERS <<< "${TIERS:-10 50 100}"
 
 # Largest tier value, used by supervisord which has to preconfigure programs
 # before the daemon launches.

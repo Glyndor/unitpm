@@ -1,12 +1,12 @@
-# Running Apps with Lynx — by Runtime
+# Running Apps with unitpm — by Runtime
 
-Lynx is language-agnostic. It executes whatever command you give it as a child
+unitpm is language-agnostic. It executes whatever command you give it as a child
 process and supervises the PID. The `--runtime` flag and file-extension
 auto-detection are convenience shortcuts — they never restrict what you can
 actually run.
 
 > **Verification status.** The following runtimes are exercised end-to-end
-> through `lynxpm start` in a clean systemd-nspawn container with the Debian
+> through `unitpm start` in a clean systemd-nspawn container with the Debian
 > package installed:
 >
 > Node 18, Bun 1.3, Deno 2.7, Python 3.12 (system / venv / uv / uvx),
@@ -20,14 +20,14 @@ actually run.
 Two things matter:
 
 1. **The daemon must see the binary you're asking for.** In system mode the
-   daemon runs as the `lynx` user and searches its own `PATH`. If your
+   daemon runs as the `glyndor-unitpm` user and searches its own `PATH`. If your
    interpreter lives under `~/.local/bin`, `~/.bun/bin`, or an fnm/nvm
-   shell-managed directory, run `lynxpm install-tools` (user mode) or
-   `sudo lynxpm install-tools --system` to symlink the important ones into a
-   place lynxd will find them.
+   shell-managed directory, run `unitpm install-tools` (user mode) or
+   `sudo unitpm install-tools --system` to symlink the important ones into a
+   place unitpmd will find them.
 2. **The cwd must be accessible to the daemon user.** In system mode the
-   daemon runs as `lynx` and cannot read `/root` or other users' `$HOME`.
-   Pass `--cwd` to a directory the daemon can enter (e.g. `/var/lib/lynx-pm`,
+   daemon runs as `glyndor-unitpm` and cannot read `/root` or other users' `$HOME`.
+   Pass `--cwd` to a directory the daemon can enter (e.g. `/var/lib/unitpm`,
    `/srv/yourapp`, `/tmp`).
 
 ---
@@ -36,41 +36,41 @@ Two things matter:
 
 ```bash
 # Single file, auto-detected by extension
-lynxpm start server.js
+unitpm start server.js
 
 # Explicit runtime
-lynxpm start app.mjs --runtime node
+unitpm start app.mjs --runtime node
 
 # With args
-lynxpm start "node --inspect server.js" --name api
+unitpm start "node --inspect server.js" --name api
 
 # Package.json scripts
-lynxpm start "npm run start" --name api --cwd /srv/api --shell
-lynxpm start "pnpm start"     --name api --cwd /srv/api --shell
-lynxpm start "yarn start"     --name api --cwd /srv/api --shell
+unitpm start "npm run start" --name api --cwd /srv/api --shell
+unitpm start "pnpm start"     --name api --cwd /srv/api --shell
+unitpm start "yarn start"     --name api --cwd /srv/api --shell
 
 # Version-managed Node (fnm / nvm)
 # Best: resolve the binary once and pass the full path.
-lynxpm start "$(fnm current-path)/node server.js" --shell
+unitpm start "$(fnm current-path)/node server.js" --shell
 
 # Cluster / multi-instance
-lynxpm start server.js --name worker --scale 4
+unitpm start server.js --name worker --scale 4
 ```
 
-`--scale N` exposes `LYNX_INSTANCE=0..N-1` to each child so your app can
-bind to different ports (`const port = 3000 + Number(process.env.LYNX_INSTANCE)`).
+`--scale N` exposes `UNITPM_INSTANCE=0..N-1` to each child so your app can
+bind to different ports (`const port = 3000 + Number(process.env.UNITPM_INSTANCE)`).
 
 ## Bun
 
 ```bash
-lynxpm start "bun run server.ts" --name api --cwd /srv/api
-lynxpm start "bun dev" --name dev-server
+unitpm start "bun run server.ts" --name api --cwd /srv/api
+unitpm start "bun dev" --name dev-server
 ```
 
 ## Deno
 
 ```bash
-lynxpm start "deno run --allow-net server.ts" --name api --cwd /srv/api
+unitpm start "deno run --allow-net server.ts" --name api --cwd /srv/api
 ```
 
 ## Python
@@ -78,21 +78,21 @@ lynxpm start "deno run --allow-net server.ts" --name api --cwd /srv/api
 ### System interpreter
 
 ```bash
-lynxpm start app.py --runtime python3
+unitpm start app.py --runtime python3
 # or explicit
-lynxpm start "python3 -u app.py" --name api --cwd /srv/api
+unitpm start "python3 -u app.py" --name api --cwd /srv/api
 ```
 
-The `-u` flag keeps stdout unbuffered so `lynxpm logs` streams in real time.
+The `-u` flag keeps stdout unbuffered so `unitpm logs` streams in real time.
 
 ### Virtualenv (venv)
 
 ```bash
 # Option 1: point directly at the venv's python
-lynxpm start "/srv/api/.venv/bin/python app.py" --cwd /srv/api --name api
+unitpm start "/srv/api/.venv/bin/python app.py" --cwd /srv/api --name api
 
 # Option 2: activate and run inside a shell
-lynxpm start "source .venv/bin/activate && python -u app.py" \
+unitpm start "source .venv/bin/activate && python -u app.py" \
     --cwd /srv/api --shell --name api
 ```
 
@@ -103,25 +103,25 @@ execute within the project's lockfile-pinned env without pre-activation:
 
 ```bash
 # Run a script via uv
-lynxpm start "uv run app.py" --cwd /srv/api --name api
+unitpm start "uv run app.py" --cwd /srv/api --name api
 
 # Run a tool ad-hoc via uvx
-lynxpm start "uvx --from 'httpie' http :8080/health" --name probe --shell
+unitpm start "uvx --from 'httpie' http :8080/health" --name probe --shell
 
 # Pin a Python version
-lynxpm start "uv run --python 3.12 app.py" --cwd /srv/api --name api
+unitpm start "uv run --python 3.12 app.py" --cwd /srv/api --name api
 ```
 
 ### pyenv
 
 ```bash
-lynxpm start "$(pyenv which python) app.py" --cwd /srv/api --shell --name api
+unitpm start "$(pyenv which python) app.py" --cwd /srv/api --shell --name api
 ```
 
 ### FastAPI / uvicorn / gunicorn
 
 ```bash
-lynxpm start "uv run uvicorn main:app --host 0.0.0.0 --port 8080" \
+unitpm start "uv run uvicorn main:app --host 0.0.0.0 --port 8080" \
     --cwd /srv/api --name api --restart always
 ```
 
@@ -129,14 +129,14 @@ lynxpm start "uv run uvicorn main:app --host 0.0.0.0 --port 8080" \
 
 ```bash
 # Source file, auto-detected (uses `go run`)
-lynxpm start main.go
+unitpm start main.go
 
 # Compiled binary (preferred for production)
 go build -o /srv/api/bin/api ./cmd/api
-lynxpm start /srv/api/bin/api --cwd /srv/api --name api --restart always
+unitpm start /srv/api/bin/api --cwd /srv/api --name api --restart always
 
 # `go run` with args
-lynxpm start "go run ./cmd/api --config /srv/api/config.yml" --cwd /srv/api
+unitpm start "go run ./cmd/api --config /srv/api/config.yml" --cwd /srv/api
 ```
 
 In production you almost always want the compiled binary — `go run`
@@ -147,40 +147,40 @@ re-compiles every restart.
 ```bash
 # Compiled (release)
 cargo build --release
-lynxpm start ./target/release/api --cwd /srv/api --name api
+unitpm start ./target/release/api --cwd /srv/api --name api
 
 # cargo run (dev only)
-lynxpm start "cargo run --release" --cwd /srv/api --shell --name api
+unitpm start "cargo run --release" --cwd /srv/api --shell --name api
 ```
 
 ## Ruby / Rails
 
 ```bash
 # System ruby
-lynxpm start "bundle exec rails server -e production" --cwd /srv/api --shell
+unitpm start "bundle exec rails server -e production" --cwd /srv/api --shell
 
 # rbenv
-lynxpm start "$(rbenv which bundle) exec rails s" --cwd /srv/api --shell
+unitpm start "$(rbenv which bundle) exec rails s" --cwd /srv/api --shell
 ```
 
 ## Java / JVM (Spring, Kotlin, Scala)
 
 ```bash
-lynxpm start "java -Xmx512m -jar app.jar" --cwd /srv/api --name api
+unitpm start "java -Xmx512m -jar app.jar" --cwd /srv/api --name api
 
 # With JAVA_HOME from env-file
 echo "JAVA_HOME=/opt/jdk-21" > /srv/api/.env
-lynxpm start "/opt/jdk-21/bin/java -jar app.jar" \
+unitpm start "/opt/jdk-21/bin/java -jar app.jar" \
     --cwd /srv/api --env-file /srv/api/.env --name api
 ```
 
 ## Shell scripts
 
 ```bash
-lynxpm start /srv/api/start.sh --name api
+unitpm start /srv/api/start.sh --name api
 
 # Inline command
-lynxpm start "bash -c 'while true; do date; sleep 5; done'" --shell --name clock
+unitpm start "bash -c 'while true; do date; sleep 5; done'" --shell --name clock
 ```
 
 The `--shell` flag wraps your command in `sh -c '…'`, which you need for
@@ -190,10 +190,10 @@ user mode it works as expected.
 
 ## Docker container as a managed process
 
-You can make Lynx babysit a specific `docker run`:
+You can make unitpm babysit a specific `docker run`:
 
 ```bash
-lynxpm start "docker run --rm --name myapp nginx" --name myapp --restart always
+unitpm start "docker run --rm --name myapp nginx" --name myapp --restart always
 ```
 
 …but for most workloads a native binary + `--isolation sandbox` gives you
@@ -208,7 +208,7 @@ cat > /srv/api/.env <<EOF
 DATABASE_URL=postgres://…
 PORT=8080
 EOF
-lynxpm start "uv run app.py" --cwd /srv/api --env-file /srv/api/.env
+unitpm start "uv run app.py" --cwd /srv/api --env-file /srv/api/.env
 ```
 
 In `--isolation dynamic` the env-file is delivered via systemd
@@ -226,18 +226,18 @@ See `SECURITY.md` for the threat-model behind each mode.
 
 ## Startup
 
-Make Lynx and your apps survive reboots:
+Make unitpm and your apps survive reboots:
 
 ```bash
-sudo systemctl enable --now lynxd   # system mode
+sudo systemctl enable --now unitpmd   # system mode
 # or
-lynxpm startup                              # user mode — wires the user systemd unit
+unitpm startup                              # user mode — wires the user systemd unit
 ```
 
-When `lynxd` starts it calls `manager.Restore()` which re-reads the specs in
-`~/.config/lynx/apps` and re-spawns any app that was running before.
+When `unitpmd` starts it calls `manager.Restore()` which re-reads the specs in
+`~/.config/unitpm/apps` and re-spawns any app that was running before.
 
-## What `lynxpm install-tools` does
+## What `unitpm install-tools` does
 
 Scans for common dev tools (bun, node, npm, pnpm, yarn, go, python3, pip,
 ruby, cargo, java, deno) and symlinks them into `~/.local/bin` (default) or

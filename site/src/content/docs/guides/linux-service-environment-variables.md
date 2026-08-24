@@ -1,9 +1,9 @@
 ---
 title: How to set environment variables for a Linux service
-description: Pass environment variables to a Linux service using Lynx process manager, plain systemd, or PM2. Covers env files, inline vars, secrets management, and per-environment configuration.
+description: Pass environment variables to a Linux service using unitpm process manager, plain systemd, or PM2. Covers env files, inline vars, secrets management, and per-environment configuration.
 ---
 
-Passing configuration to a Linux service securely — without leaking secrets into shell history or process listings — requires a deliberate strategy. This guide covers how to set environment variables for a Linux service using Lynx process manager, plain systemd, and PM2.
+Passing configuration to a Linux service securely — without leaking secrets into shell history or process listings — requires a deliberate strategy. This guide covers how to set environment variables for a Linux service using unitpm process manager, plain systemd, and PM2.
 
 ## The problem with inline environment variables
 
@@ -20,19 +20,19 @@ Environment variables passed inline:
 
 Use env files or systemd `EnvironmentFile` instead.
 
-## Lynx: environment variable options
+## unitpm: environment variable options
 
 ### Option 1: env file (recommended)
 
 ```bash
-lynxpm start "node server.js" \
+unitpm start "node server.js" \
   --name api \
   --restart always \
   --cwd /srv/api \
   --env-file /srv/api/.env.production
 ```
 
-Lynx passes the file to systemd's `EnvironmentFile=` directive. Variables are loaded into the process environment but never stored in process listings.
+unitpm passes the file to systemd's `EnvironmentFile=` directive. Variables are loaded into the process environment but never stored in process listings.
 
 **`.env.production` format**:
 
@@ -49,7 +49,7 @@ Lines starting with `#` are comments. Quotes are optional (values are not shell-
 ### Option 2: inline env vars
 
 ```bash
-lynxpm start "node server.js" \
+unitpm start "node server.js" \
   --name api \
   --restart always \
   --env NODE_ENV=production \
@@ -58,7 +58,7 @@ lynxpm start "node server.js" \
 
 Use this only for non-sensitive configuration. Multiple `--env` flags are supported.
 
-### Option 3: Lynxfile.yml
+### Option 3: unitpm.yml
 
 Declare variables in your declarative config:
 
@@ -81,10 +81,10 @@ processes:
 
 ```bash
 # Show all env vars for a running process
-lynxpm show api --env
+unitpm show api --env
 
 # Or read from /proc directly
-cat /proc/$(lynxpm show api --pid)/environ | tr '\0' '\n'
+cat /proc/$(unitpm show api --pid)/environ | tr '\0' '\n'
 ```
 
 ## Plain systemd: EnvironmentFile
@@ -159,14 +159,14 @@ A common pattern is multiple env files with an override layer:
 └── .env.staging       # staging overrides
 ```
 
-With Lynx, pass the environment-specific file:
+With unitpm, pass the environment-specific file:
 
 ```bash
 # Production server
-lynxpm start "node server.js" --name api --env-file /srv/api/.env.production
+unitpm start "node server.js" --name api --env-file /srv/api/.env.production
 
 # Staging server
-lynxpm start "node server.js" --name api --env-file /srv/api/.env.staging
+unitpm start "node server.js" --name api --env-file /srv/api/.env.staging
 ```
 
 ## Secrets management
@@ -189,7 +189,7 @@ Mount secrets from a secrets manager (Vault, AWS Secrets Manager, Doppler) at de
 
 ```bash
 # Doppler example
-doppler run -- lynxpm start "node server.js" --name api --restart always
+doppler run -- unitpm start "node server.js" --name api --restart always
 ```
 
 ### 3. systemd credentials
@@ -213,7 +213,7 @@ sudo chown www-data:www-data /srv/api/.env.production
 sudo chmod 600 /srv/api/.env.production
 ```
 
-With Lynx's `DynamicUser=true` (default), the service runs as a generated user. Pass the env file path; Lynx configures systemd to read it with the right permissions.
+With unitpm's `DynamicUser=true` (default), the service runs as a generated user. Pass the env file path; unitpm configures systemd to read it with the right permissions.
 
 ## Common mistakes
 
@@ -227,7 +227,7 @@ With Lynx's `DynamicUser=true` (default), the service runs as a generated user. 
 
 ## See also
 
-- [lynxpm start](../reference/commands/start/) — full flag reference
+- [unitpm start](../reference/commands/start/) — full flag reference
 - [How to run a Node.js app as a Linux service](./nodejs-linux-service/)
 - [Run a Python worker as a Linux service](./python-worker-linux/)
 - [systemd DynamicUser sandboxing](./systemd-dynamicuser/)

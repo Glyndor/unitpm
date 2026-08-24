@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Exits 1 after 1 second. Used to regression-test the
-`--restart on-failure --max-restarts N` cap: Lynx should stop
+`--restart on-failure --max-restarts N` cap: unitpm should stop
 restarting after N attempts and leave the process in failed state."""
 
 import os

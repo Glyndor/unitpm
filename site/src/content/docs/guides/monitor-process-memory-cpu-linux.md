@@ -1,23 +1,23 @@
 ---
 title: How to monitor process memory and CPU usage on Linux
-description: Monitor memory and CPU usage of Linux processes with Lynx monit dashboard, lynxpm show, systemd-cgtop, and standard Linux tools. Set alerts and resource limits to prevent runaway processes.
+description: Monitor memory and CPU usage of Linux processes with unitpm monit dashboard, unitpm show, systemd-cgtop, and standard Linux tools. Set alerts and resource limits to prevent runaway processes.
 ---
 
-A process that consumes all available memory or pins the CPU to 100% will degrade or crash other services on the same host. This guide covers how to **monitor process memory and CPU usage on Linux** using Lynx's built-in tools and standard Linux utilities.
+A process that consumes all available memory or pins the CPU to 100% will degrade or crash other services on the same host. This guide covers how to **monitor process memory and CPU usage on Linux** using unitpm's built-in tools and standard Linux utilities.
 
-## Lynx: built-in monitoring
+## unitpm: built-in monitoring
 
 ### Live dashboard
 
 ```bash
-lynxpm monit
+unitpm monit
 ```
 
 Renders a terminal dashboard with real-time CPU%, RSS memory, uptime, restart count, and PID for every managed process. Updates every second. Press `q` to exit.
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│  Lynx — Process Monitor              2026-05-01 14:32:01    │
+│  unitpm — Process Monitor              2026-05-01 14:32:01    │
 ├──────────┬────────┬──────────┬───────┬───────┬─────────────┤
 │ id       │ name   │ status   │ cpu % │ rss   │ restarts    │
 ├──────────┼────────┼──────────┼───────┼───────┼─────────────┤
@@ -30,7 +30,7 @@ Renders a terminal dashboard with real-time CPU%, RSS memory, uptime, restart co
 ### Per-process stats
 
 ```bash
-lynxpm show api
+unitpm show api
 ```
 
 Output:
@@ -49,7 +49,7 @@ Namespace: default
 ### JSON output for scripting
 
 ```bash
-lynxpm show api --json
+unitpm show api --json
 # {
 #   "name": "api",
 #   "status": "running",
@@ -60,7 +60,7 @@ lynxpm show api --json
 # }
 
 # Parse with jq
-lynxpm list --json | jq '.[] | select(.rss_bytes > 500000000)'
+unitpm list --json | jq '.[] | select(.rss_bytes > 500000000)'
 ```
 
 ## Set resource limits (prevent runaway processes)
@@ -68,18 +68,18 @@ lynxpm list --json | jq '.[] | select(.rss_bytes > 500000000)'
 ### Memory limit
 
 ```bash
-lynxpm start "node server.js" \
+unitpm start "node server.js" \
   --name api \
   --restart always \
   --memory-max 512M
 ```
 
-When the process exceeds 512 MB RSS, systemd sends SIGKILL. Lynx then restarts it according to the restart policy. This prevents one service from OOM-killing the entire host.
+When the process exceeds 512 MB RSS, systemd sends SIGKILL. unitpm then restarts it according to the restart policy. This prevents one service from OOM-killing the entire host.
 
 ### CPU limit
 
 ```bash
-lynxpm start "python worker.py" \
+unitpm start "python worker.py" \
   --name worker \
   --restart on-failure \
   --cpu-max 200
@@ -90,7 +90,7 @@ lynxpm start "python worker.py" \
 ### Both limits together
 
 ```yaml
-# Lynxfile.yml
+# unitpm.yml
 version: 1
 processes:
   api:
@@ -144,7 +144,7 @@ cat /proc/2336612/stat | awk '{print "user:", $14, "sys:", $15}'
 
 ### systemd-cgtop
 
-Monitor cgroup resource usage — works perfectly with Lynx since each managed process is a systemd transient unit:
+Monitor cgroup resource usage — works perfectly with unitpm since each managed process is a systemd transient unit:
 
 ```bash
 systemd-cgtop
@@ -154,10 +154,10 @@ Shows CPU%, memory, and I/O per cgroup in real time. Press `m` to sort by memory
 
 ### systemctl status
 
-For a Lynx-managed process `api`, the underlying unit is `lynx-api.service`:
+For a unitpm-managed process `api`, the underlying unit is `my-api.service`:
 
 ```bash
-systemctl status lynx-api.service
+systemctl status my-api.service
 # Shows: memory usage, CPU time, cgroup limits
 ```
 
@@ -169,7 +169,7 @@ A process with a memory leak shows steadily increasing RSS over hours. Script a 
 #!/bin/bash
 # /usr/local/bin/mem-watch
 while true; do
-  rss=$(lynxpm show api --json | jq .rss_bytes)
+  rss=$(unitpm show api --json | jq .rss_bytes)
   echo "$(date +%s) $rss" >> /var/log/api-rss.log
   sleep 60
 done
@@ -178,16 +178,16 @@ done
 Or use `watch` for a live view:
 
 ```bash
-watch -n5 'lynxpm show api --json | jq .rss_bytes'
+watch -n5 'unitpm show api --json | jq .rss_bytes'
 ```
 
 ## Alerting on high memory or CPU
 
-With Lynx's JSON output, integrate into any monitoring system:
+With unitpm's JSON output, integrate into any monitoring system:
 
 ```bash
 # Simple bash alert
-rss=$(lynxpm show api --json | jq .rss_bytes)
+rss=$(unitpm show api --json | jq .rss_bytes)
 limit=$((400 * 1024 * 1024))  # 400 MB
 if [ "$rss" -gt "$limit" ]; then
   echo "ALERT: api using ${rss} bytes RSS" | mail -s "High memory" ops@example.com
@@ -198,7 +198,7 @@ For production monitoring, use Prometheus + node_exporter or the systemd collect
 
 ```bash
 # Node exporter exposes systemd unit metrics
-# systemd_unit_process_resident_memory_bytes{name="lynx-api.service"}
+# systemd_unit_process_resident_memory_bytes{name="my-api.service"}
 ```
 
 ## Diagnose high memory
@@ -207,25 +207,25 @@ If a process grows unexpectedly:
 
 ```bash
 # 1. Check restart history
-lynxpm show api
+unitpm show api
 # Restarts: 0 → steady growth, likely leak
 # Restarts: 47 → crash loop, different problem
 
 # 2. Check logs around the time memory spiked
-lynxpm logs api --lines 200
+unitpm logs api --lines 200
 
 # 3. Profile (Node.js example)
 # Start with --inspect and connect Chrome DevTools
-lynxpm start "node --inspect=0.0.0.0:9229 server.js" --name api ...
+unitpm start "node --inspect=0.0.0.0:9229 server.js" --name api ...
 
 # 4. Force a controlled restart if memory is critical
-lynxpm restart api
+unitpm restart api
 ```
 
 ## See also
 
-- [lynxpm monit](../reference/commands/monit/) — live dashboard reference
-- [lynxpm show](../reference/commands/show/) — per-process stats
+- [unitpm monit](../reference/commands/monit/) — live dashboard reference
+- [unitpm show](../reference/commands/show/) — per-process stats
 - [Auto-restart on crash](./auto-restart-on-crash/)
 - [systemd DynamicUser sandboxing](./systemd-dynamicuser/)
 - [How to run a Node.js app as a Linux service](./nodejs-linux-service/)

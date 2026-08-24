@@ -1,17 +1,17 @@
 ---
 title: Introduction
-description: Lynx is a systemd-native process manager for Linux — 15 MB idle, 8 ms cold start. Secure alternative to PM2 and Supervisor with DynamicUser + landlock sandboxing.
+description: unitpm is a systemd-native process manager for Linux — 15 MB idle, 8 ms cold start. Secure alternative to PM2 and Supervisor with DynamicUser + landlock sandboxing.
 ---
 
-Lynx is a **process manager for Linux** — spawn, supervise, restart, and
+unitpm is a **process manager for Linux** — spawn, supervise, restart, and
 contain long-running apps. Think PM2 or Supervisor, but compiled,
 secure, and built directly on top of `systemd` instead of reinventing
 the wheel.
 
 ## What you get
 
-- **A CLI (`lynxpm`) + daemon (`lynxd`)** that talk over a local unix
-  socket. `lynxpm` stays out of the supervision path — the daemon is
+- **A CLI (`unitpm`) + daemon (`unitpmd`)** that talk over a local unix
+  socket. `unitpm` stays out of the supervision path — the daemon is
   the one holding the apps up, so quitting the CLI never kills your
   services.
 - **`systemd`-native supervision**: the daemon delegates restart,
@@ -34,12 +34,12 @@ the wheel.
 
 ## What it is not
 
-- **Not a container runtime.** Lynx isolates via systemd + landlock,
+- **Not a container runtime.** unitpm isolates via systemd + landlock,
   not namespaces + OCI images. Use it alongside containers, not
   instead.
 - **Not cross-platform.** Linux only. macOS and Windows are explicit
   non-goals.
-- **Not a replacement for `systemd` itself.** Lynx generates units —
+- **Not a replacement for `systemd` itself.** unitpm generates units —
   if you already hand-author unit files, keep doing that.
 
 ## Next

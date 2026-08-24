@@ -1,11 +1,11 @@
 ---
-title: "lynxpm apply"
-description: Declaratively create and start processes from a Lynxfile.yml under Lynx process manager. Reads YAML specs and starts each app with its stored config.
+title: "unitpm apply"
+description: Declaratively create and start processes from a unitpm.yml under unitpm process manager. Reads YAML specs and starts each app with its stored config.
 head:
   - tag: script
     attrs:
       type: application/ld+json
-    content: '{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Lynx","item":"https://jaro-c.github.io/Lynx/"},{"@type":"ListItem","position":2,"name":"Reference","item":"https://jaro-c.github.io/Lynx/reference/architecture/"},{"@type":"ListItem","position":3,"name":"lynxpm apply","item":"https://jaro-c.github.io/Lynx/reference/commands/apply/"}]}'
+    content: '{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"unitpm","item":"https://jaro-c.github.io/unitpm/"},{"@type":"ListItem","position":2,"name":"Reference","item":"https://jaro-c.github.io/unitpm/reference/architecture/"},{"@type":"ListItem","position":3,"name":"unitpm apply","item":"https://jaro-c.github.io/unitpm/reference/commands/apply/"}]}'
 sidebar:
   label: apply
 ---
@@ -13,19 +13,19 @@ sidebar:
 ## 📖 Synopsis
 
 ```bash
-lynxpm apply [--json] <Lynxfile.yml>
+unitpm apply [--json] <unitpm.yml>
 ```
 
 ## Description
 
-Apply a declarative Lynxfile to create and start one or more applications.
+Apply a declarative unitpm.yml to create and start one or more applications.
 Each app entry in the file is converted into an AppSpec, saved securely,
 and started via the daemon. Apply aborts on the first failure — any
 successfully-started apps remain running. When `--json` is used and an
 abort happens mid-file, the partial report is still emitted on stdout with
 `partial: true` so callers can see exactly which apps started.
 
-## Lynxfile format
+## unitpm.yml format
 
 ```yaml
 version: "1"
@@ -37,7 +37,7 @@ apps:
     env:
       PORT: "3000"
     logs:
-      dir: "/var/log/lynx-pm"
+      dir: "/var/log/unitpm"
       stdout: "stdout.log"
       stderr: "stderr.log"
     restart:
@@ -56,17 +56,17 @@ apps:
 
 ## 🚀 Examples
 
-Apply a Lynxfile:
+Apply a unitpm.yml:
 ```bash
-lynxpm apply ./Lynxfile.yml
+unitpm apply ./unitpm.yml
 ```
 
 Apply and collect outcomes:
 ```bash
-lynxpm apply ./Lynxfile.yml --json | jq '.results[] | {id, status, extra}'
+unitpm apply ./unitpm.yml --json | jq '.results[] | {id, status, extra}'
 ```
 
 ## Notes
 
-- Specs are stored in `~/.config/lynx/apps` with `0600` permissions.
+- Specs are stored in `~/.config/unitpm/apps` with `0600` permissions.
 - If `namespace` is omitted per app, the file‑level namespace or `default` is used.

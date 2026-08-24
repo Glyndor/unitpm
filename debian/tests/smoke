@@ -1,51 +1,51 @@
 #!/bin/sh
-# Package-level smoke test: runs after lynxpm is installed. Validates binaries
+# Package-level smoke test: runs after unitpm is installed. Validates binaries
 # landed, support files are in place, and the CLI can parse its own flags.
 # Does not start the daemon — autopkgtest containers rarely have systemd as PID 1.
 set -eux
 
 # Binaries on PATH.
-command -v lynxpm
-command -v lynxd
+command -v unitpm
+command -v unitpmd
 
 # Declared version printable.
-lynxpm --version
-lynxpm --help >/dev/null
+unitpm --version
+unitpm --help >/dev/null
 
 # systemd unit + polkit rules installed where maintainer scripts expect.
-[ -f /usr/lib/systemd/system/lynxd.service ] || [ -f /lib/systemd/system/lynxd.service ]
-[ -f /usr/share/polkit-1/rules.d/lynxpm.polkit.rules ] || \
-[ -f /usr/share/polkit-1/rules.d/lynx.polkit.rules ]
+[ -f /usr/lib/systemd/system/unitpmd.service ] || [ -f /lib/systemd/system/unitpmd.service ]
+[ -f /usr/share/polkit-1/rules.d/unitpm.polkit.rules ] || \
+[ -f /usr/share/polkit-1/rules.d/unitpm.polkit.rules ]
 
-# Package created the lynx system user + lynxadm group via postinst.
-getent passwd lynx
-getent group lynxadm
+# Package created the glyndor-unitpm system user + unitpm group via postinst.
+getent passwd glyndor-unitpm
+getent group unitpm
 
 # State + log dirs exist with the expected ownership.
-[ -d /var/lib/lynx-pm ]
-[ -d /var/log/lynx-pm ]
-[ "$(stat -c '%U:%G' /var/lib/lynx-pm)" = "lynx:lynx" ]
-[ "$(stat -c '%U:%G' /var/log/lynx-pm)" = "lynx:lynx" ]
+[ -d /var/lib/glyndor/unitpm ]
+[ -d /var/log/glyndor/unitpm ]
+[ "$(stat -c '%U:%G' /var/lib/glyndor/unitpm)" = "glyndor-unitpm:glyndor-unitpm" ]
+[ "$(stat -c '%U:%G' /var/log/glyndor/unitpm)" = "glyndor-unitpm:glyndor-unitpm" ]
 
 # Daemon binary lives in /usr/sbin (debian/install), not /usr/bin. Catches
-# a bad install layout that would still pass `command -v lynxd` on root's
+# a bad install layout that would still pass `command -v unitpmd` on root's
 # PATH but break non-root users that only have /usr/bin.
-[ -x /usr/sbin/lynxd ]
-[ -x /usr/bin/lynxpm ]
+[ -x /usr/sbin/unitpmd ]
+[ -x /usr/bin/unitpm ]
 
 # logrotate config present and parseable. `logrotate -d` exits non-zero on
 # a broken stanza, so this catches both packaging drops and syntax bugs.
-[ -f /etc/logrotate.d/lynxpm ]
+[ -f /etc/logrotate.d/unitpm ]
 if command -v logrotate >/dev/null 2>&1; then
-    logrotate -d /etc/logrotate.d/lynxpm >/dev/null
+    logrotate -d /etc/logrotate.d/unitpm >/dev/null
 fi
 
 # logrotate must rotate at the same triggers + retention as the daemon's
 # internal rotation: 50 MiB OR weekly, keep 12, delaycompress, skip
 # empty. If these drift, system mode and user mode behave differently —
 # exactly the inconsistency we care about preventing.
-grep -qE '^[[:space:]]*size[[:space:]]+50M[[:space:]]*$'   /etc/logrotate.d/lynxpm
-grep -qE '^[[:space:]]*rotate[[:space:]]+12[[:space:]]*$'  /etc/logrotate.d/lynxpm
-grep -qE '^[[:space:]]*weekly[[:space:]]*$'                /etc/logrotate.d/lynxpm
-grep -qE '^[[:space:]]*delaycompress[[:space:]]*$'         /etc/logrotate.d/lynxpm
-grep -qE '^[[:space:]]*notifempty[[:space:]]*$'            /etc/logrotate.d/lynxpm
+grep -qE '^[[:space:]]*size[[:space:]]+50M[[:space:]]*$'   /etc/logrotate.d/unitpm
+grep -qE '^[[:space:]]*rotate[[:space:]]+12[[:space:]]*$'  /etc/logrotate.d/unitpm
+grep -qE '^[[:space:]]*weekly[[:space:]]*$'                /etc/logrotate.d/unitpm
+grep -qE '^[[:space:]]*delaycompress[[:space:]]*$'         /etc/logrotate.d/unitpm
+grep -qE '^[[:space:]]*notifempty[[:space:]]*$'            /etc/logrotate.d/unitpm

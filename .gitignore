@@ -65,8 +65,8 @@ Thumbs.db
 # =====================
 # Debian Packaging
 # =====================
-debian/lynx/
-debian/lynx-pm/
+debian/unitpm/
+debian/glyndor-unitpm/
 debian/.debhelper/
 debian/files
 debian/*.substvars
@@ -78,11 +78,11 @@ debian/*.debhelper.log
 obj-*/
 
 # =====================
-# Lynx Binaries & Reports
+# unitpm Binaries & Reports
 # =====================
-/lynxpm
-/lynxd
-lynxpm_*
+/unitpm
+/unitpmd
+unitpm_*
 gosec*
 *.debhelper
 

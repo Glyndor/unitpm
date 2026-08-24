@@ -1,18 +1,18 @@
-# 🦁 `lynxpm install-tools`
+# 🦁 `unitpm install-tools`
 
 > *Automatically symlink common development tools to `/usr/local/bin`.*
 
 ## 📖 Synopsis
 
 ```bash
-sudo lynxpm install-tools [flags]
+sudo unitpm install-tools [flags]
 ```
 
 ## Description
 
 Automatically symlink common development tools (like `node`, `go`, `bun`, `python`) from the user's environment to `/usr/local/bin`.
 
-This is crucial because the Lynx daemon (when running in system mode) has a restricted `PATH` and might not see tools installed in your user's home directory (e.g., via `nvm`, `brew`, or `go install`). This command bridges that gap safely.
+This is crucial because the unitpm daemon (when running in system mode) has a restricted `PATH` and might not see tools installed in your user's home directory (e.g., via `nvm`, `brew`, or `go install`). This command bridges that gap safely.
 
 ## ⚙️ Flags
 
@@ -25,12 +25,12 @@ This is crucial because the Lynx daemon (when running in system mode) has a rest
 
 Scan and link tools interactively:
 ```bash
-sudo lynxpm install-tools
+sudo unitpm install-tools
 ```
 
 Scan and link tools without confirmation:
 ```bash
-sudo lynxpm install-tools --yes
+sudo unitpm install-tools --yes
 ```
 
 ## How it works

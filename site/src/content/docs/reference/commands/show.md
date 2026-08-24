@@ -1,11 +1,11 @@
 ---
-title: "lynxpm show"
-description: Show detailed runtime and spec for a single Lynx process — PID, uptime, restart history, resource limits, environment variables, and isolation mode.
+title: "unitpm show"
+description: Show detailed runtime and spec for a single unitpm process — PID, uptime, restart history, resource limits, environment variables, and isolation mode.
 head:
   - tag: script
     attrs:
       type: application/ld+json
-    content: '{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Lynx","item":"https://jaro-c.github.io/Lynx/"},{"@type":"ListItem","position":2,"name":"Reference","item":"https://jaro-c.github.io/Lynx/reference/architecture/"},{"@type":"ListItem","position":3,"name":"lynxpm show","item":"https://jaro-c.github.io/Lynx/reference/commands/show/"}]}'
+    content: '{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"unitpm","item":"https://jaro-c.github.io/unitpm/"},{"@type":"ListItem","position":2,"name":"Reference","item":"https://jaro-c.github.io/unitpm/reference/architecture/"},{"@type":"ListItem","position":3,"name":"unitpm show","item":"https://jaro-c.github.io/unitpm/reference/commands/show/"}]}'
 sidebar:
   label: show
 ---
@@ -15,12 +15,12 @@ sidebar:
 ## 📖 Synopsis
 
 ```bash
-lynxpm show <id|name|namespace:name> [--json]
+unitpm show <id|name|namespace:name> [--json]
 ```
 
 ## Description
 
-Prints everything Lynx knows about a single process as a set of box-drawing
+Prints everything unitpm knows about a single process as a set of box-drawing
 tables grouped by topic (Process, Exec, Environment, Logs, Restart, Stop,
 Resources, Isolation, Schedule, Watch). Values carry dual representations
 where useful — memory is rendered as both a human string and exact bytes,
@@ -39,26 +39,26 @@ relative. Pipe `--json` into `jq` for programmatic use.
 Show by name:
 
 ```bash
-lynxpm show my-api
+unitpm show my-api
 ```
 
 Show by namespace-qualified name:
 
 ```bash
-lynxpm info prod:my-api
+unitpm info prod:my-api
 ```
 
 Show by short ID:
 
 ```bash
-lynxpm describe 019d9a04
+unitpm describe 019d9a04
 ```
 
 Pipe JSON through `jq`:
 
 ```bash
-lynxpm show my-api --json | jq '.spec.env'
-lynxpm show my-api --json | jq '.info.memory_bytes'
+unitpm show my-api --json | jq '.spec.env'
+unitpm show my-api --json | jq '.info.memory_bytes'
 ```
 
 ## 📋 Example Output
@@ -114,9 +114,9 @@ Logs
 │ field     │ value                            │
 ├───────────┼──────────────────────────────────┤
 │ mode      │ file                             │
-│ dir       │ /var/log/lynx-pm/App-Web            │
-│ stdout    │ /var/log/lynx-pm/App-Web/stdout.log │
-│ stderr    │ /var/log/lynx-pm/App-Web/stderr.log │
+│ dir       │ /var/log/unitpm/App-Web            │
+│ stdout    │ /var/log/unitpm/App-Web/stdout.log │
+│ stderr    │ /var/log/unitpm/App-Web/stderr.log │
 │ format    │ plain                            │
 │ timestamp │ rfc3339                          │
 └───────────┴──────────────────────────────────┘

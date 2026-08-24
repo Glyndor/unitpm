@@ -23,22 +23,21 @@
 
 #![cfg(target_os = "linux")]
 
-use std::sync::{Mutex, MutexGuard};
-
-pub(crate) static ENV_LOCK: Mutex<()> = Mutex::new(());
-
 /// Guards every environment variable the tests reach into. Acquired on
 /// construction; restored on `Drop`. The restoration step is what makes
 /// this survive a panicking test — without it, the next test would find
 /// the variable pointing at a deleted temp directory.
 pub(crate) struct EnvGuard {
-	_held: MutexGuard<'static, ()>,
+	_held: crate::test_env::Guard,
 	prev: Vec<(&'static str, Option<String>)>,
 }
 
 impl EnvGuard {
 	pub(crate) fn new() -> Self {
-		let held = ENV_LOCK.lock().unwrap_or_else(|e| e.into_inner());
+		// The shared lock, not one of this module's own: these tests write
+		// UNITPM_SOCKET, and so do the transport tests. Two locks would have
+		// excluded neither from the other.
+		let held = crate::test_env::lock();
 		let vars = ["XDG_CONFIG_HOME", "XDG_STATE_HOME", "HOME", "UNITPM_SOCKET"];
 		let prev: Vec<(&'static str, Option<String>)> =
 			vars.iter().map(|k| (*k, std::env::var(k).ok())).collect();
@@ -48,6 +47,9 @@ impl EnvGuard {
 
 impl Drop for EnvGuard {
 	fn drop(&mut self) {
+		// The euid override is a process-wide static like the variables
+		// below, so it has to come back too or it leaks into the next test.
+		crate::paths::clear_euid_for_tests();
 		for (k, prev) in self.prev.iter().rev() {
 			match prev {
 				Some(v) => std::env::set_var(k, v),
@@ -74,7 +76,16 @@ pub(crate) fn new_manager() -> crate::daemon::handlers::SharedManager {
 	std::sync::Arc::new(std::sync::Mutex::new(crate::daemon::manager::Manager::new()))
 }
 
+/// Shared integration test scaffolding. Lives here (rather than inside
+/// `integration_tests`) so the per-topic test files (`flush_tests`,
+/// `proctree_tests`) can call `setup()` without crossing module
+/// boundaries — `super::super::integration_tests::setup` would chain
+/// through private modules.
+pub(crate) mod stack;
+
+mod flush_tests;
 mod integration_tests;
+mod proctree_tests;
 mod register_tests;
 mod service_tests;
 mod start_tests;

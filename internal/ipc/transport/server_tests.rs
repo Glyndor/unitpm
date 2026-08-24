@@ -10,19 +10,16 @@
 //! gated that way, and the listener uses Unix-only `listen`.
 
 use std::os::unix::fs::PermissionsExt;
-use std::sync::Mutex;
 
 use crate::ipc::protocol::RawMessage;
 use crate::ipc::transport::{Client, IPCClient, RequestContext, Server};
-
-static ENV_LOCK: Mutex<()> = Mutex::new(());
 
 /// Holds the env lock and restores `UNITPM_SOCKET` and
 /// `UNITPM_IPC_ALLOW_UIDS` on the way out. The daemon-unreachable test
 /// from the socket suite already covers the hint-style error, so this
 /// guard does not bother with `XDG_RUNTIME_DIR`.
 pub(crate) struct EnvGuard {
-	_unit: std::sync::MutexGuard<'static, ()>,
+	_unit: crate::test_env::Guard,
 	saved_socket: Option<String>,
 	saved_allowlist: Option<String>,
 }
@@ -31,7 +28,7 @@ impl EnvGuard {
 	pub(crate) fn new() -> Self {
 		// Take the lock first so the read of the saved values is consistent
 		// with the test body that mutates the env.
-		let _unit = ENV_LOCK.lock().unwrap_or_else(|e| e.into_inner());
+		let _unit = crate::test_env::lock();
 		let saved_socket = std::env::var("UNITPM_SOCKET").ok();
 		let saved_allowlist = std::env::var("UNITPM_IPC_ALLOW_UIDS").ok();
 		Self {
@@ -55,10 +52,20 @@ impl Drop for EnvGuard {
 	}
 }
 
+thread_local! {
+	/// The socket this thread's test asked for. `start_server_with` waits on
+	/// this rather than re-reading UNITPM_SOCKET: that variable is
+	/// process-global, so a test on another thread can change it between the
+	/// two reads and leave the wait watching a path nobody will ever create.
+	static TEST_SOCKET: std::cell::RefCell<Option<std::path::PathBuf>> =
+		const { std::cell::RefCell::new(None) };
+}
+
 pub(crate) fn setup_test_socket() -> (tempfile::TempDir, std::path::PathBuf) {
 	let dir = tempfile::tempdir().expect("tempdir");
 	let sock_path = dir.path().join("unitpm.sock");
 	std::env::set_var("UNITPM_SOCKET", sock_path.as_os_str());
+	TEST_SOCKET.with(|c| *c.borrow_mut() = Some(sock_path.clone()));
 	(dir, sock_path)
 }
 
@@ -69,9 +76,21 @@ where
 	let server = Server::new();
 	setup(&server);
 	server.start().expect("server start");
-	// Give the accept loop a moment to bind. The Go test uses 100ms; we
-	// keep it for parity.
-	std::thread::sleep(std::time::Duration::from_millis(100));
+	// Wait for the socket to exist rather than sleeping a fixed 100ms. The
+	// sleep was inherited from the Go suite; under a loaded runner it is
+	// both too short to be safe and, when it is enough, wasted time.
+	let path = TEST_SOCKET
+		.with(|c| c.borrow().clone())
+		.expect("call setup_test_socket() before start_server_with()");
+	let deadline = std::time::Instant::now() + std::time::Duration::from_secs(10);
+	while !std::path::Path::new(&path).exists() {
+		assert!(
+			std::time::Instant::now() < deadline,
+			"the accept loop never bound {}",
+			path.display()
+		);
+		std::thread::sleep(std::time::Duration::from_millis(2));
+	}
 	server
 }
 

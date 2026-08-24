@@ -1,5 +1,5 @@
 ---
-// A styled head-to-head table. The Lynx column is visually picked out with
+// A styled head-to-head table. The unitpm column is visually picked out with
 // a left-border accent + tinted background.
 const rows = [
   ['Runtime', 'Compiled Go', 'Node.js (V8)', 'Python'],
@@ -10,7 +10,7 @@ const rows = [
   ['Supervisor', 'systemd', 'Custom daemon', 'supervisord'],
   ['Crash resilience', 'Apps outlive the CLI', 'Apps die with PM2', 'Apps die with daemon'],
   ['Sandboxing', 'DynamicUser + landlock', 'User-space only', 'User-space only'],
-  ['Config', 'CLI or Lynxfile.yml', 'ecosystem.config.js', 'INI files'],
+  ['Config', 'CLI or unitpm.yml', 'ecosystem.config.js', 'INI files'],
 ];
 ---
 <section class="lx-compare">
@@ -19,7 +19,7 @@ const rows = [
     <h2>Stack up against the old guard.</h2>
     <p class="lx-compare__source">
       Numbers from
-      <a href="https://github.com/Jaro-c/Lynx/actions/workflows/bench.yml">CI bench</a>
+      <a href="https://github.com/Jaro-c/unitpm/actions/workflows/bench.yml">CI bench</a>
       — Ubuntu 24.04, kernel 6.17, idle daemon supervising 10 noop processes.
     </p>
   </header>
@@ -28,7 +28,7 @@ const rows = [
       <thead>
         <tr>
           <th></th>
-          <th class="lx-compare__th-lynx">🦁 Lynx</th>
+          <th class="lx-compare__th-unitpm">🦁 unitpm</th>
           <th>🐢 PM2</th>
           <th>🦖 Supervisor</th>
         </tr>
@@ -37,7 +37,7 @@ const rows = [
         {rows.map((r) => (
           <tr>
             <th scope="row">{r[0]}</th>
-            <td class="lx-compare__td-lynx"><strong>{r[1]}</strong></td>
+            <td class="lx-compare__td-unitpm"><strong>{r[1]}</strong></td>
             <td>{r[2]}</td>
             <td>{r[3]}</td>
           </tr>

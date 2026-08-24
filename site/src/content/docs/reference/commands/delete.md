@@ -1,11 +1,11 @@
 ---
-title: "lynxpm delete"
-description: Delete one or more Lynx-managed processes and remove their stored specs. Use --purge to also remove log files. Supports namespace selectors and globs.
+title: "unitpm delete"
+description: Delete one or more unitpm-managed processes and remove their stored specs. Use --purge to also remove log files. Supports namespace selectors and globs.
 head:
   - tag: script
     attrs:
       type: application/ld+json
-    content: '{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Lynx","item":"https://jaro-c.github.io/Lynx/"},{"@type":"ListItem","position":2,"name":"Reference","item":"https://jaro-c.github.io/Lynx/reference/architecture/"},{"@type":"ListItem","position":3,"name":"lynxpm delete","item":"https://jaro-c.github.io/Lynx/reference/commands/delete/"}]}'
+    content: '{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"unitpm","item":"https://jaro-c.github.io/unitpm/"},{"@type":"ListItem","position":2,"name":"Reference","item":"https://jaro-c.github.io/unitpm/reference/architecture/"},{"@type":"ListItem","position":3,"name":"unitpm delete","item":"https://jaro-c.github.io/unitpm/reference/commands/delete/"}]}'
 sidebar:
   label: delete
 ---
@@ -13,7 +13,7 @@ sidebar:
 ## 📖 Synopsis
 
 ```bash
-lynxpm delete|remove|rm [--purge] [--namespace <ns>] [--json] <id|name|ns:*|*>...
+unitpm delete|remove|rm [--purge] [--namespace <ns>] [--json] <id|name|ns:*|*>...
 ```
 
 ## Description
@@ -27,7 +27,7 @@ difference between a clean run and a partial failure.
 Bulk selectors:
 
 - `<ns>:*` — every process in that namespace. Quote the glob so the shell
-  does not expand it: `lynxpm delete 'prod:*'`.
+  does not expand it: `unitpm delete 'prod:*'`.
 - `*` or `*:*` — every managed process.
 - `--namespace <ns>` — same as `<ns>:*` but no shell quoting needed.
   Cannot be combined with positional targets. `--purge` still applies to
@@ -46,23 +46,23 @@ Bulk selectors:
 
 Delete a process (keep logs):
 ```bash
-lynxpm delete my-app
+unitpm delete my-app
 ```
 
 Delete a process and its logs:
 ```bash
-lynxpm delete --purge my-app
+unitpm delete --purge my-app
 ```
 
 Delete every process in the `prod` namespace, including logs:
 ```bash
-lynxpm delete --namespace prod --purge
-lynxpm delete 'prod:*' --purge        # equivalent selector form
+unitpm delete --namespace prod --purge
+unitpm delete 'prod:*' --purge        # equivalent selector form
 ```
 
 Delete many, read the outcome from JSON:
 ```bash
-lynxpm rm api worker-1 worker-2 --json | jq '.summary'
+unitpm rm api worker-1 worker-2 --json | jq '.summary'
 ```
 
 ## Exit codes

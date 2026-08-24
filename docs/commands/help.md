@@ -1,11 +1,11 @@
-# 🦁 `lynxpm help`
+# 🦁 `unitpm help`
 
-> *Display help information about Lynx commands.*
+> *Display help information about unitpm commands.*
 
 ## 📖 Synopsis
 
 ```bash
-lynxpm help [command]
+unitpm help [command]
 ```
 
 ## Description
@@ -23,19 +23,19 @@ Display the help message for the specified command, or the general help message 
 
 Show general help:
 ```bash
-lynxpm help
+unitpm help
 ```
 
 Show help for the `start` command:
 ```bash
-lynxpm help start
+unitpm help start
 ```
 
 ## 📋 Example Output
 
 ```
 Usage:
-  lynxpm <command> [flags]
+  unitpm <command> [flags]
 
 Commands:
   start       Start a new process
@@ -45,6 +45,6 @@ Commands:
   help        Help about any command
 
 Get Help:
-  lynxpm --help
-  lynxpm <command> --help
+  unitpm --help
+  unitpm <command> --help
 ```

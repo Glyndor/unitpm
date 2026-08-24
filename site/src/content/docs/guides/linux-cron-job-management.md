@@ -1,6 +1,6 @@
 ---
 title: Linux cron job management with a process manager
-description: Manage scheduled cron jobs on Linux with Lynx process manager. Replace fragile cron with supervised, restartable scheduled tasks that have logging, failure alerts, and declarative config.
+description: Manage scheduled cron jobs on Linux with unitpm process manager. Replace fragile cron with supervised, restartable scheduled tasks that have logging, failure alerts, and declarative config.
 ---
 
 Traditional `cron` runs scheduled jobs without supervision — if a job fails silently, you won't know until you notice the side effect. **Linux cron job management** with a process manager adds logging, restart-on-failure, and unified visibility across all your scheduled tasks.
@@ -20,12 +20,12 @@ Plain cron:
 - No resource limits
 - Cannot be managed alongside your long-running services
 
-## Lynx cron scheduling
+## unitpm cron scheduling
 
-Lynx supports cron-syntax scheduling for one-shot and recurring jobs:
+unitpm supports cron-syntax scheduling for one-shot and recurring jobs:
 
 ```bash
-lynxpm start "node /srv/scripts/backup.js" \
+unitpm start "node /srv/scripts/backup.js" \
   --name backup \
   --cron "0 3 * * *" \
   --restart on-failure \
@@ -36,8 +36,8 @@ lynxpm start "node /srv/scripts/backup.js" \
 This registers the job with systemd as a transient timer. The job:
 - Runs at 03:00 daily
 - Automatically restarts if it exits non-zero
-- Logs stdout/stderr via Lynx log management
-- Appears in `lynxpm list` with last run status
+- Logs stdout/stderr via unitpm log management
+- Appears in `unitpm list` with last run status
 
 ### Cron syntax
 
@@ -66,7 +66,7 @@ Examples:
 ### View scheduled jobs
 
 ```bash
-lynxpm list
+unitpm list
 # ┌──────────┬────────┬──────────┬──────────────────┬──────────────┐
 # │ id       │ name   │ type     │ schedule         │ last run     │
 # ├──────────┼────────┼──────────┼──────────────────┼──────────────┤
@@ -79,7 +79,7 @@ lynxpm list
 
 ```bash
 # Trigger immediately regardless of schedule
-lynxpm run backup
+unitpm run backup
 ```
 
 Useful for testing or running a job on demand without changing the schedule.
@@ -88,10 +88,10 @@ Useful for testing or running a job on demand without changing the schedule.
 
 ```bash
 # Last run output
-lynxpm logs backup --lines 100
+unitpm logs backup --lines 100
 
 # Follow the next scheduled run
-lynxpm logs backup --follow
+unitpm logs backup --follow
 ```
 
 ## Common cron job patterns
@@ -99,7 +99,7 @@ lynxpm logs backup --follow
 ### Database backup
 
 ```bash
-lynxpm start "pg_dump -Fc mydb > /backup/mydb-$(date +%Y%m%d).dump" \
+unitpm start "pg_dump -Fc mydb > /backup/mydb-$(date +%Y%m%d).dump" \
   --name db-backup \
   --cron "0 2 * * *" \
   --restart on-failure \
@@ -109,7 +109,7 @@ lynxpm start "pg_dump -Fc mydb > /backup/mydb-$(date +%Y%m%d).dump" \
 ### Log rotation and cleanup
 
 ```bash
-lynxpm start "find /var/log/app -name '*.log' -mtime +30 -delete" \
+unitpm start "find /var/log/app -name '*.log' -mtime +30 -delete" \
   --name log-cleanup \
   --cron "0 4 * * 0" \
   --restart never
@@ -118,7 +118,7 @@ lynxpm start "find /var/log/app -name '*.log' -mtime +30 -delete" \
 ### Sending a weekly report
 
 ```bash
-lynxpm start "node /srv/reports/weekly.js" \
+unitpm start "node /srv/reports/weekly.js" \
   --name weekly-report \
   --cron "0 9 * * 1" \
   --restart on-failure \
@@ -129,7 +129,7 @@ lynxpm start "node /srv/reports/weekly.js" \
 ### Cache warming
 
 ```bash
-lynxpm start "python3 /srv/scripts/warm-cache.py" \
+unitpm start "python3 /srv/scripts/warm-cache.py" \
   --name cache-warm \
   --cron "*/15 * * * *" \
   --restart never \
@@ -138,10 +138,10 @@ lynxpm start "python3 /srv/scripts/warm-cache.py" \
 
 `--restart never` is appropriate for cache warming — if it fails, skip this cycle and try again in 15 minutes.
 
-## Declarative cron jobs in Lynxfile.yml
+## Declarative cron jobs in unitpm.yml
 
 ```yaml
-# Lynxfile.yml
+# unitpm.yml
 version: 1
 processes:
   api:
@@ -176,24 +176,24 @@ Long-running services and cron jobs coexist in the same file, managed by the sam
 By default, if a cron job is still running when the next scheduled time arrives, a new instance starts (same behavior as system cron). To prevent overlap (run at most one instance at a time):
 
 ```bash
-lynxpm start "node /srv/scripts/sync.js" \
+unitpm start "node /srv/scripts/sync.js" \
   --name data-sync \
   --cron "*/10 * * * *" \
   --no-overlap
 ```
 
-With `--no-overlap`, if the job from the previous cycle is still running, Lynx skips the new run and logs the skip.
+With `--no-overlap`, if the job from the previous cycle is still running, unitpm skips the new run and logs the skip.
 
-## System cron vs Lynx cron: comparison
+## System cron vs unitpm cron: comparison
 
-| | System cron | Lynx cron |
+| | System cron | unitpm cron |
 |--|------------|-----------|
-| Visibility | Invisible until it runs | Always in `lynxpm list` |
-| Logging | System mail or syslog | `lynxpm logs <job>` |
+| Visibility | Invisible until it runs | Always in `unitpm list` |
+| Logging | System mail or syslog | `unitpm logs <job>` |
 | Restart on failure | No | Configurable |
 | Resource limits | No | Memory + CPU caps |
-| Declarative config | Per-user crontab | Lynxfile.yml |
-| Manual trigger | `run-parts` or direct | `lynxpm run <job>` |
+| Declarative config | Per-user crontab | unitpm.yml |
+| Manual trigger | `run-parts` or direct | `unitpm run <job>` |
 | Overlap prevention | Needs `flock` wrapper | `--no-overlap` |
 
 ## Migrating from crontab
@@ -204,7 +204,7 @@ Export current crontab:
 crontab -l
 ```
 
-Convert each line to a `lynxpm start --cron` command. Example:
+Convert each line to a `unitpm start --cron` command. Example:
 
 ```
 # Old crontab
@@ -214,7 +214,7 @@ Convert each line to a `lynxpm start --cron` command. Example:
 ```
 
 ```yaml
-# Lynxfile.yml
+# unitpm.yml
 version: 1
 processes:
   backup:
@@ -234,14 +234,14 @@ processes:
 ```
 
 ```bash
-lynxpm apply Lynxfile.yml
+unitpm apply unitpm.yml
 # Remove old crontab entries after verifying
 crontab -r
 ```
 
 ## See also
 
-- [lynxpm start](../reference/commands/start/) — full flag reference including `--cron`
-- [lynxpm run](../reference/commands/run/) — manual trigger
+- [unitpm start](../reference/commands/start/) — full flag reference including `--cron`
+- [unitpm run](../reference/commands/run/) — manual trigger
 - [Auto-restart on crash](./auto-restart-on-crash/)
 - [Monitor process memory and CPU on Linux](./monitor-process-memory-cpu-linux/)

@@ -1,16 +1,16 @@
-# 🦁 `lynxpm export`
+# 🦁 `unitpm export`
 
-> *Export all applications in a namespace to a Lynxfile YAML document.*
+> *Export all applications in a namespace to a unitpm.yml YAML document.*
 
 ## 📖 Synopsis
 
 ```bash
-lynxpm export --namespace <name>
+unitpm export --namespace <name>
 ```
 
 ## Description
 
-Export all applications in a namespace to a Lynxfile YAML document printed to stdout. Useful for migrating or backing up configurations.
+Export all applications in a namespace to a unitpm.yml YAML document printed to stdout. Useful for migrating or backing up configurations.
 
 ## ⚙️ Flags
 
@@ -23,10 +23,10 @@ Export all applications in a namespace to a Lynxfile YAML document printed to st
 
 Export the `default` namespace:
 ```bash
-lynxpm export --namespace default > Lynxfile.yml
+unitpm export --namespace default > unitpm.yml
 ```
 
 ## Notes
 
 - Only applications whose specs belong to the selected namespace are exported.
-- The resulting file matches the format accepted by `lynxpm apply`.
+- The resulting file matches the format accepted by `unitpm apply`.

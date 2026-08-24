@@ -1,7 +1,5 @@
 //! Tests for the term module — 8 cases mirroring `internal/term/color_test.go`.
 
-use std::sync::{Mutex, MutexGuard};
-
 use super::*;
 
 /// Process-global state in this module is the `QUIET` flag and the
@@ -13,17 +11,15 @@ use super::*;
 /// assertion cannot leave the next test running against the previous one's
 /// environment.
 pub(crate) struct TermGuard {
-	_lock: MutexGuard<'static, ()>,
+	_lock: crate::test_env::Guard,
 	prev_quiet: bool,
 	prev_no_color: Option<String>,
 	prev_term: Option<String>,
 }
 
-static TERM_LOCK: Mutex<()> = Mutex::new(());
-
 pub(crate) fn lock_term() -> TermGuard {
 	TermGuard {
-		_lock: TERM_LOCK.lock().unwrap_or_else(|e| e.into_inner()),
+		_lock: crate::test_env::lock(),
 		prev_quiet: is_quiet(),
 		prev_no_color: std::env::var("NO_COLOR").ok(),
 		prev_term: std::env::var("TERM").ok(),

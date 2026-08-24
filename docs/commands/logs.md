@@ -1,16 +1,16 @@
-# 🦁 `lynxpm logs`
+# 🦁 `unitpm logs`
 
-> *View and follow process log files managed by Lynx.*
+> *View and follow process log files managed by unitpm.*
 
 ## 📖 Synopsis
 
 ```bash
-lynxpm logs <id|name|namespace:name> [--lines N] [--follow] [--stdout] [--stderr]
+unitpm logs <id|name|namespace:name> [--lines N] [--follow] [--stdout] [--stderr]
 ```
 
 ## Description
 
-View and follow process log files managed by Lynx. Resolves per‑app stdout/stderr paths and tails their contents.
+View and follow process log files managed by unitpm. Resolves per‑app stdout/stderr paths and tails their contents.
 
 ## ⚙️ Flags
 
@@ -26,20 +26,20 @@ View and follow process log files managed by Lynx. Resolves per‑app stdout/std
 
 Show last 40 lines of both streams:
 ```bash
-lynxpm logs my-api
+unitpm logs my-api
 ```
 
 Follow stdout only:
 ```bash
-lynxpm logs default:my-api --stdout --follow
+unitpm logs default:my-api --stdout --follow
 ```
 
 Increase initial lines:
 ```bash
-lynxpm logs e73a9f1b --lines 1000
+unitpm logs e73a9f1b --lines 1000
 ```
 
 ## Notes
 
-- Log files are located under a secure per‑app directory. System mode defaults to `/var/log/lynx-pm/<id>/`; user mode uses the XDG state directory.
+- Log files are located under a secure per‑app directory. System mode defaults to `/var/log/unitpm/<id>/`; user mode uses the XDG state directory.
 - The command waits for log files to appear when `--follow` is enabled.

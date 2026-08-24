@@ -1,11 +1,11 @@
-# 🦁 `lynxpm delete | remove | rm`
+# 🦁 `unitpm delete | remove | rm`
 
 > *Delete one or more processes and their configurations.*
 
 ## 📖 Synopsis
 
 ```bash
-lynxpm delete|remove|rm [--purge] [--namespace <ns>] [--json] <id|name|ns:*|*>...
+unitpm delete|remove|rm [--purge] [--namespace <ns>] [--json] <id|name|ns:*|*>...
 ```
 
 ## Description
@@ -19,7 +19,7 @@ difference between a clean run and a partial failure.
 Bulk selectors:
 
 - `<ns>:*` — every process in that namespace. Quote the glob so the shell
-  does not expand it: `lynxpm delete 'prod:*'`.
+  does not expand it: `unitpm delete 'prod:*'`.
 - `*` or `*:*` — every managed process.
 - `--namespace <ns>` — same as `<ns>:*` but no shell quoting needed.
   Cannot be combined with positional targets. `--purge` still applies to
@@ -38,23 +38,23 @@ Bulk selectors:
 
 Delete a process (keep logs):
 ```bash
-lynxpm delete my-app
+unitpm delete my-app
 ```
 
 Delete a process and its logs:
 ```bash
-lynxpm delete --purge my-app
+unitpm delete --purge my-app
 ```
 
 Delete every process in the `prod` namespace, including logs:
 ```bash
-lynxpm delete --namespace prod --purge
-lynxpm delete 'prod:*' --purge        # equivalent selector form
+unitpm delete --namespace prod --purge
+unitpm delete 'prod:*' --purge        # equivalent selector form
 ```
 
 Delete many, read the outcome from JSON:
 ```bash
-lynxpm rm api worker-1 worker-2 --json | jq '.summary'
+unitpm rm api worker-1 worker-2 --json | jq '.summary'
 ```
 
 ## Exit codes

@@ -108,7 +108,7 @@ fn run_missing_args_errors() {
 	let rc = apply::run(None, &mut buf, &[]);
 	let err = rc.expect_err("empty args must error");
 	assert!(
-		err.to_string().contains("missing unitpmfile path"),
+		err.to_string().contains("missing unitpm.yml file path"),
 		"unexpected error: {err}"
 	);
 }

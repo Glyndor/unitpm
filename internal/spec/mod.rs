@@ -264,9 +264,7 @@ mod tests {
 	/// trailing cleanup never runs, so the first failure would leave every
 	/// later test pointing at a deleted temporary directory and bury its own
 	/// cause.
-	static ENV_LOCK: std::sync::Mutex<()> = std::sync::Mutex::new(());
-
-	struct EnvGuard(#[allow(dead_code)] std::sync::MutexGuard<'static, ()>);
+	struct EnvGuard(#[allow(dead_code)] crate::test_env::Guard);
 
 	impl Drop for EnvGuard {
 		fn drop(&mut self) {
@@ -275,7 +273,7 @@ mod tests {
 	}
 
 	fn env_lock() -> EnvGuard {
-		EnvGuard(ENV_LOCK.lock().unwrap_or_else(|e| e.into_inner()))
+		EnvGuard(crate::test_env::lock())
 	}
 	use crate::ipc::protocol::{AppExec as ProtocolAppExec, AppSpec as ProtocolAppSpec};
 

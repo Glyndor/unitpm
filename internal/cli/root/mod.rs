@@ -16,8 +16,10 @@
 //! the global [`execute`] / [`print_command_help`] / [`handle_error`]
 //! functions are the ones the binary entry point calls.
 
+pub(crate) mod dispatch_client;
 mod stubs;
 
+pub use dispatch_client::{install_dispatcher_client, TransportDispatcherClient};
 pub use stubs::{cmd, has_help, is_stubbed, not_yet_ported, register_all, run_dispatch, stub_spec};
 
 use std::io::{self, Write};
@@ -217,7 +219,7 @@ fn run_real<O: Write, E: Write>(name: &str, args: &[String], out: &mut O, err: &
 			"{name}: daemon unreachable (no IPC client wired into the dispatcher)"
 		))
 	};
-	let mut client = match stubs::take_dispatcher_client() {
+	let mut client = match dispatch_client::take_dispatcher_client() {
 		Some(c) => c,
 		None => {
 			handle_error_to(no_client_msg(), name, out, err);

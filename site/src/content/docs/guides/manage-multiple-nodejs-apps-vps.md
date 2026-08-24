@@ -1,9 +1,9 @@
 ---
 title: How to manage multiple Node.js apps on a VPS
-description: Run and manage multiple Node.js applications on a single Linux VPS using Lynx process manager. Covers namespaces, resource limits, Nginx reverse proxy, env files, and declarative config.
+description: Run and manage multiple Node.js applications on a single Linux VPS using unitpm process manager. Covers namespaces, resource limits, Nginx reverse proxy, env files, and declarative config.
 ---
 
-Running multiple Node.js applications on a single VPS is a common cost optimization. This guide covers how to **manage multiple Node.js apps on a Linux VPS** using Lynx process manager — with namespaces, resource limits, Nginx proxying, and declarative config.
+Running multiple Node.js applications on a single VPS is a common cost optimization. This guide covers how to **manage multiple Node.js apps on a Linux VPS** using unitpm process manager — with namespaces, resource limits, Nginx proxying, and declarative config.
 
 ## The problem with running multiple apps
 
@@ -14,7 +14,7 @@ When you run several apps on one server, the main risks are:
 - **Blast radius**: one crashing app should not affect others
 - **Config sprawl**: managing separate unit files or PM2 configs per app
 
-Lynx handles all four: each process is a separate systemd unit with configurable CPU/memory limits, and namespaces group related apps for bulk operations.
+unitpm handles all four: each process is a separate systemd unit with configurable CPU/memory limits, and namespaces group related apps for bulk operations.
 
 ## Architecture
 
@@ -26,7 +26,7 @@ Internet → Nginx (443/80)
               ├── /api → :4000 (Express API)
               └── /admin → :5000 (admin panel)
 
-Lynx manages:
+unitpm manages:
   ├── frontend  (namespace: prod)
   ├── api       (namespace: prod)
   └── admin     (namespace: prod)
@@ -34,11 +34,11 @@ Lynx manages:
 
 All apps bind to `127.0.0.1` (not `0.0.0.0`). Nginx handles TLS and public traffic.
 
-## Start multiple apps with Lynx
+## Start multiple apps with unitpm
 
 ```bash
 # Frontend
-lynxpm start "node /srv/frontend/server.js" \
+unitpm start "node /srv/frontend/server.js" \
   --name frontend \
   --namespace prod \
   --restart always \
@@ -47,7 +47,7 @@ lynxpm start "node /srv/frontend/server.js" \
   --memory-max 512M
 
 # API
-lynxpm start "node /srv/api/server.js" \
+unitpm start "node /srv/api/server.js" \
   --name api \
   --namespace prod \
   --restart always \
@@ -56,7 +56,7 @@ lynxpm start "node /srv/api/server.js" \
   --memory-max 256M
 
 # Admin panel
-lynxpm start "node /srv/admin/server.js" \
+unitpm start "node /srv/admin/server.js" \
   --name admin \
   --namespace prod \
   --restart always \
@@ -68,7 +68,7 @@ lynxpm start "node /srv/admin/server.js" \
 ### View all apps
 
 ```bash
-lynxpm list
+unitpm list
 # ┌──────────┬──────────┬──────────┬─────────┬─────────┐
 # │ id       │ name     │ namespace│ status  │ pid     │
 # ├──────────┼──────────┼──────────┼─────────┼─────────┤
@@ -82,13 +82,13 @@ lynxpm list
 
 ```bash
 # Restart entire production namespace (rolling, one at a time)
-lynxpm restart --namespace prod
+unitpm restart --namespace prod
 
 # Stop all for maintenance
-lynxpm stop --namespace prod
+unitpm stop --namespace prod
 
 # Resume
-lynxpm start --namespace prod
+unitpm start --namespace prod
 ```
 
 ## Declarative config (recommended for VPS)
@@ -96,7 +96,7 @@ lynxpm start --namespace prod
 Define all apps in a single file you can commit to version control:
 
 ```yaml
-# /srv/Lynxfile.yml
+# /srv/unitpm.yml
 version: 1
 processes:
   frontend:
@@ -137,10 +137,10 @@ processes:
 Apply or update:
 
 ```bash
-lynxpm apply /srv/Lynxfile.yml
+unitpm apply /srv/unitpm.yml
 ```
 
-Lynx only restarts processes whose config changed. `apply` is idempotent — safe to run on every deploy.
+unitpm only restarts processes whose config changed. `apply` is idempotent — safe to run on every deploy.
 
 ## Nginx reverse proxy
 
@@ -215,37 +215,37 @@ echo "Deploying $APP..."
 cd "$SRV"
 git pull origin main
 npm ci --production
-lynxpm restart "$APP"
+unitpm restart "$APP"
 
 echo "Done. Logs:"
-lynxpm logs "$APP" --lines 20
+unitpm logs "$APP" --lines 20
 ```
 
 ```bash
 # Deploy just the API
 deploy api
 
-# Or apply the full Lynxfile
+# Or apply the full unitpm.yml
 cd /srv && git pull
-lynxpm apply Lynxfile.yml
+unitpm apply unitpm.yml
 ```
 
 ## Enable boot persistence
 
 ```bash
-sudo lynxpm startup
+sudo unitpm startup
 ```
 
-On boot: `lynxd` starts, reads its state file, registers all processes with systemd. All apps come back without manual intervention.
+On boot: `unitpmd` starts, reads its state file, registers all processes with systemd. All apps come back without manual intervention.
 
 ## Monitoring all apps
 
 ```bash
 # Live dashboard — all apps, CPU + RSS per process
-lynxpm monit
+unitpm monit
 
 # JSON for scripting/alerting
-lynxpm list --json | jq '.[] | {name, status, cpu_pct, rss_bytes}'
+unitpm list --json | jq '.[] | {name, status, cpu_pct, rss_bytes}'
 ```
 
 ## Resource planning
@@ -255,7 +255,7 @@ Rule of thumb for a 2 GB VPS:
 | Component | Reserve |
 |-----------|---------|
 | OS + kernel | 200 MB |
-| Lynx daemon | 15 MB |
+| unitpm daemon | 15 MB |
 | Nginx | 5 MB |
 | Per Node.js app | 50-200 MB |
 | Buffer (peak) | 200 MB |
@@ -264,7 +264,7 @@ With `--memory-max` on each app, you guarantee the buffer stays available. Witho
 
 ## See also
 
-- [Install Lynx](../start/install/)
+- [Install unitpm](../start/install/)
 - [How to run a Node.js app as a Linux service](./nodejs-linux-service/)
 - [Zero-downtime deployment on Linux](./zero-downtime-deployment-linux/)
 - [How to set environment variables for a Linux service](./linux-service-environment-variables/)

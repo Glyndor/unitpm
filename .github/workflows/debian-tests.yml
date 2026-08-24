@@ -1,275 +1,41 @@
-name: Debian package tests
+name: debian
 
 on:
-  # On main: only run after CI passes — no point building .deb if tests failed.
-  workflow_run:
-    workflows: ["CI"]
-    types: [completed]
-    branches: [main]
-  # On PRs: run directly with path filtering for fast feedback.
-  pull_request:
-    branches: [main]
+  push:
+    branches: ["**"]
     paths:
       - "debian/**"
-      - ".github/workflows/debian-tests.yml"
-      - "cmd/**"
+      - "Cargo.toml"
+      - "Cargo.lock"
       - "internal/**"
-      - "go.mod"
-      - "go.sum"
+      - "cmd/**"
+      - ".github/workflows/debian-tests.yml"
+  pull_request:
+    paths:
+      - "debian/**"
+      - "Cargo.toml"
+      - "Cargo.lock"
+      - "internal/**"
+      - "cmd/**"
+      - ".github/workflows/debian-tests.yml"
 
 permissions:
   contents: read
 
-concurrency:
-  group: debian-tests-${{ github.event.workflow_run.head_sha || github.ref }}
-  cancel-in-progress: true
-
 jobs:
-  build-deb:
-    if: >
-      github.event_name == 'pull_request' ||
-      (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success')
-    name: Build .deb
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
-
-      - uses: actions/setup-go@4a3601121dd01d1626a1e23e37211e3254c1c06c # v6
-        with:
-          go-version-file: go.mod
-          cache: true
-
-      - name: Install debhelper
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y --no-install-recommends debhelper build-essential
-
-      - name: Build .deb
-        # setup-go put the modern toolchain first on PATH, so debian/rules'
-        # `go build` satisfies go.mod's 1.26 requirement even though the
-        # runner's `golang-go` package is older. -d skips Build-Depends check.
-        # CGO disabled so the binary has no glibc shlib deps — lets the same
-        # .deb install cleanly across the matrix (ubuntu 22.04 → trixie).
-        env:
-          CGO_ENABLED: "0"
-        run: |
-          dpkg-buildpackage -us -uc -b -d
-          mkdir -p debs
-          cp ../lynxpm_*.deb debs/
-
-      - name: Upload .deb artifact
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
-        with:
-          name: lynxpm-deb
-          path: debs/*.deb
-          retention-days: 7
-
-      - name: Cross-compile sample Go binary for smoke
-        # testdata/apps/go-compiled ships as source only; install-matrix
-        # containers lack a Go toolchain, so we build it here (CGO off
-        # for matching no-shlib-deps semantics with the real release
-        # binaries) and ship it alongside the .deb.
-        env:
-          CGO_ENABLED: "0"
-        run: make -C testdata/apps/go-compiled build
-
-      - name: Upload testdata-compiled artifact
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
-        with:
-          name: testdata-compiled
-          path: testdata/apps/go-compiled/go-compiled
-          retention-days: 7
-
-  lintian:
-    name: Lintian
-    needs: build-deb
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
-        with:
-          name: lynxpm-deb
-          path: debs
-
-      - name: Install lintian
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y --no-install-recommends lintian
-
-      - name: Run lintian
-        run: lintian --fail-on error --info --display-info debs/*.deb
-
-  install-matrix:
-    name: Install (${{ matrix.image }})
-    needs: build-deb
-    runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        image:
-          - debian:bookworm
-          - debian:trixie
-          - ubuntu:22.04
-          - ubuntu:24.04
-    container:
-      image: ${{ matrix.image }}
-    steps:
-      # Need the repo source (testdata/smoke.sh + testdata/apps/) in
-      # addition to the built .deb, so the smoke can exercise real apps
-      # instead of inlining everything into the workflow yaml.
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
-
-      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
-        with:
-          name: lynxpm-deb
-          path: debs
-
-      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
-        with:
-          name: testdata-compiled
-          path: testdata/apps/go-compiled/
-
-      - name: Prepare container (block service start, no interactive prompts)
-        run: |
-          set -eux
-          export DEBIAN_FRONTEND=noninteractive
-          # policy-rc.d = 101 tells maintainer scripts "do not start services".
-          # Containers lack systemd as PID 1 so any attempt would fail.
-          printf '#!/bin/sh\nexit 101\n' > /usr/sbin/policy-rc.d
-          chmod +x /usr/sbin/policy-rc.d
-          apt-get update
-          apt-get install -y --no-install-recommends \
-            adduser ca-certificates systemd policykit-1 || \
-          apt-get install -y --no-install-recommends \
-            adduser ca-certificates systemd polkitd
-
-      - name: Install lynxpm from .deb
-        env:
-          DEBIAN_FRONTEND: noninteractive
-        run: apt-get install -y ./debs/*.deb
-
-      - name: Smoke — CLI + filesystem layout
-        run: |
-          set -eux
-          command -v lynxpm
-          command -v lynxd
-          lynxpm --version
-          lynxpm --help >/dev/null
-          [ -f /usr/lib/systemd/system/lynxd.service ] || [ -f /lib/systemd/system/lynxd.service ]
-          getent passwd lynx
-          getent group lynxadm
-          [ -d /var/lib/lynx-pm ]
-          [ -d /var/log/lynx-pm ]
-
-      - name: Smoke — testdata/smoke.sh against installed .deb
-        # Delegates to the repo's smoke script so the scenarios stay in
-        # one place (reusable by local dev + CI). Covers every lifecycle
-        # command plus the namespace bulk selectors, the process-group
-        # forkstorm regression, the --max-restarts cap, and a real node
-        # HTTP listener — against the binary the .deb actually installs.
-        env:
-          # The apt install below pulls tzdata in on ubuntu:22.04 via
-          # ruby's dependency chain; without the noninteractive frontend
-          # tzdata's postinst asks for a geographic area on the tty and
-          # the whole job hangs until GH Actions kills it.
-          DEBIAN_FRONTEND: noninteractive
-          TZ: Etc/UTC
-        run: |
-          set -eux
-          # procps+util-linux for pgrep/pkill/runuser; one of each
-          # supported interpreter for the sample apps. php-cli + ruby
-          # added in v0.9.2 alongside the go-compiled artifact. bash/
-          # coreutils ship in the base image.
-          apt-get install -y --no-install-recommends \
-              procps util-linux nodejs python3 php-cli ruby
-          # The downloaded artifact lands without +x; make the binary
-          # executable before the smoke tries to run it.
-          chmod +x testdata/apps/go-compiled/go-compiled
-
-          id testuser 2>/dev/null || useradd -m -s /bin/sh testuser
-
-          # Hand the repo over to testuser so runuser can read it.
-          chown -R testuser:testuser "$GITHUB_WORKSPACE"
-          install -d -m 0700 -o testuser -g testuser /tmp/xdg-test
-
-          runuser -u testuser -- bash -eu <<SMOKE
-          export XDG_RUNTIME_DIR=/tmp/xdg-test
-          export HOME=/home/testuser
-          cd "$GITHUB_WORKSPACE"
-
-          lynxd >/tmp/lynxd.log 2>&1 &
-          DAEMON_PID=\$!
-          trap 'kill "\$DAEMON_PID" 2>/dev/null || true' EXIT
-
-          bash testdata/smoke.sh
-          SMOKE
-
-      - name: Dump lynxd log on failure
-        if: failure()
-        run: cat /tmp/lynxd.log 2>/dev/null || true
-
-      - name: Purge — leaves no files behind (sanity)
-        run: |
-          set -eux
-          apt-get purge -y lynxpm
-          # Binary and unit file must be gone after purge.
-          ! command -v lynxpm
-          ! command -v lynxd
-          [ ! -f /usr/lib/systemd/system/lynxd.service ]
-          [ ! -f /lib/systemd/system/lynxd.service ]
-
-  piuparts:
-    name: Piuparts (install/upgrade/purge)
-    needs: build-deb
-    runs-on: ubuntu-latest
-    # piuparts is no longer packaged in Ubuntu 24.04's default archive, so
-    # host the job inside a Debian container. The container must be privileged
-    # for debootstrap's chroot/mount operations to succeed.
-    container:
-      image: debian:trixie
-      options: --privileged
-    steps:
-      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
-        with:
-          name: lynxpm-deb
-          path: debs
-
-      - name: Install piuparts
-        run: |
-          apt-get update
-          apt-get install -y --no-install-recommends piuparts debootstrap ca-certificates
-
-      - name: Run piuparts
-        # --no-diversions: we don't ship dpkg-divert calls.
-        # -d trixie: bootstrap a stable Debian chroot for the install/purge cycle.
-        # --warn-on-leftovers-after-purge → the job still fails on maintainer
-        # script errors, but mere leftover /var files (logs, user data) warn only.
-        run: |
-          piuparts \
-            --no-diversions \
-            -d trixie \
-            --mirror=http://deb.debian.org/debian \
-            --warn-on-leftovers-after-purge \
-            debs/*.deb
-
-  autopkgtest:
-    name: Autopkgtest (smoke)
-    needs: build-deb
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
-
-      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
-        with:
-          name: lynxpm-deb
-          path: debs
-
-      - name: Install autopkgtest
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y --no-install-recommends autopkgtest
-
-      - name: Run autopkgtest
-        # `-- null` runs the tests directly on the runner. Ephemeral VM, so
-        # the lack of isolation from the SUT is acceptable here.
-        run: |
-          sudo autopkgtest debs/*.deb . -- null
+  debian:
+    uses: Glyndor/.github/.github/workflows/rust-debian.yml@eb930630069c53c0119c89eb7929e2845efdb888 # v1.18.2
+    with:
+      package-name: unitpm
+      # debian/rules builds for musl so the package carries no libc floor,
+      # and Debian's toolchain ships no musl standard library. Keep this in
+      # step with rust-ci's toolchain: the packaged binary must come from
+      # the compiler CI validates with.
+      rust-toolchain: "1.98"
+      rust-target: x86_64-unknown-linux-musl
+      # The updater speaks HTTPS, so ureq -> rustls -> ring is in the tree
+      # and ring compiles C. Cross-compiling that to musl needs a musl C
+      # toolchain, which the job's fixed tooling list does not carry. It
+      # cannot go in Build-Depends either: dpkg-checkbuilddeps would then
+      # fail for a package this job never installs.
+      apt-packages: musl-tools

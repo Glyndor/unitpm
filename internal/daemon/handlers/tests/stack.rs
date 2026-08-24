@@ -1,0 +1,89 @@
+//! End-to-end IPC stack fixture used by every test in this directory.
+//!
+//! The fixture is a `unitpmd`-style stack — manager, IPC server with
+//! all handlers registered, and a connected client — bound to a temp
+//! socket. The accompanying `EnvGuard` keeps the process-wide
+//! `XDG_*` / `UNITPM_SOCKET` variables from leaking between parallel
+//! tests, so two tests can each point at their own temp dir without
+//! one re-pointing the env while the other is mid-write.
+
+#![cfg(target_os = "linux")]
+
+use std::sync::Arc;
+use std::time::Duration;
+
+use crate::daemon::audit::Logger;
+use crate::daemon::handlers::register_handlers;
+use crate::ipc::transport::{Client, Server};
+
+use super::EnvGuard;
+
+/// The bundled server + client + manager that a test gets from
+/// [`setup`]. The `Server` lives until [`drop_stack`] is called or
+/// the value drops, whichever comes first.
+pub(crate) struct Stack {
+	pub(crate) server: Server,
+	pub(crate) client: Client,
+	pub(crate) mgr: std::sync::Arc<std::sync::Mutex<crate::daemon::manager::Manager>>,
+	pub(crate) _temp: tempfile::TempDir,
+	/// Held for the lifetime of the test, not just of [`setup`]. It used to be
+	/// a local in `setup`, which dropped it on the way out: the variables were
+	/// restored and the lock released before the test body ran, so the doc
+	/// comment below described something the code did not do.
+	pub(crate) _env: EnvGuard,
+}
+
+/// Wire a real `unitpmd`-style stack — manager, IPC server, registered
+/// handlers, and a connected client — against a temp dir and a temp
+/// socket. The [`EnvGuard`] keeps `XDG_CONFIG_HOME`, `XDG_STATE_HOME`,
+/// `HOME`, and `UNITPM_SOCKET` from leaking between parallel tests.
+pub(crate) fn setup() -> Stack {
+	let env = EnvGuard::new();
+	// Every handler test asserts user-mode behaviour against temp dirs. The
+	// suite runs as root under dpkg-buildpackage, where the resolver correctly
+	// switches to the system paths and refuses a log dir under /tmp. Pinning
+	// the uid makes the result independent of who runs the tests; the guard
+	// clears it on the way out.
+	crate::paths::set_euid_for_tests(1000);
+	let temp = tempfile::tempdir().expect("tempdir");
+	std::env::set_var("XDG_CONFIG_HOME", temp.path());
+	std::env::set_var("XDG_STATE_HOME", temp.path());
+	std::env::set_var("HOME", temp.path());
+	let socket = temp.path().join("unitpm.sock");
+	std::env::set_var("UNITPM_SOCKET", &socket);
+
+	let mgr = super::new_manager();
+	let server = Server::new();
+	register_handlers(&server, Arc::clone(&mgr), false, Logger::disabled());
+
+	let socket_path = server.start().expect("server start");
+	// Give the accept loop a moment to bind.
+	std::thread::sleep(Duration::from_millis(100));
+
+	let client = Client::connect_to(&socket_path).expect("connect");
+
+	Stack {
+		server,
+		client,
+		mgr,
+		_temp: temp,
+		_env: env,
+	}
+}
+
+/// Drop a [`Stack`] in the right order: close the server first so the
+/// accept loop ends, then the client, then drop the manager.
+pub(crate) fn drop_stack(stack: Stack) {
+	let Stack {
+		server,
+		client,
+		mgr: _mgr,
+		_temp,
+		_env,
+	} = stack;
+	server.close();
+	drop(client);
+	// `_temp`, `_mgr` and `_env` go out of scope here. `_env` last of the
+	// three that matter: it restores the environment and releases the shared
+	// lock, and the server must be closed before that happens.
+}

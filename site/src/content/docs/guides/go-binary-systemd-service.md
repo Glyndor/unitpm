@@ -1,9 +1,9 @@
 ---
 title: How to run a Go binary as a systemd service
-description: Deploy a compiled Go binary as a persistent Linux service with auto-restart, resource limits, and sandboxing using Lynx process manager and systemd. Covers build, deploy, and update workflows.
+description: Deploy a compiled Go binary as a persistent Linux service with auto-restart, resource limits, and sandboxing using unitpm process manager and systemd. Covers build, deploy, and update workflows.
 ---
 
-A compiled Go binary is one of the easiest things to deploy as a Linux service — no runtime, no dependencies, just a single file. This guide covers how to run a Go binary as a **systemd service** using Lynx process manager (recommended) and plain systemd unit files.
+A compiled Go binary is one of the easiest things to deploy as a Linux service — no runtime, no dependencies, just a single file. This guide covers how to run a Go binary as a **systemd service** using unitpm process manager (recommended) and plain systemd unit files.
 
 ## Why Go binaries are ideal for Linux services
 
@@ -46,20 +46,20 @@ sudo chown root:root /srv/api/server
 sudo chmod 755 /srv/api/server
 ```
 
-## Option 1: Lynx (recommended)
+## Option 1: unitpm (recommended)
 
-### Install Lynx
+### Install unitpm
 
 ```bash
-sudo apt install ./lynxpm_*_amd64.deb
-sudo usermod -aG lynxadm "$USER" && newgrp lynxadm
-sudo systemctl enable --now lynxd
+sudo apt install ./unitpm_*_amd64.deb
+sudo usermod -aG unitpm "$USER" && newgrp unitpm
+sudo systemctl enable --now unitpmd
 ```
 
 ### Start the service
 
 ```bash
-lynxpm start "/srv/api/server" \
+unitpm start "/srv/api/server" \
   --name api \
   --restart on-failure \
   --cwd /srv/api
@@ -68,7 +68,7 @@ lynxpm start "/srv/api/server" \
 ### Pass environment variables
 
 ```bash
-lynxpm start "/srv/api/server" \
+unitpm start "/srv/api/server" \
   --name api \
   --restart on-failure \
   --cwd /srv/api \
@@ -87,7 +87,7 @@ METRICS_ADDR=:9090
 ### Set resource limits
 
 ```bash
-lynxpm start "/srv/api/server" \
+unitpm start "/srv/api/server" \
   --name api \
   --restart always \
   --cwd /srv/api \
@@ -98,17 +98,17 @@ lynxpm start "/srv/api/server" \
 
 ### Enable sandboxing
 
-Lynx supports systemd's `DynamicUser` for zero-privilege deployment — the process runs as a generated UID with no persistent identity:
+unitpm supports systemd's `DynamicUser` for zero-privilege deployment — the process runs as a generated UID with no persistent identity:
 
 ```bash
-lynxpm start "/srv/api/server" \
+unitpm start "/srv/api/server" \
   --name api \
   --restart on-failure \
   --env-file .env \
   --sandbox
 ```
 
-Or via Lynxfile.yml:
+Or via unitpm.yml:
 
 ```yaml
 version: 1
@@ -125,14 +125,14 @@ processes:
 ### Enable on boot
 
 ```bash
-sudo lynxpm startup
+sudo unitpm startup
 ```
 
 ### Verify
 
 ```bash
-lynxpm list
-lynxpm logs api --follow
+unitpm list
+unitpm logs api --follow
 ```
 
 ## Option 2: Plain systemd unit file
@@ -176,10 +176,10 @@ sudo journalctl -u api -f
 
 ### File descriptor limits
 
-Go services often need high `NOFILE` limits for connection-heavy servers. Set `LimitNOFILE=65536` in the unit or via Lynx:
+Go services often need high `NOFILE` limits for connection-heavy servers. Set `LimitNOFILE=65536` in the unit or via unitpm:
 
 ```bash
-lynxpm start "/srv/api/server" --name api --restart on-failure --fd-limit 65536
+unitpm start "/srv/api/server" --name api --restart on-failure --fd-limit 65536
 ```
 
 ## Zero-downtime binary updates
@@ -193,8 +193,8 @@ scp bin/server user@host:/srv/api/server.new
 # Atomic replace (on same filesystem)
 mv /srv/api/server.new /srv/api/server
 
-# Restart with Lynx (graceful: sends SIGTERM, waits, starts new)
-lynxpm restart api
+# Restart with unitpm (graceful: sends SIGTERM, waits, starts new)
+unitpm restart api
 ```
 
 For true zero-downtime (no dropped connections), implement graceful shutdown in the Go binary:
@@ -211,10 +211,10 @@ defer cancel()
 srv.Shutdown(ctx)
 ```
 
-Then use Lynx's stop timeout:
+Then use unitpm's stop timeout:
 
 ```bash
-lynxpm start "/srv/api/server" \
+unitpm start "/srv/api/server" \
   --name api \
   --restart always \
   --stop-timeout 30000
@@ -223,18 +223,18 @@ lynxpm start "/srv/api/server" \
 ## Multiple Go services
 
 ```bash
-lynxpm start "/srv/api/server"      --name api      --namespace backend --restart on-failure --env-file /srv/api/.env
-lynxpm start "/srv/worker/worker"   --name worker   --namespace backend --restart on-failure --env-file /srv/worker/.env
-lynxpm start "/srv/metrics/metrics" --name metrics  --namespace backend --restart on-failure
+unitpm start "/srv/api/server"      --name api      --namespace backend --restart on-failure --env-file /srv/api/.env
+unitpm start "/srv/worker/worker"   --name worker   --namespace backend --restart on-failure --env-file /srv/worker/.env
+unitpm start "/srv/metrics/metrics" --name metrics  --namespace backend --restart on-failure
 
 # Deploy all
-lynxpm restart --namespace backend
+unitpm restart --namespace backend
 ```
 
 ## Declarative config
 
 ```yaml
-# Lynxfile.yml
+# unitpm.yml
 version: 1
 processes:
   api:
@@ -252,7 +252,7 @@ processes:
 ```
 
 ```bash
-lynxpm apply Lynxfile.yml
+unitpm apply unitpm.yml
 ```
 
 ## Common issues
@@ -262,7 +262,7 @@ lynxpm apply Lynxfile.yml
 Default `stop-timeout` is 30 s. If your binary ignores SIGTERM, adjust:
 
 ```bash
-lynxpm start "/srv/api/server" --name api --stop-timeout 5000
+unitpm start "/srv/api/server" --name api --stop-timeout 5000
 ```
 
 Or add signal handling in the binary (see graceful shutdown above).
@@ -279,12 +279,12 @@ Ports < 1024 require root or `CAP_NET_BIND_SERVICE`. Options:
 Increase memory limit or profile with `pprof`:
 
 ```bash
-lynxpm start "/srv/api/server -pprof :6060" --name api --memory-max 512M ...
+unitpm start "/srv/api/server -pprof :6060" --name api --memory-max 512M ...
 ```
 
 ## See also
 
-- [lynxpm start](../reference/commands/start/) — full flag reference
+- [unitpm start](../reference/commands/start/) — full flag reference
 - [Zero-downtime deployment on Linux](./zero-downtime-deployment-linux/)
 - [systemd DynamicUser sandboxing](./systemd-dynamicuser/)
 - [How to set environment variables for a Linux service](./linux-service-environment-variables/)
