@@ -100,20 +100,23 @@ jobs:
           rustup toolchain install 1.98 --profile minimal --no-self-update
           rustup target add --toolchain 1.98 "$TARGET"
 
-      - name: Install the musl cross linker
+      - name: Install the musl cross toolchain
         env:
           TARGET: ${{ matrix.target }}
         run: |
           set -euo pipefail
           # `ring` compiles C and assembly, so a musl target needs a real cross
-          # compiler; the Rust std alone is not enough. zig ships one for every
-          # musl arch in a single pinned download, which beats fetching an
-          # unpinned toolchain from musl.cc.
+          # compiler; the Rust std alone is not enough. musl-tools covers
+          # x86_64, which is the host arch here.
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends musl-tools
           if [ "$TARGET" = "aarch64-unknown-linux-musl" ]; then
-            cargo install cargo-zigbuild --locked --version 0.20.1
-            pip install --user ziglang==0.13.0
+            # aarch64 goes through cross, which runs the build in an image
+            # carrying a real aarch64 musl toolchain. cargo-zigbuild was the
+            # first attempt and zig rejects the linker argument rustc passes
+            # by default for this target:
+            #   error: unsupported linker arg: --fix-cortex-a53-843419
+            cargo install cross --locked --version 0.2.5
           fi
 
       - name: Build
@@ -122,7 +125,7 @@ jobs:
         run: |
           set -euo pipefail
           if [ "$TARGET" = "aarch64-unknown-linux-musl" ]; then
-            cargo +1.98 zigbuild --release --locked --all-features --target "$TARGET"
+            cross +1.98 build --release --locked --all-features --target "$TARGET"
           else
             cargo +1.98 build --release --locked --all-features --target "$TARGET"
           fi
@@ -141,7 +144,7 @@ jobs:
           # binary build above stays green. Checking here reports it against
           # the job named for the architecture instead.
           if [ "$TARGET" = "aarch64-unknown-linux-musl" ]; then
-            cargo +1.98 zigbuild --release --locked --all-features --all-targets --target "$TARGET"
+            cross +1.98 check --release --locked --all-features --all-targets --target "$TARGET"
           else
             cargo +1.98 check --release --locked --all-features --all-targets --target "$TARGET"
           fi
