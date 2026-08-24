@@ -1,3 +1,27 @@
+unitpm (0.14.0-1) unstable; urgency=medium
+
+  * The package is renamed from lynxpm to unitpm and rewritten in Rust. This
+    breaks every existing install and there is no automatic migration:
+    - The CLI is `unitpm` and the daemon is `unitpmd`. The daemon is not
+      `unitd`, which would collide with NGINX Unit.
+    - The service account is `glyndor-unitpm`, not the bare product name.
+    - State moves to /var/lib/glyndor/unitpm, logs to
+      /var/log/glyndor/unitpm, and specs to $XDG_CONFIG_HOME/unitpm/apps.
+    - The user socket is $XDG_RUNTIME_DIR/unitpm-<uid>/unitpm.sock and the
+      system socket lives under /run/unitpmd.
+    - systemd units are named unitpm-app-*, which is what the polkit rule
+      matches on.
+    - The manifest is unitpm.yml; Lynxfile is no longer read.
+  * The Go tree is gone. debian/rules builds with cargo for a musl target so
+    the package declares no libc floor, and the toolchain comes from the
+    workflow rather than from Build-Depends, since Debian ships no musl
+    standard library.
+  * fix(rlimit): the crate did not compile for musl at all. set_one took the
+    glibc type for the setrlimit resource argument, which musl declares as
+    c_int, so the package could never have been built from its own target.
+
+ -- Glyndor <packages@glyndor.net>  Sun, 23 Aug 2026 21:15:00 -0500
+
 lynxpm (0.13.1-1) unstable; urgency=medium
 
   * fix(security): update the Go toolchain to 1.26.4, resolving four
