@@ -24,7 +24,7 @@ permissions:
 
 jobs:
   debian:
-    uses: Glyndor/.github/.github/workflows/rust-debian.yml@eb930630069c53c0119c89eb7929e2845efdb888 # v1.18.2
+    uses: Glyndor/.github/.github/workflows/rust-debian.yml@8ae47ccd49ffdbf59d1acf7e6f9c18165bfba959 # v1.19.0
     with:
       package-name: unitpm
       # debian/rules builds for musl so the package carries no libc floor,
