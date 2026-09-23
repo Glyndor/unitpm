@@ -1,44 +1,19 @@
-# EditorConfig is awesome: https://editorconfig.org
-# Top-most EditorConfig file
 root = true
 
 [*]
-charset = utf-8
-end_of_line = lf
-insert_final_newline = true
-trim_trailing_whitespace = true
-
-# Use tabs by default
 indent_style = tab
 indent_size = 4
-tab_width = 4
+end_of_line = lf
+charset = utf-8
+trim_trailing_whitespace = true
+insert_final_newline = true
+max_line_length = 120
 
-# Go files
-[*.go]
-indent_style = tab
-tab_width = 4
-
-# Makefiles require tabs
-[Makefile]
-indent_style = tab
-
-# YAML / JSON / TOML / Config files
-[*.{yml,yaml,json,toml}]
+[*.{json,yml,yaml}]
 indent_style = space
 indent_size = 2
 
-# Markdown
 [*.md]
 indent_style = space
 indent_size = 2
 trim_trailing_whitespace = false
-
-# Shell scripts
-[*.{sh,bash}]
-indent_style = space
-indent_size = 4
-
-# Docker
-[Dockerfile]
-indent_style = space
-indent_size = 4
